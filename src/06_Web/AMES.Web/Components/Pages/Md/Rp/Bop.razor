@@ -241,7 +241,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bop.Title"] — @L["Modal.Create"]</div>
 
             @StepFormFields(false)
@@ -272,7 +272,7 @@
 @if (_modal == "edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["MD.Bop.Title"] — @L["Modal.Edit"]
                 <span class="pill @Ui.RoutingClass(_f.RoutingType)" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
@@ -317,9 +317,9 @@
 @if (_modal == "copy")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
-                @L["MD.Bop.CopyStep"]
+@L["MD.Bop.CopyStep"]
                 <span class="dim" style="margin-left:6px;font-size:.88em;font-weight:400;">→ @_selItem?.ItemNo</span>
             </div>
 

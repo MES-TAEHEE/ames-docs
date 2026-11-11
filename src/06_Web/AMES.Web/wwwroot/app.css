@@ -5861,6 +5861,10 @@ input[data-ames-x] {
 .ipk { will-change: transform; }
 .ipk.ipk-dragging { box-shadow: 0 12px 40px rgba(0,0,0,.45); }
 .ipk.ipk-dragging * { cursor: move !important; }
+/* 움직이는 팝업(js/modal-drag.js) — 클래스 ames-movable 을 단 팝업만 머리를 잡고 끈다. 끄는 동안만 will-change 를 켠다 */
+.ames-movable > .ames-modal-h { cursor: move; user-select: none; touch-action: none; }
+.ames-movable.ames-modal-dragging { will-change: transform; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+.ames-movable.ames-modal-dragging * { cursor: move !important; }
 .ipk-top { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; align-items: stretch; }
 .ipk-stock { border: 1px solid var(--ames-bd-white-a12); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
 .ipk-stock.low { border-color: rgba(251,191,36,.55); }
