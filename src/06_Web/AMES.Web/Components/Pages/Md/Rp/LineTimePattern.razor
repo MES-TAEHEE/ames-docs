@@ -221,6 +221,7 @@
                                  title="@SegTitleR(bs.St, bs.S, bs.E)"
                                  @onclick="() => OpenBand(sh, bs.S, bs.E, bs.St)">
                                 @if (WideEnoughShift(wMin, sh)) { <span style="padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@SegBarTextR(bs.St, wMin)</span> }
+                                else if (NarrowEnoughShift(wMin, sh)) { <span style="padding:0 3px;overflow:hidden;white-space:nowrap;">@wMin@L["Lbl.Min"]</span> }
                             </div>
                         }
                         @if (_canEdit)
@@ -298,9 +299,21 @@
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">
                 <span style="font-size:13px;color:var(--ames-tx-slate-300);">@L["MD.LineTimePattern.Lbl.BandStart"]</span>
-                <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandStart" disabled="@(!_canEdit)" style="width:110px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+                <div style="position:relative;width:120px;flex:none;">
+                    <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandStart" disabled="@(!_canEdit)" style="width:100%;padding-right:26px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+                    <div style="position:absolute;right:3px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;">
+                        <RadzenButton Icon="keyboard_arrow_up" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Disabled="@(!_canEdit)" Click="@(() => StepBandTime(true, 1))" class="ames-rz-btn" Style="height:16px;min-width:20px;width:20px;padding:0;" />
+                        <RadzenButton Icon="keyboard_arrow_down" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Disabled="@(!_canEdit)" Click="@(() => StepBandTime(true, -1))" class="ames-rz-btn" Style="height:16px;min-width:20px;width:20px;padding:0;" />
+                    </div>
+                </div>
                 <span style="font-size:13px;color:var(--ames-tx-slate-300);">@L["MD.LineTimePattern.Lbl.BandEnd"]</span>
-                <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandEnd" disabled="@(!_canEdit)" style="width:110px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+                <div style="position:relative;width:120px;flex:none;">
+                    <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandEnd" disabled="@(!_canEdit)" style="width:100%;padding-right:26px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+                    <div style="position:absolute;right:3px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;">
+                        <RadzenButton Icon="keyboard_arrow_up" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Disabled="@(!_canEdit)" Click="@(() => StepBandTime(false, 1))" class="ames-rz-btn" Style="height:16px;min-width:20px;width:20px;padding:0;" />
+                        <RadzenButton Icon="keyboard_arrow_down" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Disabled="@(!_canEdit)" Click="@(() => StepBandTime(false, -1))" class="ames-rz-btn" Style="height:16px;min-width:20px;width:20px;padding:0;" />
+                    </div>
+                </div>
             </div>
             @if (!string.IsNullOrEmpty(_bandErr))
             {
@@ -918,6 +931,20 @@
         return seg?.SegmentState ?? DefaultAt(shift, x);
     }
 
+    // 시작·종료 시각을 1분 단위로 올리고 내린다(교대 창 밖으로는 나가지 않음). 입력란이 비었거나 틀리면 구간의 현재 값에서 시작한다.
+    void StepBandTime(bool start, int delta)
+    {
+        if (_confirmBand is not { } cb) return;
+        var sh = ActiveShifts().FirstOrDefault(x => x.Code == cb.Sh);
+        if (sh is null) return;
+        int cur;
+        if (!LineTimeLayout.TryParseClock(start ? _bandStart : _bandEnd, sh.Start, sh.End, out cur))
+            cur = start ? cb.S : cb.E;
+        var text = LineTimeLayout.ToClock(Math.Clamp(cur + delta, sh.Start, sh.End));
+        if (start) _bandStart = text; else _bandEnd = text;
+        _bandErr = "";
+    }
+
     // 밴드 상세 적용 — state 가 null 이면 그 교대의 기본 상태로 되돌린다(생산 시간 밖은 유휴, 전체 커버리지 유지).
     // 상태를 바꾸면 그 구간 전체가 그 상태가 된다. 칠하기와 같이 실행취소 이력에 남는다.
     void ApplyBand(string? state)
@@ -969,6 +996,8 @@
     static string PctW(int lo, int hi, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return $"{(double)(hi - lo) / r * 100.0:F4}%"; }
     static int ShiftTick(ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return r <= 120 ? 10 : r <= 360 ? 30 : 60; }
     static bool WideEnoughShift(int wMin, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return (double)wMin / r >= 0.06; }
+    // 좁은 구간(약 3%~6%)은 상태명을 빼고 분만 쓴다. 그보다 좁으면 밴드 클릭·제목 툴팁으로만 본다.
+    static bool NarrowEnoughShift(int wMin, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return (double)wMin / r >= 0.03; }
     static string MinToTime(int m) => AMES.Data.Services.LineTimeLayout.ToClock(m);
 
     string SegClass(string? st) => st switch {
