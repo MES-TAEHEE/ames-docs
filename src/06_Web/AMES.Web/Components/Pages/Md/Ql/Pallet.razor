@@ -147,7 +147,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Pallet.Lbl.Count"]" Component="CreateNumericCount" />
-                    <RadzenNumeric Name="CreateNumericCount" TValue="int" @bind-Value="_f.Count" Min="1" Max="@MasterDataRepository.PalletBatchMax" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric Name="CreateNumericCount" TValue="int" @bind-Value="_f.Count" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -470,6 +470,9 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PalletUse)) { _modalErr = L["MD.Pallet.Err.UseRequired"]; return; }
+        // 입력칸이 조용히 줄여지지 않도록 범위를 벗어나면 저장하지 않고 알린다(한 번에 최대 500개)
+        if (_f.Count < 1 || _f.Count > MasterDataRepository.PalletBatchMax)
+        { _modalErr = string.Format(L["MD.Pallet.Err.CountRange"].Value, MasterDataRepository.PalletBatchMax); return; }
         _busy = true;
         try
         {

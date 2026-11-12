@@ -11537,6 +11537,9 @@
   <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
     <value>Shipped</value>
   </data>
+  <data name="MD.Pallet.Err.CountRange" xml:space="preserve">
+    <value>Enter a quantity from 1 to {0} per batch.</value>
+  </data>
   <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
     <value>Select the pallet use.</value>
   </data>
