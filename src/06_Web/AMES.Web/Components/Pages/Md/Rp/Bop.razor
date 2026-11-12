@@ -75,7 +75,7 @@
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
                             <Template Context="item">
                                 <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                    <span class="code">@item.ItemNo</span>
+                                    <span class="code" data-item="@item.ItemNo">@item.ItemNo</span>
                                     @if (!string.IsNullOrEmpty(item.ItemName))
                                     {
                                         <span class="dim" style="font-size:.8em;margin-left:6px;">@item.ItemName</span>
@@ -110,7 +110,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
                         <div>
                             <div style="display:flex;align-items:baseline;gap:8px;">
-                                <span class="code" style="font-weight:700;font-size:.95em;">@_selItem.ItemNo</span>
+                                <span class="code" data-item="@_selItem.ItemNo" style="font-weight:700;font-size:.95em;">@_selItem.ItemNo</span>
                                 @if (!string.IsNullOrEmpty(_selItem.ItemName))
                                 {
                                     <span style="font-size:.88em;color:var(--ames-tx-white-a70);">@_selItem.ItemName</span>
@@ -163,7 +163,7 @@
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="170px" MinWidth="170px">
-                                <Template Context="step"><div class="code" style="max-width:154px;overflow:hidden;text-overflow:ellipsis;" title="@ItemTitle(step.ItemNo)">@step.ItemNo</div></Template>
+                                <Template Context="step"><div class="code" data-item="@step.ItemNo" style="max-width:154px;overflow:hidden;text-overflow:ellipsis;" title="@ItemTitle(step.ItemNo)">@step.ItemNo</div></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Title="@L["MD.Bop.Col.Path"]" Width="170px" MinWidth="170px" Sortable="false">
                                 <Template Context="step">
