@@ -205,8 +205,14 @@
                 _ when PalletChip.NoticeKey(outcome) is { } k => $"{T(k)}: {PalletNo}",
                 _                                  => $"{T("ConfirmFailed")}: {Lot.LotCode}",
             };
+            // 팔레트 가득·혼재 등 확정 실패를 파일로 남긴다 (토스트만으로는 사후에 알 수 없다)
+            PopLog.Append("confirm", "IMG", $"{Lot.LotCode} pallet={PalletNo} line={Session?.LineId} by={Session?.EmployeeNo} item={itemNo ?? "-"} outcome={outcome} error={_error}");
         }
-        catch (Exception ex) { _error = ex.Message; }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            PopLog.Append("confirm", "IMG", $"{Lot.LotCode} pallet={PalletNo} line={Session?.LineId} by={Session?.EmployeeNo} exception: {ex}");
+        }
         finally { _busy = false; _focusScan = true; }
     }
 

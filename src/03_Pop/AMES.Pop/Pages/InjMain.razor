@@ -646,6 +646,8 @@
             // 팔레트 칩은 실제 적재 수로 — 다른 터미널이 같은 팔레트에 실은 것도 보인다
             if (ok || PalletChip.NoticeKey(outcome) is not null) RefreshPallet(itemNo);
             SetBanner(ok, detail);
+            // 팔레트 가득·혼재·사용 불가 같은 확정 실패는 토스트로만 떠서 사후에 추적할 수 없다 — 파일로 남긴다
+            if (!ok) PopLog.Append("confirm", "INJ", $"{lotCode} pallet={_pallet?.PalletNo} line={Session?.LineId} by={Session?.EmployeeNo} outcome={outcome} item={itemNo ?? "-"} detail={detail}");
             // 이미 확정된 라벨을 또 찍은 것은 실적 사건이 아니다 — 이력에 NG 로 쌓이면
             // 실제 불량·차단과 섞여 보이므로 경고만 띄우고 이력에는 남기지 않는다.
             if (outcome == InjConfirmOutcome.AlreadyConfirmed) { Toasts.Warn(detail); return; }
