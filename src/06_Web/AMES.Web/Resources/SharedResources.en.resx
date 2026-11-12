@@ -4767,6 +4767,36 @@
   <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
     <value>Drag on the timeline to draw a band · click a band to delete</value>
   </data>
+  <data name="MD.LineTimePattern.Modal.BandDetail" xml:space="preserve">
+    <value>Band detail</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToIdle" xml:space="preserve">
+    <value>Set to idle</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToDefault" xml:space="preserve">
+    <value>Reset to default</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyState" xml:space="preserve">
+    <value>Apply state</value>
+  </data>
+  <data name="MD.LineTimePattern.Hint.BandDetail" xml:space="preserve">
+    <value>Reasons and notes are entered in the pattern-wide planned-downtime section.</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyTime" xml:space="preserve">
+    <value>Apply time</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandEnd" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandTime" xml:space="preserve">
+    <value>Enter HH:mm inside the shift window</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandOrder" xml:space="preserve">
+    <value>End must be after start</value>
+  </data>
   <data name="MD.LineTimePattern.Btn.Undo" xml:space="preserve">
     <value>Undo</value>
   </data>

@@ -4764,6 +4764,36 @@
   <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
     <value>타임라인을 드래그해 밴드를 그리세요 · 밴드 클릭 시 삭제</value>
   </data>
+  <data name="MD.LineTimePattern.Modal.BandDetail" xml:space="preserve">
+    <value>구간 상세</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToIdle" xml:space="preserve">
+    <value>유휴로 만들기</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToDefault" xml:space="preserve">
+    <value>기본 상태로 되돌리기</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyState" xml:space="preserve">
+    <value>상태 적용</value>
+  </data>
+  <data name="MD.LineTimePattern.Hint.BandDetail" xml:space="preserve">
+    <value>사유·설명은 패턴 공통의 계획비가동 설정에서 입력합니다.</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyTime" xml:space="preserve">
+    <value>시각 적용</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandStart" xml:space="preserve">
+    <value>시작</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandEnd" xml:space="preserve">
+    <value>종료</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandTime" xml:space="preserve">
+    <value>시각은 HH:mm 형식이고 교대 창 안이어야 합니다</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandOrder" xml:space="preserve">
+    <value>종료는 시작보다 뒤여야 합니다</value>
+  </data>
   <data name="MD.LineTimePattern.Btn.Undo" xml:space="preserve">
     <value>실행취소</value>
   </data>

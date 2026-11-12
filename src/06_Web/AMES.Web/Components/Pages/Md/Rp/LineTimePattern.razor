@@ -149,7 +149,7 @@
 {
     var pat = _allRows.FirstOrDefault(r => r.PatternID == _editId);
     <div class="ames-modal-bg" @onmousedown="OnEditorBgDown" @onclick="OnEditorBgClick">
-        <div class="ames-modal ames-modal-fullwide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-fullwide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
         <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>@L["MD.LineTimePattern.Editor.Title"] · <span class="code">@_editId</span>
                 @if (pat is not null) { <span class="dim">· @(pat.LineID ?? L["MD.LineTimePattern.Global"].Value) / @DayTypeLabel(pat.DayType)</span> }
@@ -219,7 +219,7 @@
                             var bs = b; int wMin = bs.E - bs.S;
                             <div @key="@($"{sh.Code}:{bs.S}")" class="@SegClass(bs.St)" style="left:@PctL(bs.S, sh);width:@PctW(bs.S, bs.E, sh);padding:0;"
                                  title="@SegTitleR(bs.St, bs.S, bs.E)"
-                                 @onclick="() => { if (_canEdit) _confirmBand = (sh.Code, bs.S, bs.E, bs.St); }">
+                                 @onclick="() => OpenBand(sh, bs.S, bs.E, bs.St)">
                                 @if (WideEnoughShift(wMin, sh)) { <span style="padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@SegBarTextR(bs.St, wMin)</span> }
                             </div>
                         }
@@ -287,18 +287,39 @@
     </div>
 }
 
-@* ── 밴드 삭제 확인 ── *@
+@* ── 밴드 상세 (상태 변경 · 유휴로 만들기 · 기본 상태로 되돌리기) ── *@
 @if (_confirmBand is { } cb)
 {
     <div class="ames-modal-bg" @onclick="() => _confirmBand = null">
-        <div class="ames-modal" style="max-width:360px;" @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.LineTimePattern.Modal.DeleteBand"]</div>
-            <div style="margin:8px 0;color:var(--ames-tx-slate-400);">
-                @SegLabel(cb.St) &nbsp; @MinToTime(cb.S) — @MinToTime(cb.E)
-                (@(cb.E - cb.S)@L["Lbl.Min"])
+        <div class="ames-modal ames-movable" style="max-width:420px;" @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LineTimePattern.Modal.BandDetail"] · @cb.Sh</div>
+            <div style="margin:10px 0 12px;font-size:17px;font-weight:700;font-family:var(--ames-font-mono);color:var(--ames-tx-white);">
+                @MinToTime(cb.S) – @MinToTime(cb.E) <span style="font-size:13px;font-weight:400;color:var(--ames-tx-slate-300);">(@(cb.E - cb.S)@L["Lbl.Min"]) · @SegLabel(cb.St)</span>
             </div>
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@ConfirmDeleteSeg" class="ames-rz-btn" />
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">
+                <span style="font-size:13px;color:var(--ames-tx-slate-300);">@L["MD.LineTimePattern.Lbl.BandStart"]</span>
+                <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandStart" disabled="@(!_canEdit)" style="width:110px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+                <span style="font-size:13px;color:var(--ames-tx-slate-300);">@L["MD.LineTimePattern.Lbl.BandEnd"]</span>
+                <input type="text" class="ames-input" inputmode="numeric" placeholder="HH:mm" maxlength="8" @bind="_bandEnd" disabled="@(!_canEdit)" style="width:110px;font-weight:700;font-family:var(--ames-font-mono);text-align:center;font-size:16px;color:var(--ames-tx-white);" />
+            </div>
+            @if (!string.IsNullOrEmpty(_bandErr))
+            {
+                <div style="color:var(--ames-tx-red-400);font-size:12px;margin-bottom:6px;">@_bandErr</div>
+            }
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                @foreach (var st in _segStates.Where(s => s.UseFlag))
+                {
+                    var code = st.CodeValue ?? "";
+                    <RadzenButton Text="@MasterDataRepository.LocalName(st)" ButtonStyle="@(_detailState == code ? ButtonStyle.Primary : ButtonStyle.Base)"
+                                  Size="ButtonSize.Small" Disabled="@(!_canEdit)" Click="@(() => _detailState = code)" class="ames-rz-btn" />
+                }
+            </div>
+            <div class="dim" style="font-size:12px;margin-top:8px;">@L["MD.LineTimePattern.Hint.BandDetail"]</div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer" Wrap="FlexWrap.Wrap">
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.ApplyTime"]" Icon="schedule" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Disabled="@(!_canEdit)" Click="@ApplyBandTime" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.ApplyState"]" Icon="check" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(!_canEdit || string.IsNullOrEmpty(_detailState))" Click="@(() => ApplyBand(_detailState))" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.ToIdle"]" Icon="block" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Disabled="@(!_canEdit)" Click="@(() => ApplyBand(AMES.Data.Services.LineTimeLayout.Idle))" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.ToDefault"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Disabled="@(!_canEdit)" Click="@(() => ApplyBand(null))" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmBand = null)" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -309,7 +330,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -372,7 +393,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -474,7 +495,9 @@
     // ── 밴드 편집기 상태 (드래프트: 저장 전까지 메모리에서만 편집) ──
     string? _editId;
     string  _segState = "OPERATING";
-    (string Sh, int S, int E, string St)? _confirmBand;
+    (string Sh, int S, int E, string St)? _confirmBand;   // 밴드 상세 창이 열린 구간
+    string _detailState = "";
+    string _bandStart = "", _bandEnd = "", _bandErr = "";   // 구간 상세의 시각 입력(HH:mm)과 오류 문구                              // 상세 창에서 고른 상태(적용 전)
     // 실행취소 = 편집 직전 시간표로 복원(여러 단계). 저장·열기·닫기에서 비운다.
     readonly Stack<List<MasterDataRepository.LineTimeSegmentRow>> _undo = new();
     List<AMES.Data.Services.LineTimeLayout.Band> _stored = new();   // DB 저장본(하루 분) — 미저장 판정 기준
@@ -687,8 +710,9 @@
         if (list.Count > 0)
             return list.Contains(shiftCode ?? "", StringComparer.OrdinalIgnoreCase) ? "OPERATING" : "IDLE";
         int idx = ActiveShifts().FindIndex(x => string.Equals(x.Code, shiftCode, StringComparison.Ordinal));
-        int count = pattern switch { "SHIFT1_SCHEDULE" => 1, "SHIFT2_SCHEDULE" => 2, "SHIFT3_SCHEDULE" => 3, _ => int.MaxValue };
-        return idx < 0 || idx < count ? "OPERATING" : "IDLE";
+        // 교대 패턴을 모르는 새 패턴(교대 패턴 미선택 포함)은 빈 시간표로 시작한다 — 모든 교대를 가동으로 채우면 처음부터 전부 칠해져 보인다.
+        int count = pattern switch { "SHIFT1_SCHEDULE" => 1, "SHIFT2_SCHEDULE" => 2, "SHIFT3_SCHEDULE" => 3, _ => 0 };
+        return idx >= 0 && idx < count ? "OPERATING" : "IDLE";
     }
 
     bool _editorBgDown;
@@ -849,12 +873,59 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // 밴드 삭제 = 해당 구간을 그 교대의 기본 상태로 되돌림(생산 시간 밖은 유휴, 전체 커버리지 유지)
-    void ConfirmDeleteSeg()
+    // 밴드 클릭 → 상세 창. 시작·종료 시각 입력칸과 상태 선택을 현재 구간 값으로 채운다.
+    void OpenBand(ShiftWin sh, int s, int e, string st)
+    {
+        if (!_canEdit) return;
+        _detailState = st;
+        _bandStart = LineTimeLayout.ToClock(s);
+        _bandEnd = LineTimeLayout.ToClock(e);
+        _bandErr = "";
+        _confirmBand = (sh.Code, s, e, st);
+    }
+
+    // 시각 적용 — 구간을 새 시각으로 옮긴다. 옛 자리는 그 교대의 기본 상태로 돌리고, 새 자리는 고른 상태가 된다.
+    // 사이 구간은 그대로 둔다. 한 번의 편집이므로 실행취소도 한 번에 되돌린다.
+    void ApplyBandTime()
+    {
+        if (_confirmBand is not { } cb || _editId is null) return;
+        var sh = ActiveShifts().FirstOrDefault(x => x.Code == cb.Sh);
+        if (sh is null) return;
+        if (!LineTimeLayout.TryParseClock(_bandStart, sh.Start, sh.End, out int ns)
+            || !LineTimeLayout.TryParseClock(_bandEnd, sh.Start, sh.End, out int ne))
+        {
+            _bandErr = L["MD.LineTimePattern.Err.BandTime"].Value; return;
+        }
+        if (ne <= ns) { _bandErr = L["MD.LineTimePattern.Err.BandOrder"].Value; return; }
+        var state = _detailState;
+        if (string.IsNullOrEmpty(state)) state = cb.St;
+        int oldS = cb.S, oldE = cb.E;
+        string shCode = cb.Sh;
+        // 옛 자리 → 기본 상태, 새 자리 → 고른 상태, 그 밖 → 지금 상태 유지
+        PaintLocal(Math.Min(oldS, ns), Math.Max(oldE, ne), x =>
+            x >= ns && x < ne ? state
+            : x >= oldS && x < oldE ? DefaultAt(shCode, x)
+            : CurrentStateAt(shCode, x), shCode);
+        _confirmBand = null;
+        _bandErr = "";
+    }
+
+    // 현재 편집 중 시간표에서 확장 분 x 의 상태(없으면 교대 기본 상태)
+    string CurrentStateAt(string shift, int x)
+    {
+        var seg = _segments.FirstOrDefault(s => string.Equals(s.ShiftCode, shift, StringComparison.Ordinal)
+                                               && s.SegmentState is not null && (s.StartMin ?? 0) <= x && x < (s.EndMin ?? 0));
+        return seg?.SegmentState ?? DefaultAt(shift, x);
+    }
+
+    // 밴드 상세 적용 — state 가 null 이면 그 교대의 기본 상태로 되돌린다(생산 시간 밖은 유휴, 전체 커버리지 유지).
+    // 상태를 바꾸면 그 구간 전체가 그 상태가 된다. 칠하기와 같이 실행취소 이력에 남는다.
+    void ApplyBand(string? state)
     {
         if (_confirmBand is not { } cb || _editId is null) { _confirmBand = null; return; }
         _confirmBand = null;
-        PaintLocal(cb.S, cb.E, x => DefaultAt(cb.Sh, x), cb.Sh);
+        if (state is null) PaintLocal(cb.S, cb.E, x => DefaultAt(cb.Sh, x), cb.Sh);
+        else PaintLocal(cb.S, cb.E, _ => state, cb.Sh);
     }
 
     // 실행취소 = 마지막 편집(칠하기·밴드 삭제·전체삭제) 직전 시간표로 복원

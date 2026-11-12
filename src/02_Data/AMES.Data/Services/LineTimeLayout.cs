@@ -68,6 +68,25 @@ public static class LineTimeLayout
     }
 
     /// <summary>
+    /// "HH:mm"(초 "HH:mm:ss" 도 받음, 초는 버림 — 브라우저 time 입력이 초를 붙일 수 있다) → 확장 분.
+    /// 자정을 넘는 교대 창(끝 &gt; 1440)에서는 창 시작보다 앞선 시각을 다음 날로 본다(01:30 → 1530).
+    /// 형식이 틀리거나 창 밖이면 false.
+    /// </summary>
+    public static bool TryParseClock(string? text, int windowStart, int windowEnd, out int minute)
+    {
+        minute = 0;
+        var parts = (text ?? "").Trim().Split(':');
+        if (parts.Length is < 2 or > 3 || !int.TryParse(parts[0], out int h) || !int.TryParse(parts[1], out int mm)) return false;
+        if (parts.Length == 3 && (!int.TryParse(parts[2], out int ss) || ss < 0 || ss > 59)) return false;
+        if (h < 0 || h > 24 || mm < 0 || mm > 59 || (h == 24 && mm > 0)) return false;
+        int m = h * 60 + mm;
+        if (m < windowStart && windowEnd > Day) m += Day;
+        if (m < windowStart || m > windowEnd) return false;
+        minute = m;
+        return true;
+    }
+
+    /// <summary>
     /// 저장 세그먼트(하루 분, 교대 코드 포함)를 새 교대 창의 확장 분 세그먼트로 다시 배치한다.
     /// 저장 세그먼트 상태가 그 교대의 기본 상태와 같으면 "바탕"으로 보고 버리고, 다르면 하루 시각 그대로 보존한다.
     /// 창 안에서 보존 구간이 없는 분은 새 교대의 기본 상태로 채운다. 결과는 교대·시작 순, 인접 같은 값은 병합.

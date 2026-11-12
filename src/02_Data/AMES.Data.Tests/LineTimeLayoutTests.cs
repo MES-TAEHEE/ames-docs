@@ -177,6 +177,30 @@ public class LineTimeLayoutTests
         Assert.Contains("07:00–08:00", ex.Message);
     }
 
+    [Theory]
+    [InlineData("07:00", 420, 990, true, 420)]
+    [InlineData("16:30", 420, 990, true, 990)]
+    [InlineData("06:59", 420, 990, false, 0)]
+    [InlineData("16:31", 420, 990, false, 0)]
+    [InlineData("16:30", 990, 1560, true, 990)]
+    [InlineData("01:30", 990, 1560, true, 1530)]
+    [InlineData("02:00", 990, 1560, true, 1560)]
+    [InlineData("00:00", 990, 1560, true, 1440)]
+    [InlineData("02:01", 990, 1560, false, 0)]
+    [InlineData("24:00", 420, 990, false, 0)]
+    [InlineData("24:00", 1200, 1440, true, 1440)]
+    [InlineData("9:05", 420, 990, true, 545)]
+    [InlineData("08:00:00", 420, 990, true, 480)]
+    [InlineData("16:30:59", 420, 990, true, 990)]
+    [InlineData("08:00:60", 420, 990, false, 0)]
+    [InlineData("abc", 420, 990, false, 0)]
+    [InlineData("12:60", 420, 990, false, 0)]
+    public void TryParseClock_maps_a_time_into_its_shift_window(string text, int start, int end, bool ok, int minute)
+    {
+        Assert.Equal(ok, TryParseClock(text, start, end, out int m));
+        if (ok) Assert.Equal(minute, m);
+    }
+
     [Fact]
     public void Same_layout_ignores_order()
     {

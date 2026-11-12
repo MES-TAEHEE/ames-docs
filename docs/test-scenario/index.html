@@ -252,7 +252,8 @@ function renderTree(){
     const key = g.grp.split('.')[0].trim();
     const tags = (g.phase||'').split('·').map(p => p.trim()).filter(Boolean)
       .map(p => `<span class="tag ${p==='단위'?'unit':'full'}">${p==='단위'?'단위 테스트':'전체 흐름'}</span>`).join('');
-    h += `<details class="grp" data-grp id="g-${key}" open><summary>${esc(g.grp)} ${tags} <span class="sub2">(${g.items.length}건)</span></summary>`;
+    const doneCnt = g.items.filter(it => checks[it.id]).length;
+    h += `<details class="grp" data-grp id="g-${key}" open><summary>${esc(g.grp)} ${tags} <span class="sub2" data-grp-cnt="${esc(key)}">(총 ${g.items.length}건 · 완료 ${doneCnt}건)</span></summary>`;
     if(g.desc) h += `<div class="grpdesc">${esc(g.desc)}</div>`;
     const td = (TD_GROUP[key] || []);
     if(td.length){
@@ -293,6 +294,13 @@ function updateProgress(){
     total++; const v=saved[it.id]||0; if(v===1)pass++; if(v===2)fail++; if(v===3)hold++; if(checks[it.id])ck++;
   }
   document.getElementById('prog').textContent = `전체 ${total}건 · 확인 ${ck} · 통과 ${pass} · 실패 ${fail} · 보류 ${hold} · 미실행 ${total-pass-fail-hold}`;
+  // 그룹 제목의 「총 건수 · 완료 건수」도 같이 맞춘다(완료 = 「확인 완료」 체크)
+  document.querySelectorAll('[data-grp-cnt]').forEach(el => {
+    const g = DATA.find(x => x.grp.split('.')[0].trim() === el.dataset.grpCnt);
+    if(!g) return;
+    const doneCnt = g.items.filter(it => checks[it.id]).length;
+    el.textContent = `(총 ${g.items.length}건 · 완료 ${doneCnt}건)`;
+  });
 }
 function setStatus(msg){ const s = document.getElementById('status'); s.textContent = msg; clearTimeout(setStatus.t); setStatus.t = setTimeout(()=> s.textContent = '', 5000); }
 

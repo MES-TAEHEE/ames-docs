@@ -4764,6 +4764,36 @@
   <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
     <value>Arrastre en la línea de tiempo para dibujar una franja · clic para eliminar</value>
   </data>
+  <data name="MD.LineTimePattern.Modal.BandDetail" xml:space="preserve">
+    <value>Detalle del tramo</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToIdle" xml:space="preserve">
+    <value>Poner en inactivo</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ToDefault" xml:space="preserve">
+    <value>Restablecer predeterminado</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyState" xml:space="preserve">
+    <value>Aplicar estado</value>
+  </data>
+  <data name="MD.LineTimePattern.Hint.BandDetail" xml:space="preserve">
+    <value>Los motivos y notas se introducen en la sección de paro planificado del patrón.</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.ApplyTime" xml:space="preserve">
+    <value>Aplicar hora</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandStart" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandEnd" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandTime" xml:space="preserve">
+    <value>Introduzca HH:mm dentro de la ventana del turno</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.BandOrder" xml:space="preserve">
+    <value>El fin debe ser posterior al inicio</value>
+  </data>
   <data name="MD.LineTimePattern.Btn.Undo" xml:space="preserve">
     <value>Deshacer</value>
   </data>

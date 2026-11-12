@@ -101,7 +101,10 @@ window.linePatternDrag = (() => {
                 const lo = Math.min(_anchor, endMin), hi = Math.max(_anchor, endMin);
                 const shift = s.shift;
                 cancel();
-                if (hi > lo && _ref) _ref.invokeMethodAsync('OnShiftBandDrag', shift, lo, hi);
+                if (hi > lo && _ref) { _ref.invokeMethodAsync('OnShiftBandDrag', shift, lo, hi); return; }
+                // 드래그 없이 누르기만 했으면 이 영역이 덮고 있는 밴드에 클릭을 대신 전달한다(밴드 클릭 = 구간 상세)
+                const band = document.elementsFromPoint(e.clientX, e.clientY).find(x => x !== s.el && x.classList && x.classList.contains('pp-gantt-band'));
+                if (band) band.click();
             };
             _key = e => { if (e.key === 'Escape' && _active) cancel(); };
             document.addEventListener('mousemove', _move);
