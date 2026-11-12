@@ -108,7 +108,7 @@
 {
     var isEdit = _modal == "edit";
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["SCM.PortalUsers.Title"] — @(isEdit ? L["Modal.Edit"] : L["Modal.Create"])
                 @if (isEdit) { <span class="dim" style="font-weight:400;font-size:.9em;">@_sel?.UserID</span> }
