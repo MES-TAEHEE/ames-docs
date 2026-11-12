@@ -1383,6 +1383,9 @@
   <data name="MD.DefectCode.Empty" xml:space="preserve">
     <value>등록된 불량코드가 없습니다.</value>
   </data>
+  <data name="MD.Equipment.Err.LineType" xml:space="preserve">
+    <value>설비 유형과 라인 공정이 맞지 않습니다(예: 사출 설비는 감싸기 라인에 붙일 수 없습니다).</value>
+  </data>
   <data name="MD.Equipment.Title" xml:space="preserve">
     <value>설비 기준정보 관리</value>
   </data>

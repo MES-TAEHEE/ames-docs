@@ -3061,6 +3061,29 @@ public sealed class MasterDataRepository
     public static int? NormalizeEquipTonnage(string? equipType, int? tonnage)
         => string.Equals(equipType?.Trim(), EquipTypeInjection, StringComparison.OrdinalIgnoreCase) ? tonnage : null;
 
+    /// <summary>설비 유형과 라인 공정이 맞지 않는다(예: 사출 설비를 감싸기 라인에 붙임).</summary>
+    public sealed class EquipmentLineMismatchException(string equipType, string lineId)
+        : InvalidOperationException($"Equipment type {equipType} cannot be placed on line {lineId}.")
+    {
+        public string EquipType { get; } = equipType;
+        public string LineId { get; } = lineId;
+    }
+
+    // 라인이 있으면 그 라인의 작업장 공정이 설비 유형과 맞는지 확인한다. 라인이나 유형이 비면 검사하지 않는다.
+    void EnsureLineFitsEquipType(string? equipType, string? lineId)
+    {
+        if (string.IsNullOrWhiteSpace(lineId) || EquipmentLineRules.ProcessFor(equipType) is null) return;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT wc.ProcessCode FROM dbo.MD_Line L LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID = L.WCID
+            WHERE L.LineID = @L;
+            """, conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId.Trim();
+        var process = cmd.ExecuteScalar() as string;
+        if (!EquipmentLineRules.Allows(equipType, process))
+            throw new EquipmentLineMismatchException(equipType!.Trim().ToUpperInvariant(), lineId.Trim());
+    }
+
     public record EquipmentRow(
         string EquipID, string? EquipName, string? EquipType,
         string? LineID, string? WCID, string? MakerModel,
@@ -3115,6 +3138,7 @@ public sealed class MasterDataRepository
         DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee, int? tonnage,
         string? plcAddress, string? status, bool activeFlag, string createdBy)
     {
+        EnsureLineFitsEquipType(type, lineId);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Equipment" +
@@ -3146,6 +3170,7 @@ public sealed class MasterDataRepository
         DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee, int? tonnage,
         string? plcAddress, string? status, bool activeFlag, string modifiedBy)
     {
+        EnsureLineFitsEquipType(type, lineId);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Equipment SET " +

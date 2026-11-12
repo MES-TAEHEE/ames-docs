@@ -1380,6 +1380,9 @@
   <data name="MD.DefectCode.Empty" xml:space="preserve">
     <value>No se encontraron códigos de defecto.</value>
   </data>
+  <data name="MD.Equipment.Err.LineType" xml:space="preserve">
+    <value>El tipo de equipo no coincide con el proceso de la línea (por ejemplo, una inyectora no puede ir en una línea de envoltura).</value>
+  </data>
   <data name="MD.Equipment.Title" xml:space="preserve">
     <value>Maestro de Equipos</value>
   </data>

@@ -1383,6 +1383,9 @@
   <data name="MD.DefectCode.Empty" xml:space="preserve">
     <value>No defect codes found.</value>
   </data>
+  <data name="MD.Equipment.Err.LineType" xml:space="preserve">
+    <value>The equipment type does not match the line process (for example, an injection machine cannot go on a wrapping line).</value>
+  </data>
   <data name="MD.Equipment.Title" xml:space="preserve">
     <value>Equipment Master</value>
   </data>
