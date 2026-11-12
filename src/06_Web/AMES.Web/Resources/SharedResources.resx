@@ -12543,6 +12543,18 @@
   <data name="WH.LocMap.Hint.NoSearchHit" xml:space="preserve">
     <value>검색 결과가 없습니다</value>
   </data>
+  <data name="WH.LocMap.View.Map" xml:space="preserve">
+    <value>지도</value>
+  </data>
+  <data name="WH.LocMap.View.Cards" xml:space="preserve">
+    <value>카드</value>
+  </data>
+  <data name="WH.LocMap.View.Table" xml:space="preserve">
+    <value>열</value>
+  </data>
+  <data name="WH.LocMap.Col.Position" xml:space="preserve">
+    <value>좌표</value>
+  </data>
   <data name="WH.LocMap.Lbl.StorageMode" xml:space="preserve">
     <value>보관 방식</value>
   </data>

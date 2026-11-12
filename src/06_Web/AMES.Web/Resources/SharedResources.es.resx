@@ -12543,6 +12543,18 @@
   <data name="WH.LocMap.Hint.NoSearchHit" xml:space="preserve">
     <value>No hay ubicaciones coincidentes</value>
   </data>
+  <data name="WH.LocMap.View.Map" xml:space="preserve">
+    <value>Mapa</value>
+  </data>
+  <data name="WH.LocMap.View.Cards" xml:space="preserve">
+    <value>Tarjetas</value>
+  </data>
+  <data name="WH.LocMap.View.Table" xml:space="preserve">
+    <value>Tabla</value>
+  </data>
+  <data name="WH.LocMap.Col.Position" xml:space="preserve">
+    <value>Posición</value>
+  </data>
   <data name="WH.LocMap.Lbl.StorageMode" xml:space="preserve">
     <value>Modo de almacenaje</value>
   </data>

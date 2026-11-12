@@ -105,11 +105,28 @@
                 <div class="ames-card location-hierarchy-panel location-panel-enter">
                     <div class="ames-card-h master-list-toolbar">
                         <span>@SelectionLabel · @SelectionRows.Count @L["Lbl.Items"]</span>
-                        @if (_editing && CanEdit && CanAddHierarchy && _stage != MapStage.Line)
-                        {
-                            <RadzenButton Text="@L["WH.LocMap.Btn.AddFmt", KindLabel(SelectionKind)].Value" Icon="add" Click="@(() => OpenDialog(SelectionKind))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-                        }
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                            <RadzenButton Text="@L["WH.LocMap.View.Cards"].Value" Icon="view_module" Click="@(() => _hierView = "cards")" ButtonStyle="@(_hierView == "cards" ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenButton Text="@L["WH.LocMap.View.Table"].Value" Icon="table_rows" Click="@(() => _hierView = "table")" ButtonStyle="@(_hierView == "table" ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            @if (_editing && CanEdit && CanAddHierarchy && _stage != MapStage.Line)
+                            {
+                                <RadzenButton Text="@L["WH.LocMap.Btn.AddFmt", KindLabel(SelectionKind)].Value" Icon="add" Click="@(() => OpenDialog(SelectionKind))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            }
+                        </RadzenStack>
                     </div>
+                    @if (_hierView == "table")
+                    {
+                        <RadzenDataGrid TItem="StageCard" Data="SelectionRows" RowClick="@(args => { if (args.Data is not null) OpenStageRowAsync(args.Data, SelectionScope); })" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="StageCard" Property="Key" Title="@L["Col.Code"]" />
+                                <RadzenDataGridColumn TItem="StageCard" Property="Name" Title="@L["Col.Name"]" />
+                                <RadzenDataGridColumn TItem="StageCard" Property="LocationCount" Title="@L["WH.LocMap.Locations"]" TextAlign="TextAlign.Right"><Template Context="row">@row.LocationCount.ToString("N0")</Template></RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="StageCard" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.Qty(row.Qty, null)</Template></RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
+                    }
+                    else
+                    {
                     <div @key="SelectionScope" class="location-hierarchy-cards">
                         @foreach (var row in SelectionRows)
                         {
@@ -134,6 +151,7 @@
                             </div>
                         }
                     </div>
+                    }
                 </div>
             }
             else if (_stage == MapStage.Map)
@@ -142,6 +160,9 @@
                     <div class="ames-card-h master-list-toolbar location-grid-toolbar">
                         <span class="location-grid-title">@MapScope · @MapLocations.Count @L["WH.LocMap.Locations"]</span>
                         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                            <RadzenButton Text="@L["WH.LocMap.View.Map"].Value" Icon="grid_view" Click="@(() => _mapView = "map")" ButtonStyle="@(_mapView == "map" ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenButton Text="@L["WH.LocMap.View.Cards"].Value" Icon="view_module" Click="@(() => _mapView = "cards")" ButtonStyle="@(_mapView == "cards" ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenButton Text="@L["WH.LocMap.View.Table"].Value" Icon="table_rows" Click="@(() => _mapView = "table")" ButtonStyle="@(_mapView == "table" ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
                             @if (!IsOpenStorage)
                             {
                                 <RadzenButton Text="@L["WH.LocMap.ChangeFloor"]" Icon="layers" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -156,7 +177,27 @@
                             <span><i class="capacity-full"></i>@L["WH.LocMap.Legend.Full"]</span>
                         </div>
                     </div>
-                    @if (IsOpenStorage || GridLocations.Count == 0)
+                    @if (_mapView == "cards")
+                    {
+                        <div class="location-open-storage">
+                            @RenderStorageCards(MapLocations)
+                        </div>
+                    }
+                    else if (_mapView == "table")
+                    {
+                        <RadzenDataGrid TItem="LocationMapCell" Data="MapLocations" RowClick="@(args => { if (args.Data is not null) SelectLocation(args.Data); })" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="LocationNo" Title="@L["Col.LocationId"]" />
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="LocationName" Title="@L["Col.Name"]" />
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="AreaName" Title="@L["Col.Area"]" />
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="Floor" Title="@L["Col.Floor"]"><Template Context="row">@FloorName(row.Floor)</Template></RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="Column" Title="@L["WH.LocMap.Col.Position"]"><Template Context="row">@(row.HasGridCoordinates ? $"{Axis(row.Column)}-{Axis(row.Row)}" : "—")</Template></RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.Qty(row.Qty, null)</Template></RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="LocationMapCell" Property="Capacity" Title="@L["Col.LoadCapacity"]" TextAlign="TextAlign.Right"><Template Context="row">@(row.Capacity is null ? "—" : UomFmt.Qty(row.Capacity.Value, null))</Template></RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
+                    }
+                    else if (IsOpenStorage || GridLocations.Count == 0)
                     {
                         <div class="location-open-storage">
                             <div class="location-storage-heading">@(IsOpenStorage ? L["WH.LocMap.Lbl.OpenStorage"] : L["WH.LocMap.Lbl.NoGridLocations"])</div>
@@ -707,6 +748,10 @@
     // 검색 결과 → 그 위치의 창고·구역·층 지도로 이동하고 칸을 선택한다(칸 위치로 스크롤은 OnAfterRenderAsync 에서)
     private string _search = "";
     private bool _revealPending;
+    // 지도 화면 보기 방식: map = 격자 지도(기본), cards = 칸 카드, table = 열(표)
+    private string _mapView = "map";
+    // 창고·구역·라인 구역 목록 보기 방식: cards = 카드(기본), table = 열(표)
+    private string _hierView = "cards";
 
     // 위치 ID·이름으로 찾은 칸을 먼저, 그다음 현재 재고(품번·품명·LOT)로 찾은 칸을 보인다. 같은 칸은 한 번만 보인다.
     private sealed record SearchHit(LocationMapCell Cell, string? Match);
