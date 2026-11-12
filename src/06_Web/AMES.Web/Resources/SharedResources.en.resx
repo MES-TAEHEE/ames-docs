@@ -12537,6 +12537,12 @@
   <data name="WH.LocMap.Lbl.TwoLetterCode" xml:space="preserve">
     <value>Two-letter code</value>
   </data>
+  <data name="WH.LocMap.Ph.Search" xml:space="preserve">
+    <value>Search location, part no., or LOT</value>
+  </data>
+  <data name="WH.LocMap.Hint.NoSearchHit" xml:space="preserve">
+    <value>No matching locations</value>
+  </data>
   <data name="WH.LocMap.Lbl.StorageMode" xml:space="preserve">
     <value>Storage mode</value>
   </data>

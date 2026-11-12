@@ -73,6 +73,31 @@
         </RadzenStack>
     </div>
 
+    <div class="location-search-bar">
+        <input type="search" class="ames-input location-search-input" placeholder="@L["WH.LocMap.Ph.Search"].Value" aria-label="@L["WH.LocMap.Ph.Search"].Value" @bind="_search" @bind:event="oninput" />
+        @if (!string.IsNullOrWhiteSpace(_search))
+        {
+            <div class="location-search-hits">
+                @foreach (var hit in SearchHits)
+                {
+                    <button type="button" class="location-search-hit" @onclick="() => GoToLocation(hit.Cell)">
+                        <strong>@hit.Cell.LocationNo</strong>
+                        <span>@hit.Cell.LocationName</span>
+                        @if (hit.Match is not null)
+                        {
+                            <span class="location-search-match">@hit.Match</span>
+                        }
+                        <span class="dim">@hit.Cell.WarehouseCode / @hit.Cell.AreaCode / @FloorName(hit.Cell.Floor)</span>
+                    </button>
+                }
+                @if (SearchHits.Count == 0)
+                {
+                    <div class="dim">@L["WH.LocMap.Hint.NoSearchHit"]</div>
+                }
+            </div>
+        }
+    </div>
+
     <div class="location-explorer-workspace selection-only">
         <section class="location-map-pane" aria-label="@L["WH.LocMap.Title"]">
             @if (_stage != MapStage.Map || _selectingFloor)
@@ -418,6 +443,12 @@
             try { await JS.InvokeVoidAsync("locationMapScroll.init", MapScrollId); }
             catch { }
         }
+        if (_revealPending)
+        {
+            _revealPending = false;
+            try { await JS.InvokeVoidAsync("locationMapScroll.reveal", MapScrollId); }
+            catch { }
+        }
     }
 
     private async Task Refresh()
@@ -671,6 +702,51 @@
     {
         _highlightedLocation = location.LocationNo;
         _locationDrawerOpen = true;
+    }
+
+    // 검색 결과 → 그 위치의 창고·구역·층 지도로 이동하고 칸을 선택한다(칸 위치로 스크롤은 OnAfterRenderAsync 에서)
+    private string _search = "";
+    private bool _revealPending;
+
+    // 위치 ID·이름으로 찾은 칸을 먼저, 그다음 현재 재고(품번·품명·LOT)로 찾은 칸을 보인다. 같은 칸은 한 번만 보인다.
+    private sealed record SearchHit(LocationMapCell Cell, string? Match);
+
+    private List<SearchHit> SearchHits
+    {
+        get
+        {
+            var term = _search.Trim();
+            if (term.Length == 0) return [];
+            static bool Has(string? text, string term) => text is not null && text.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+            var byLocation = ActiveLocations
+                .Where(x => Has(x.LocationNo, term) || Has(x.LocationName, term))
+                .Select(x => new SearchHit(x, null));
+
+            var byStock = Inventory
+                .Where(i => i.Qty > 0 && (Has(i.LotNo, term) || Has(i.PartNo, term) || Has(i.PartName, term)))
+                .Select(i => (Stock: i, Cell: ActiveLocations.FirstOrDefault(c => Same(c.LocationNo, i.LocationNo))))
+                .Where(x => x.Cell is not null)
+                .Select(x => new SearchHit(x.Cell!, Has(x.Stock.LotNo, term) ? $"LOT {x.Stock.LotNo}"
+                    : Has(x.Stock.PartNo, term) ? $"{L["Col.PartNo"].Value} {x.Stock.PartNo}"
+                    : x.Stock.PartName));
+
+            return byLocation.Concat(byStock)
+                .DistinctBy(x => x.Cell.LocationNo, StringComparer.OrdinalIgnoreCase)
+                .Take(10).ToList();
+        }
+    }
+
+    private void GoToLocation(LocationMapCell location)
+    {
+        _warehouse = location.WarehouseCode;
+        _area = location.AreaCode;
+        _floor = location.Floor;
+        _stage = MapStage.Map;
+        _selectingFloor = false;
+        _search = "";
+        SelectLocation(location);
+        _revealPending = true;
     }
 
     private void OpenLocationBarcode()

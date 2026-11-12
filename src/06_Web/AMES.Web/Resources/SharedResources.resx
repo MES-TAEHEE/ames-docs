@@ -12537,6 +12537,12 @@
   <data name="WH.LocMap.Lbl.TwoLetterCode" xml:space="preserve">
     <value>두 글자 코드</value>
   </data>
+  <data name="WH.LocMap.Ph.Search" xml:space="preserve">
+    <value>위치·품번·LOT 검색</value>
+  </data>
+  <data name="WH.LocMap.Hint.NoSearchHit" xml:space="preserve">
+    <value>검색 결과가 없습니다</value>
+  </data>
   <data name="WH.LocMap.Lbl.StorageMode" xml:space="preserve">
     <value>보관 방식</value>
   </data>

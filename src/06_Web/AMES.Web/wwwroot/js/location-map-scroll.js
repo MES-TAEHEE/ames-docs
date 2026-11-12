@@ -37,9 +37,15 @@ window.locationMapScroll = (() => {
         });
     };
 
+    // 검색으로 고른 칸을 가운데로 보낸다(격자 밖 위치는 칸이 없어 아무것도 하지 않는다)
+    const reveal = (id) => {
+        const cell = document.getElementById(id)?.querySelector('.location-map-cell.selected');
+        cell?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    };
+
     window.addEventListener('resize', () => {
         document.querySelectorAll('.location-coordinate-scroll[data-arrow-scroll]').forEach(update);
     });
 
-    return { init, move };
+    return { init, move, reveal };
 })();

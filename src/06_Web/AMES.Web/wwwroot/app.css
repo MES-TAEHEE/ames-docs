@@ -4740,12 +4740,34 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     height: calc(100dvh - 88px);
     min-height: 0;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     overflow: hidden;
     border: 1px solid rgba(148,163,184,.22);
     border-radius: 8px;
     background: rgba(15,23,42,.36);
 }
+
+/* 위치 검색(상단) — 결과는 입력칸 아래로 겹쳐 보인다 */
+.location-search-bar { position: relative; padding: 8px 12px; border-bottom: 1px solid var(--ames-bd-white-a08); }
+.location-search-input { width: 100%; }
+.location-search-hits {
+    position: absolute; left: 12px; right: 12px; top: 100%; z-index: 20;
+    max-height: 280px; overflow: auto;
+    background: var(--ames-sf-0f172a); border: 1px solid rgba(148,163,184,.45); border-radius: 6px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.6);
+}
+.location-search-hit {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; width: 100%;
+    padding: 9px 12px; background: var(--ames-sf-0f172a); border: 0; border-bottom: 1px solid rgba(148,163,184,.2);
+    color: var(--ames-tx-slate-200); text-align: left; cursor: pointer; font: inherit;
+}
+.location-search-hit strong { color: var(--ames-tx-white); }
+.location-search-match { color: var(--ames-tx-amber-200); font-family: var(--ames-font-mono); font-size: 12px; }
+.location-search-hit:hover, .location-search-hit:focus-visible { background: #1e3a5f; outline: none; }
+html[data-theme="light"] .location-search-hits { background: #ffffff; border-color: rgba(15,23,42,.25); box-shadow: 0 12px 28px rgba(15,23,42,.2); }
+html[data-theme="light"] .location-search-hit { background: #ffffff; color: #0f172a; border-bottom-color: rgba(15,23,42,.12); }
+html[data-theme="light"] .location-search-hit strong { color: #0f172a; }
+html[data-theme="light"] .location-search-hit:hover, html[data-theme="light"] .location-search-hit:focus-visible { background: #e0f2fe; }
 
 .location-explorer-topbar {
     min-height: 52px;
