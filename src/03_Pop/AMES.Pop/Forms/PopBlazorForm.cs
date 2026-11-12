@@ -24,6 +24,7 @@ public class PopBlazorForm : PopForm
     public PopBlazorForm()
     {
         Text = "A-MES POP";
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? Icon;
 
         var services = new ServiceCollection();
         services.AddWindowsFormsBlazorWebView();

@@ -6,6 +6,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>AMES.InjAgent</RootNamespace>
+    <!-- 아이콘 파일이 없어도 빌드되도록 있을 때만 적용 -->
+    <ApplicationIcon Condition="Exists('Resources\injagent-icon.ico')">Resources\injagent-icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />

@@ -25,6 +25,7 @@ public sealed class MainForm : Form
         _runners = pollers.Select(p => new PollerRunner(p, pollingMs, EnqueueLog)).ToList();
 
         Text = "AMES InjAgent — Injection PLC Collector";
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? Icon;
         Width = 1000;
         Height = 640;
         StartPosition = FormStartPosition.CenterScreen;
