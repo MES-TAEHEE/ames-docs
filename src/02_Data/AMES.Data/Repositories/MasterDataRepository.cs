@@ -2716,6 +2716,21 @@ public sealed class MasterDataRepository
               (@ID,@Name,@NameEn,@Plant,@WC,
                @Cap,@Shift,@Rfid,@St,@Prefix,
                @By,SYSDATETIME());
+            -- 라인 위치(MD-018 로케이션 마스터·로케이션 지도 라인 구역)를 같이 만든다.
+            -- 기존 라인 규칙: ID = 접두어 + 01A1F1, 구역 = 접두어, 통로 A1·열 01·층 F1. 접두어 없는 라인(재작업)은 만들지 않는다.
+            IF @Prefix IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID = @Prefix + '01A1F1')
+                INSERT INTO dbo.MD_Location
+                  (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,PlantCode,ActiveFlag,LocationLevel,LineID,CreatedBy)
+                VALUES
+                  (@Prefix + '01A1F1',@NameEn,'EOS',@Prefix,'A1','01','F1','LINE',@Plant,1,2,@ID,@By);
+            -- 라인 구역 코드(지도의 라인 구역 목록)도 같이 만든다. 기존 라인은 WH_AREA_<접두어>, 순서 100, 상위 창고 EOS.
+            IF @Prefix IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE CodeID = N'WH_AREA_' + @Prefix)
+                INSERT INTO dbo.MD_CodeItem
+                  (CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,ParentCodeID,SortOrder,Attribute1,UseFlag,CreatedBy,CreatedTS)
+                VALUES
+                  (N'WH_AREA_' + @Prefix,N'WH_AREA',@Prefix,COALESCE(@NameEn,@Prefix),COALESCE(@NameEn,@Prefix),
+                   (SELECT TOP 1 CodeID FROM dbo.MD_CodeItem WHERE GroupCode = N'WH_CODE' AND CodeValue = N'EOS'),
+                   100,@Prefix,1,@By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
@@ -2791,7 +2806,11 @@ public sealed class MasterDataRepository
     const string LineUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Line WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @K) RETURN;
         INSERT @r SELECT 'STATION',    StationCode FROM dbo.MD_Station         WHERE LineID = @K;
-        INSERT @r SELECT 'LOCATION', LocationID FROM dbo.MD_Location WHERE LineID=@K;
+        -- 라인 등록 때 자동으로 만든 빈 라인 위치(LINE)는 사용처가 아니다. 재고·하위 위치·품번이 있는 위치만 막는다.
+        INSERT @r SELECT 'LOCATION', L.LocationID FROM dbo.MD_Location L WHERE L.LineID = @K
+            AND (L.LocationType IS NULL OR L.LocationType <> 'LINE' OR L.PartNo IS NOT NULL
+                 OR EXISTS(SELECT 1 FROM dbo.WH_Inventory i WHERE i.LocationNo = L.LocationID)
+                 OR EXISTS(SELECT 1 FROM dbo.MD_Location c WHERE c.ParentLocationID = L.LocationID));
         INSERT @r SELECT 'EQUIP',      EquipID     FROM dbo.MD_Equipment       WHERE LineID = @K;
         INSERT @r SELECT 'SUPERVISOR', EmployeeNo  FROM dbo.MD_LineSupervisor  WHERE LineID = @K;
         INSERT @r SELECT 'PATTERN',    PatternID   FROM dbo.MD_LineTimePattern WHERE LineID = @K;
@@ -2811,7 +2830,14 @@ public sealed class MasterDataRepository
 
     /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
     public List<UsageRef> DeleteLine(string lineId)
-        => DeleteIfUnused(LineUsageSql, "DELETE dbo.MD_Line WHERE LineID = @K;", lineId);
+        => DeleteIfUnused(LineUsageSql, """
+            DELETE L FROM dbo.MD_Location L WHERE L.LineID = @K AND L.LocationType = 'LINE' AND L.PartNo IS NULL
+                AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory i WHERE i.LocationNo = L.LocationID)
+                AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location c WHERE c.ParentLocationID = L.LocationID);
+            DELETE CI FROM dbo.MD_CodeItem CI JOIN dbo.MD_Line M ON M.LotPrefix = CI.CodeValue
+            WHERE M.LineID = @K AND CI.GroupCode = N'WH_AREA' AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location X WHERE X.AreaCode = CI.CodeValue);
+            DELETE dbo.MD_Line WHERE LineID = @K;
+            """, lineId);
 
     // ── MD_DefectCode ────────────────────────────────────────────────
     public record DefectCodeRow(
