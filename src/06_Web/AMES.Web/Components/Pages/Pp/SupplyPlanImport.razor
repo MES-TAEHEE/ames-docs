@@ -38,11 +38,13 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["Col.Order"]} {L["PP.Forecast.Fld.Period"]}")' />
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.PrevWeek"]" Click="() => ShiftWeek(-1)" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.NextWeek"]" Click="() => ShiftWeek(1)" />
             <RadzenLabel Text="@L["Col.Status"]" />
             <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
                             AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
@@ -285,6 +287,14 @@ else
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _autoBusy = false; }
+    }
+
+    // ◀ ▶ — 기간을 1주씩 옮기고 바로 조회한다. 비어 있는 쪽은 오늘 앞뒤 1주에서 시작한다.
+    void ShiftWeek(int dir)
+    {
+        _fFrom = (_fFrom ?? DbClock.Today.AddDays(-7)).AddDays(7 * dir);
+        _fTo   = (_fTo   ?? DbClock.Today.AddDays(7)).AddDays(7 * dir);
+        Search();
     }
 
     void Search()

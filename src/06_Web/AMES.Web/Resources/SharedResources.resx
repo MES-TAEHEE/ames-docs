@@ -13419,4 +13419,16 @@
   <data name="SYS.Users.Err.PortalVendorInactive" xml:space="preserve">
     <value>고른 협력업체가 없거나 사용 안 함입니다. 다시 고르세요.</value>
   </data>
+  <data name="PP.PlanConfirm.Status.Issued" xml:space="preserve">
+    <value>발행 완료</value>
+  </data>
+  <data name="PP.PlanConfirm.Lbl.ShowIssued" xml:space="preserve">
+    <value>완료 건 보기</value>
+  </data>
+  <data name="Btn.PrevWeek" xml:space="preserve">
+    <value>이전 1주</value>
+  </data>
+  <data name="Btn.NextWeek" xml:space="preserve">
+    <value>다음 1주</value>
+  </data>
 </root>

@@ -35,11 +35,19 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["PP.PlanConfirm.Col.Due"]} {L["PP.Forecast.Fld.Period"]}")' />
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn"
+                          title="@L["Btn.PrevWeek"]" Click="() => ShiftWeek(-1)" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+                              Change="@((DateTime? _) => Search())"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
+                              Change="@((DateTime? _) => Search())"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn"
+                          title="@L["Btn.NextWeek"]" Click="() => ShiftWeek(1)" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_showIssued" Change="@((bool _) => Search())" Name="pcShowIssued" />
+            <RadzenLabel Text="@L["PP.PlanConfirm.Lbl.ShowIssued"]" Component="pcShowIssued" Style="white-space:nowrap;margin-right:12px;" />
             <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
                            Placeholder="@L["PP.PlanConfirm.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -74,7 +82,7 @@ else
                            @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
                 <Template Context="r">
-                    <input type="checkbox" class="pc-ck" disabled="@r.Blocked"
+                    <input type="checkbox" class="pc-ck" disabled="@(r.Blocked || r.FullyIssued)"
                            checked="@_selected.Contains(r.SoId)"
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
@@ -140,7 +148,11 @@ else
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="190px" Title="@L["Col.Status"].Value"
                                   Sortable="false" Filterable="false" Width="190px">
                 <Template Context="r">
-                    @if (r.Blocked)
+                    @if (r.FullyIssued)
+                    {
+                        <span class="pill ok" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Issued"]</span>
+                    }
+                    else if (r.Blocked)
                     {
                         <span class="pill bad">@L[r.NoRouting ? "PP.PlanConfirm.Status.NoRouting" : "PP.PlanConfirm.Status.Blocked"]</span>
                     }
@@ -166,8 +178,10 @@ else
 
     string    _fCustomer = "";
     string    _fText     = "";
-    DateTime? _fFrom;
-    DateTime? _fTo;
+    // 납기 기간 기본 = 오늘 앞뒤 1주
+    DateTime? _fFrom = DbClock.Today.AddDays(-7);
+    DateTime? _fTo   = DbClock.Today.AddDays(7);
+    bool      _showIssued;
 
     List<PpRepository.PlanLineRow> _rows = new();   // 조회 결과
     List<PpRepository.PlanLineRow> _view = new();   // 텍스트 필터 적용 표시용
@@ -178,7 +192,7 @@ else
     bool   _isErr;
 
     int BlockedCount => _rows.Count(r => r.Blocked);
-    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => !r.Blocked);
+    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => !r.Blocked && !r.FullyIssued);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = WO 일괄 생성
@@ -198,7 +212,7 @@ else
 
     void Search()
     {
-        try   { _rows = Pp.ListPlanCandidates(_fCustomer ?? "", _fFrom, _fTo); }
+        try   { _rows = Pp.ListPlanCandidates(_fCustomer ?? "", _fFrom, _fTo, includeIssued: _showIssued); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
         _selected.RemoveWhere(id => _rows.All(r => r.SoId != id));
         ApplyFilters();
@@ -218,7 +232,16 @@ else
 
     void Reset()
     {
-        _fCustomer = ""; _fText = ""; _fFrom = null; _fTo = null;
+        _fCustomer = ""; _fText = ""; _showIssued = false;
+        _fFrom = DbClock.Today.AddDays(-7); _fTo = DbClock.Today.AddDays(7);
+        Search();
+    }
+
+    // ◀ ▶ — 기간을 1주씩 옮긴다. 한쪽이 비어 있으면 오늘 기준 기본 기간에서 시작한다.
+    void ShiftWeek(int dir)
+    {
+        _fFrom = (_fFrom ?? DbClock.Today.AddDays(-7)).AddDays(7 * dir);
+        _fTo   = (_fTo   ?? DbClock.Today.AddDays(7)).AddDays(7 * dir);
         Search();
     }
 
@@ -242,7 +265,7 @@ else
     {
         if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
 
-        var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.Blocked).ToList();
+        var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.Blocked && !r.FullyIssued).ToList();
         if (lines.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
 
         var result = await Dialog.OpenAsync<PlanConfirmBatchDialog>(

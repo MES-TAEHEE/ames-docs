@@ -38,9 +38,11 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.PrevWeek"]" Click="() => ShiftWeekly(-1)" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.NextWeek"]" Click="() => ShiftWeekly(1)" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_fPartNo" @bind-Value:after="ApplyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -114,9 +116,11 @@
                             @bind-Value="_dCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.PrevWeek"]" Click="() => ShiftDaily(-1)" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_dFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_dTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.NextWeek"]" Click="() => ShiftDaily(1)" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_dPartNo" @bind-Value:after="ApplyDailyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -197,9 +201,11 @@
             <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_rCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.PrevWeek"]" Click="() => ShiftRecon(-1)" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_rFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_rTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.NextWeek"]" Click="() => ShiftRecon(1)" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchRecon" />
             @if (_canEdit)
             {
@@ -445,6 +451,16 @@
         SearchDaily();   // 일별 구매계획 + 일별 배치 이력
         SearchRecon();   // 일별 발주·대조 (고객 미선택 = 전체)
         SearchHistory(); // 업로드 이력
+    }
+
+    // ◀ ▶ — 탭마다 기간을 1주씩 옮기고 바로 조회한다
+    void ShiftWeekly(int dir) { _fFrom = _fFrom.AddDays(7 * dir); _fTo = _fTo.AddDays(7 * dir); Search(); }
+    void ShiftDaily(int dir)  { _dFrom = _dFrom.AddDays(7 * dir); _dTo = _dTo.AddDays(7 * dir); SearchDaily(); }
+    void ShiftRecon(int dir)
+    {
+        _rFrom = (_rFrom ?? DbClock.Today.AddDays(-7)).AddDays(7 * dir);
+        _rTo   = (_rTo   ?? DbClock.Today.AddDays(60)).AddDays(7 * dir);
+        SearchRecon();
     }
 
     void SearchRecon()

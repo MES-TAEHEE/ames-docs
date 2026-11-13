@@ -70,6 +70,8 @@ public sealed partial class PpRepository
         public bool NoRouting => ItemExists && RoutingType is null;
         // 품목마스터 미완성(BR-PP-001) 또는 라우팅 미지정 → WO 생성 불가
         public bool Blocked => !ItemExists || RoutingType is null;
+        /// <summary>수주 수량만큼 WO 가 이미 발행된 건 — PP-003 「완료 건 보기」에서만 보이고 선택할 수 없다.</summary>
+        public bool FullyIssued => OrderQty > 0 && IssuedQty >= OrderQty;
     }
 
     public sealed record MrpRunRow(int MrpRunId, DateTime? RunAt, DateTime? HorizonStart,
@@ -579,7 +581,8 @@ public sealed partial class PpRepository
     }
 
     // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
-    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500)
+    // includeIssued = 수주 수량만큼 WO 가 다 발행된 확정 수주도 함께 (조회용, 선택 불가)
+    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false)
     {
         var sql = $$"""
             SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
@@ -604,7 +607,7 @@ public sealed partial class PpRepository
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
                          ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
-            WHERE  s.Status = 'Confirmed' AND ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0   -- 잔량 있는 수주(분할 발행 가능)
+            WHERE  s.Status = 'Confirmed' AND (@All = 1 OR ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0)   -- 잔량 있는 수주(분할 발행 가능), @All 이면 발행 완료 수주도
                AND (@Cust = '' OR s.CustomerID = @Cust)
                AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
                AND (@To   IS NULL OR s.RequestedDeliveryDate <= @To)
@@ -615,6 +618,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = customerId ?? "";
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)dueFrom ?? DBNull.Value;
         cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)dueTo   ?? DBNull.Value;
+        cmd.Parameters.Add("@All",  SqlDbType.Bit).Value  = includeIssued;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PlanLineRow>();
         while (rdr.Read())

@@ -13419,4 +13419,16 @@
   <data name="SYS.Users.Err.PortalVendorInactive" xml:space="preserve">
     <value>The selected supplier does not exist or is inactive. Select again.</value>
   </data>
+  <data name="PP.PlanConfirm.Status.Issued" xml:space="preserve">
+    <value>Fully issued</value>
+  </data>
+  <data name="PP.PlanConfirm.Lbl.ShowIssued" xml:space="preserve">
+    <value>Show completed</value>
+  </data>
+  <data name="Btn.PrevWeek" xml:space="preserve">
+    <value>Previous week</value>
+  </data>
+  <data name="Btn.NextWeek" xml:space="preserve">
+    <value>Next week</value>
+  </data>
 </root>
