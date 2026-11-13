@@ -54,6 +54,13 @@ builder.Services.AddSingleton<IDemandPlanSource>(sp => new HttpDemandPlanSource(
 builder.Services.AddSingleton<DemandPlanSyncWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DemandPlanSyncWorker>());
 
+// SAP B1 인터페이스(EOS_IF) 마스터 수신 — 접속문자열은 환경변수 ConnectionStrings__EOS_IF(없으면 Worker 비활성)
+var eosIf = new EosIfConnectionFactory(builder.Configuration.GetConnectionString("EOS_IF"));
+builder.Services.AddSingleton(eosIf);
+builder.Services.AddSingleton(new SapIfLogRepository(factory));
+builder.Services.AddSingleton<AMES.Api.Workers.SapIn.SapInWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AMES.Api.Workers.SapIn.SapInWorker>());
+
 // PUSH notify — 고장·안돈·QC 홀드·PM 지연·재고 부족을 규칙 수신자의 앱(FCM)으로 보낸다(10-24)
 builder.Services.AddHttpClient(FcmSender.ClientName);
 builder.Services.AddSingleton<IPushSender, FcmSender>();
