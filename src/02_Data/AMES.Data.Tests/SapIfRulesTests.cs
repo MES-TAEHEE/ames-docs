@@ -119,7 +119,7 @@ public class SapIfRulesTests
         var ids = SapInMasters.All.Select(m => m.IfId).ToList();
         Assert.Equal(ids.Count, ids.Distinct().Count());
         // 정의서: UoM → (Item → BOM) → 고객 → 공급사 → 로케이션
-        Assert.Equal(["IF-M01", "IF-M02", "IF-M03", "IF-M04", "IF-M05", "IF-M06"], ids);
+        Assert.Equal(["IF-M01", "IF-M02", "IF-M03", "IF-M04", "IF-M05", "IF-M06", "IF-T04", "IF-T08"], ids);
     }
 
     [Theory]
@@ -166,13 +166,55 @@ public class SapIfRulesTests
     {
         var banned = new[] { "IF_SEQ", "IF_ACTION", "IF_STATUS", "IF_MSG", "SRC_TS", "CREATED_TS", "PROC_TS",
                              "SAPFlag", "CreatedBy", "CreatedTS", "ModifiedBy", "ModifiedTS" };
-        foreach (var m in SapInMasters.All)
+        // 컬럼 매핑 방식(Simple·Bom)만 해당 — PO·MRP 는 전용 처리라 Cols 를 쓰지 않는다
+        foreach (var m in SapInMasters.All.Where(x => x.Kind is MasterKind.Simple or MasterKind.Bom))
         {
             Assert.DoesNotContain(m.Key, banned);
             Assert.All(m.Cols, c => Assert.DoesNotContain(c, banned));
             Assert.DoesNotContain(m.Key, m.Cols);                 // 키는 MERGE 조건 — SET 에 넣지 않는다
             Assert.Contains(m.DeactivateCol, m.Cols);            // 비활성 컬럼은 반드시 반영 대상 컬럼
         }
+    }
+
+    [Fact]
+    public void Po_and_mrp_use_header_and_line_tables()
+    {
+        Assert.Equal("IF_TX_PO_LINE", SapInRunner.ChildTable(MasterKind.Po));
+        Assert.Equal("IF_TX_MRP_PLAN_LINE", SapInRunner.ChildTable(MasterKind.Mrp));
+        Assert.Equal("IF_MD_BOM_LINE", SapInRunner.ChildTable(MasterKind.Bom));
+        Assert.Null(SapInRunner.ChildTable(MasterKind.Simple));
+        var po = SapInMasters.All.Single(m => m.IfId == "IF-T04");
+        Assert.Equal("IF_TX_PO_HDR", po.EosTable);
+        Assert.Equal("WH_PurchaseOrder", po.AmesTable);
+        Assert.Equal("IF_TX_MRP_PLAN_HDR", SapInMasters.All.Single(m => m.IfId == "IF-T08").EosTable);
+    }
+
+    [Fact]
+    public void Mrp_log_key_is_plan_date_and_bucket()
+    {
+        var mrp = SapInMasters.All.Single(m => m.IfId == "IF-T08");
+        var row = new Dictionary<string, object?> { ["PLAN_DATE"] = new DateTime(2026, 11, 13), ["BUCKET"] = "W" };
+        Assert.Equal("2026-11-13/W", SapInRunner.LogKey(mrp, row));
+        var uom = SapInMasters.All.Single(m => m.IfId == "IF-M01");
+        Assert.Equal("EA", SapInRunner.LogKey(uom, new Dictionary<string, object?> { ["UOMCode"] = "EA" }));
+    }
+
+    [Fact]
+    public void Po_incoming_values_follow_b1_with_received_qty_from_open_qty()
+    {
+        var h = new Dictionary<string, object?> { ["B1_DOCNUM"] = 4500001, ["VendorID"] = "V1007", ["DocStatus"] = "O",
+            ["CurrencyCode"] = "USD", ["DocDate"] = new DateTime(2026, 11, 1), ["DueDate"] = new DateTime(2026, 11, 20) };
+        var l = new Dictionary<string, object?> { ["LINENUM"] = 2, ["ItemNo"] = "RM-1", ["OrderQty"] = 100m, ["OpenQty"] = 40m,
+            ["LineStatus"] = "O", ["UOM"] = "KG", ["Price"] = 1.25m, ["ShipDate"] = null };
+        var v = SapInPo.Incoming(h, l);
+        Assert.Equal("4500001", v["PoNumber"]);
+        Assert.Equal(60m, v["ReceivedQty"]);                         // 100 − 40
+        Assert.Equal("Partial", v["Status"]);
+        Assert.Equal(new DateTime(2026, 11, 20), v["DueDate"]);      // 라인 납기 없으면 헤더 납기
+        l["ShipDate"] = new DateTime(2026, 11, 18);
+        Assert.Equal(new DateTime(2026, 11, 18), SapInPo.Incoming(h, l)["DueDate"]);   // 라인 납기 우선
+        l["OpenQty"] = 150m;                                         // 잔량이 발주량보다 크면 입고 누계는 0 으로 막는다
+        Assert.Equal(0m, SapInPo.Incoming(h, l)["ReceivedQty"]);
     }
 
     [Fact]

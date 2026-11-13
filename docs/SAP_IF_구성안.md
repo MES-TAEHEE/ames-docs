@@ -422,10 +422,11 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.IF_TX_PRODRECEIPT WHERE MES_RESULT_NO = @Mes
 | 항목 | 상태 |
 |---|---|
 | 2단계 구조 대조 | 완료(읽기 전용). EOS_IF 실제 DDL 확인 — 아래 "대조 결과" |
-| 3단계 DDL | `dist/migrate_sap_if_log.sql` **개발 DB(`172.29.3.21\MES`/`AMES`) 적용 완료(11-13)**. `dist/migrate_sap_if_po_mrp.sql` 은 미적용(PO·MRP 수신 코드가 생길 때). `AMES_Schema.sql`·`rebuild_db.sh` 반영은 아직 |
+| 3단계 DDL | `dist/migrate_sap_if_log.sql`·`dist/migrate_sap_if_po_mrp.sql` **운영 DB(`172.29.3.21\MES`/`AMES`)와 로컬 `AMES_DEV` 적용 완료(11-13)**. `AMES_Schema.sql`·`rebuild_db.sh` 반영은 아직 |
 | 4단계 공통 기반 | 완료 — `EosIfConnectionFactory`, `SapIfRules`, `SapIfLogRepository` |
-| 5단계 수신 Worker | **M01 단위 · M02 품목 · M03 BOM · M04 고객 · M05 공급사 · M06 로케이션** 구현(`SapInRunner`, `SapInBom`, `SapInWorker`). DryRun 기본 ON. 품목은 사출품 여부(InjFlag)를 SUB 일 때만 유지하고 기본 단위가 바뀌면 BOM 라인 단위를 동기화, BOM 은 헤더+라인 한 트랜잭션·IF 에 없는 라인 비활성 |
-| 5단계 나머지 | 미구현: T04 PO, T08 MRP |
+| 5단계 수신 Worker | **M01 단위 · M02 품목 · M03 BOM · M04 고객 · M05 공급사 · M06 로케이션 · T04 구매 PO · T08 MRP** 8종 구현(`SapInRunner`, `SapInBom`, `SapInPo`, `SapInMrp`, `SapInWorker`). DryRun 기본 ON. 품목은 사출품 여부(InjFlag)를 SUB 일 때만 유지하고 기본 단위가 바뀌면 BOM 라인 단위를 동기화, BOM 은 헤더+라인 한 트랜잭션·IF 에 없는 라인 비활성. PO 는 `WH_PurchaseOrder`(B1DocEntry+B1LineNum 키, 잔량·수량·납기·상태를 B1 값으로 덮어씀, X 는 Cancelled), MRP 는 `SCM_MrpPlan` 에 같은 버킷(D/W)을 통째로 교체 |
+| 운영 반영 | 운영 웹서버(100.92.74.65) `AMES.Api` 앱풀에 `ConnectionStrings__EOS_IF` 설정 완료. 푸시 후 Jenkins 배포본부터 수신 Worker 가 DryRun 으로 8종을 5분마다 돈다 |
+| 미구현 | 송신(T01~T03·T05~T07·T09) 전부, 공급사 포털의 MRP 화면 |
 | 6단계 송신 | 미구현: 아웃박스 Enqueue·`SAPOUT` Worker·현장 연결 |
 | 7단계 | 모니터(`SYS_InterfaceMonitor` `SAPIN-IF-Mxx`)는 수신 Worker 에 포함. 알림·화면은 후속 |
 | 테스트 | `SapIfRulesTests` 17건 통과. Api 빌드 오류 0. MERGE 실반영은 DB 적용 뒤 검증 필요 |

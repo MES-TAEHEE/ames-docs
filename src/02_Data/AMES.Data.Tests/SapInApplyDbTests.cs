@@ -87,6 +87,94 @@ public class SapInApplyDbTests
         finally { tx.Rollback(); }
     }
 
+    static Dictionary<string, object?> PoHdr(string action, string docStatus = "O") => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["IF_ACTION"] = action, ["B1_DOCENTRY"] = 999001, ["B1_DOCNUM"] = 4599001, ["VendorID"] = "ITEST-V", ["VendorName"] = "v",
+        ["DocDate"] = new DateTime(2026, 11, 1), ["DueDate"] = new DateTime(2026, 11, 20), ["DocStatus"] = docStatus, ["CurrencyCode"] = "USD",
+    };
+
+    static Dictionary<string, object?> PoLine(int lineNum, decimal order, decimal open, string lineStatus = "O") => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["LINENUM"] = lineNum, ["ItemNo"] = "ITEST-SAPIN-RM", ["OrderQty"] = order, ["OpenQty"] = open, ["UOM"] = "KG",
+        ["Price"] = 2.5m, ["LineStatus"] = lineStatus, ["ShipDate"] = null,
+    };
+
+    [SkippableFact]
+    public void Po_receive_upserts_lines_in_sap_favour_and_cancels_the_po()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, Skipped);
+        var f = TryFactory(); Skip.If(f is null, Skipped);
+        using var c = f!.OpenConnection();
+        using var tx = c.BeginTransaction();
+        try
+        {
+            var (_, kind, note) = SapInPo.Apply(c, tx, PoHdr("C"), [PoLine(1, 100m, 100m), PoLine(2, 50m, 20m)]);
+            Assert.Equal('N', kind);
+            Assert.Contains("라인 2건: 신규 2·변경 0·동일 0", note);
+            Assert.Equal("4599001", One<string>(c, tx, "SELECT PoNumber FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND B1LineNum=2", "@e", 999001));
+            Assert.Equal(30m, One<decimal>(c, tx, "SELECT ReceivedQty FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND B1LineNum=2", "@e", 999001));
+            Assert.Equal("Partial", One<string>(c, tx, "SELECT Status FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND B1LineNum=2", "@e", 999001));
+            Assert.Equal("SAP-IF", One<string>(c, tx, "SELECT CreatedBy FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND B1LineNum=1", "@e", 999001));
+
+            // GRPO 로 잔량이 줄어 U 로 다시 온다 → 변경(라인 1 만), 라인 2 는 동일
+            (_, kind, note) = SapInPo.Apply(c, tx, PoHdr("U"), [PoLine(1, 100m, 60m), PoLine(2, 50m, 20m)]);
+            Assert.Equal('C', kind);
+            Assert.Contains("신규 0·변경 1·동일 1", note);
+            Assert.Contains("ReceivedQty: 0.000 → 40", note);
+            Assert.Equal(40m, One<decimal>(c, tx, "SELECT ReceivedQty FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND B1LineNum=1", "@e", 999001));
+
+            // 같은 스냅샷 재수신 → 동일(멱등), 행이 늘지 않는다
+            (_, kind, _) = SapInPo.Apply(c, tx, PoHdr("U"), [PoLine(1, 100m, 60m), PoLine(2, 50m, 20m)]);
+            Assert.Equal('S', kind);
+            Assert.Equal(2, One<int>(c, tx, "SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e", "@e", 999001));
+
+            // 취소(X): 라인이 스냅샷에 없어도 그 PO 의 MES 행이 모두 Cancelled
+            SapInPo.Apply(c, tx, PoHdr("X", "X"), []);
+            Assert.Equal(2, One<int>(c, tx, "SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE B1DocEntry=@e AND Status='Cancelled'", "@e", 999001));
+        }
+        finally { tx.Rollback(); }
+    }
+
+    [SkippableFact]
+    public void Mrp_receive_replaces_the_bucket_snapshot_and_ignores_the_superseded_header()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, Skipped);
+        var f = TryFactory(); Skip.If(f is null, Skipped);
+        using var c = f!.OpenConnection();
+        using var tx = c.BeginTransaction();
+        try
+        {
+            Dictionary<string, object?> H(string action, long seq) => new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["IF_ACTION"] = action, ["IF_SEQ"] = seq, ["PLAN_DATE"] = new DateTime(2026, 11, 13), ["BUCKET"] = "W",
+                ["HORIZON_FROM"] = new DateTime(2026, 11, 13), ["HORIZON_TO"] = new DateTime(2027, 2, 26), ["SCENARIO"] = "TEST",
+                ["RUN_TS"] = new DateTime(2026, 11, 13, 6, 0, 0),
+            };
+            Dictionary<string, object?> L(string item, decimal planned) => new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ItemNo"] = item, ["VendorID"] = "ITEST-V", ["PeriodStart"] = new DateTime(2026, 11, 16), ["PeriodLabel"] = "46/1W",
+                ["OpeningQty"] = 10m, ["GrossReqQty"] = 100m, ["ScheduledQty"] = 20m, ["PlannedQty"] = planned,
+                ["PackQty"] = null, ["UOM"] = "KG", ["OrderedQty"] = null,
+            };
+
+            SapInMrp.Apply(c, tx, H("C", 7001), [L("ITEST-A", 5m), L("ITEST-B", 6m)]);
+            Assert.Equal(2, One<int>(c, tx, "SELECT COUNT(*) FROM dbo.SCM_MrpPlan WHERE EosHdrSeq=@s", "@s", 7001L));
+
+            // 새 스냅샷은 같은 버킷의 기존 행을 통째로 교체한다
+            var (_, kind, note) = SapInMrp.Apply(c, tx, H("C", 7002), [L("ITEST-A", 9m)]);
+            Assert.Equal('C', kind);
+            Assert.Contains("1행 등록", note);
+            Assert.Equal(0, One<int>(c, tx, "SELECT COUNT(*) FROM dbo.SCM_MrpPlan WHERE EosHdrSeq=@s", "@s", 7001L));
+            Assert.Equal(9m, One<decimal>(c, tx, "SELECT PlannedQty FROM dbo.SCM_MrpPlan WHERE EosHdrSeq=@s", "@s", 7002L));
+
+            // 이전 스냅샷 X 는 새 스냅샷을 지우지 않는다
+            var (aff, kx, _) = SapInMrp.Apply(c, tx, H("X", 7003), []);
+            Assert.Equal((0, 'S'), (aff, kx));
+            Assert.Equal(1, One<int>(c, tx, "SELECT COUNT(*) FROM dbo.SCM_MrpPlan WHERE EosHdrSeq=@s", "@s", 7002L));
+        }
+        finally { tx.Rollback(); }
+    }
+
     [SkippableFact]
     public void Bom_receive_upserts_header_and_lines_and_deactivates_lines_missing_from_if()
     {

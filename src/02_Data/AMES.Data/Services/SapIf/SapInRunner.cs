@@ -10,7 +10,8 @@ namespace AMES.Data.Services.SapIf;
 /// <paramref name="Cols"/> 는 IF 테이블과 MD 테이블에서 이름이 같은 업무 컬럼(MES 전용 컬럼은 넣지 않아 건드리지 않는다).
 /// </summary>
 /// <summary>Simple = 헤더 한 행이 MD 한 행(키 MERGE) · Bom = 헤더 1행 + 라인 N행을 한 트랜잭션으로(M03).</summary>
-public enum MasterKind { Simple, Bom }
+/// Po = 구매 PO 헤더 1행 + 라인 N행(T04) · Mrp = 자재 소요계획 스냅샷 헤더 1행 + 라인 N행(T08).
+public enum MasterKind { Simple, Bom, Po, Mrp }
 
 /// <param name="SapFlag">대상 MD 테이블에 SAPFlag 컬럼이 있는가(MD_Bom 라인은 없다 — 헤더 MD_BomVersion 에 있다).</param>
 public sealed record MasterSpec(
@@ -48,6 +49,9 @@ public static class SapInMasters
         new("IF-M06", "창고(1차 로케이션)", "IF_MD_LOCATION", "MD_Location", "LocationID",
             ["LocationName", "LocationType", "PlantCode", "ActiveFlag", "WhCode", "AreaCode", "ParentLocationID", "LocationLevel"],
             "ActiveFlag", false, ["ActiveFlag"]),
+        // 구매 PO·MRP 는 컬럼 매핑이 아니라 전용 처리(SapInPo·SapInMrp) — Cols/Deactivate 는 쓰지 않는다.
+        new("IF-T04", "구매 PO", "IF_TX_PO_HDR", "WH_PurchaseOrder", "B1_DOCENTRY", [], "Status", "Cancelled", [], MasterKind.Po),
+        new("IF-T08", "자재 소요계획(MRP)", "IF_TX_MRP_PLAN_HDR", "SCM_MrpPlan", "PLAN_DATE", [], "Status", "", [], MasterKind.Mrp),
     ];
 }
 
@@ -83,11 +87,12 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
                 ct.ThrowIfCancellationRequested();
                 var seq    = (long)row["IF_SEQ"]!;
                 var action = row["IF_ACTION"] as string;
-                var key    = row[s.Key]?.ToString();
+                var key    = LogKey(s, row);
                 try
                 {
-                    // M03 은 헤더 1행 + 라인 N행(HDR_SEQ) — 라인은 AMES 트랜잭션을 열기 전에 EOS_IF 에서 읽는다.
-                    var children = s.Kind == MasterKind.Bom ? ReadChildren(eosConn, SapInBom.LineEosTable, seq) : null;
+                    // 헤더 1행 + 라인 N행(HDR_SEQ) 구조(BOM·PO·MRP) — 라인은 AMES 트랜잭션을 열기 전에 EOS_IF 에서 읽는다.
+                    var childTable = ChildTable(s.Kind);
+                    var children = childTable is null ? null : ReadChildren(eosConn, childTable, seq);
                     var (affected, kind, note) = ApplyOne(s, row, children, target.DryRun);
                     if (!target.DryRun) WriteBack(eosConn, s, seq, 'Y', null);
                     applied++;
@@ -110,7 +115,8 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
 
             // 정책 3: AMES 에만 있는 행은 그대로 둔다 — 지우거나 비활성화하지 않고 목록만 남긴다.
             int amesOnly = 0;
-            if (rows.Count > 0)
+            // PO·MRP 는 AMES 에만 있는 행이 정상(SRM 수주·MES 발주 등)이라 비교 대상이 아니다.
+            if (rows.Count > 0 && s.Kind is MasterKind.Simple or MasterKind.Bom)
             {
                 try
                 {
@@ -167,6 +173,21 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
         }
         return list;
     }
+
+    /// <summary>헤더 1행 + 라인 N행 구조의 라인 테이블(없으면 null).</summary>
+    internal static string? ChildTable(MasterKind kind) => kind switch
+    {
+        MasterKind.Bom => SapInBom.LineEosTable,
+        MasterKind.Po  => SapInPo.LineEosTable,
+        MasterKind.Mrp => SapInMrp.LineEosTable,
+        _ => null,
+    };
+
+    /// <summary>로그·모니터에 보이는 업무 키(MRP 는 기준일/버킷).</summary>
+    internal static string? LogKey(MasterSpec s, IReadOnlyDictionary<string, object?> row)
+        => s.Kind == MasterKind.Mrp && row.TryGetValue("PLAN_DATE", out var d) && d is DateTime dt
+            ? $"{dt:yyyy-MM-dd}/{row.GetValueOrDefault("BUCKET")}"
+            : row.GetValueOrDefault(s.Key)?.ToString();
 
     /// <summary>헤더(HDR_SEQ)에 딸린 라인 행(IF_SEQ 순).</summary>
     private static List<Dictionary<string, object?>> ReadChildren(SqlConnection conn, string table, long hdrSeq)
@@ -231,6 +252,10 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
             (int Affected, char Kind, string Note) res;
             if (s.Kind == MasterKind.Bom)
                 res = SapInBom.Apply(conn, tx, row, children ?? []);
+            else if (s.Kind == MasterKind.Po)
+                res = SapInPo.Apply(conn, tx, row, children ?? []);
+            else if (s.Kind == MasterKind.Mrp)
+                res = SapInMrp.Apply(conn, tx, row, children ?? []);
             else
             {
                 var norm = NormalizeRow(s, row);
