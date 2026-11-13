@@ -154,6 +154,10 @@
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Create"]</div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin:8px 0 12px;">@_modalErr</RadzenAlert>
+            }
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.GroupCode"]} {L["MD.CommonCode.Lbl.GroupCodeHint"]}")' class="ames-rz-modal-label" Component="GrpCreateTextBoxGroupCode" />
@@ -182,10 +186,6 @@
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Component="GrpCreateChkUse" style="cursor:pointer;" />
             </RadzenStack>
 
-            @if (!string.IsNullOrEmpty(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
-            }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveGroupCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -201,6 +201,10 @@
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroup.GroupCode</span></div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin:8px 0 12px;">@_modalErr</RadzenAlert>
+            }
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupName"]' class="ames-rz-modal-label" Component="GrpEditTextBoxGroupName" />
@@ -238,10 +242,6 @@
                 </RadzenStack>
             }
 
-            @if (!string.IsNullOrEmpty(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
-            }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveGroupEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -261,6 +261,10 @@
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Create"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin:8px 0 12px;">@_modalErr</RadzenAlert>
+            }
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeValue"]} {L["MD.CommonCode.Lbl.CodeValueHint"]}")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeValue" />
@@ -319,10 +323,6 @@
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Component="ItemCreateChkUse" style="cursor:pointer;" />
             </RadzenStack>
 
-            @if (!string.IsNullOrEmpty(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
-            }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveItemCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -338,6 +338,10 @@
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fItem.CodeId</span></div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin:8px 0 12px;">@_modalErr</RadzenAlert>
+            }
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeValue"]' class="ames-rz-modal-label" Component="ItemEditTextBoxCodeValue" />
@@ -410,10 +414,6 @@
                 </RadzenStack>
             }
 
-            @if (!string.IsNullOrEmpty(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
-            }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveItemEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -666,6 +666,9 @@
         try
         {
             var id = _fItem.CodeId.Trim().ToUpper();
+            var value = _fItem.CodeValue.Trim();
+            if (_items.Any(i => string.Equals(i.CodeValue, value, StringComparison.OrdinalIgnoreCase)))
+            { _modalErr = string.Format(L["MD.CommonCode.Err.DupValue"].Value, _selGroup!.GroupCode, value); return; }
             if (MD.CodeItemExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
             MD.InsertCodeItem(id, _selGroup!.GroupCode, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
