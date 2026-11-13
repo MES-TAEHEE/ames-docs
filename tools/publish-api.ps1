@@ -97,6 +97,15 @@ if ($DevServerSwagger) {
     }
     Write-Host "  개발서버 패키지: Swagger 켬 (/swagger)" -ForegroundColor Yellow
 }
+else {
+    # 프로젝트 web.config 가 Swagger 를 켜 두므로(Jenkins 개발서버 배포용) 운영 서버용 패키지에서는 뺀다
+    $wcPkg = Join-Path $PkgDir 'web.config'
+    $raw = Get-Content $wcPkg -Raw
+    if ($raw -match 'Swagger__Enabled') {
+        Set-Content -Path $wcPkg -Value ($raw -replace '\s*<environmentVariable name="Swagger__Enabled"[^>]*/>', '') -Encoding utf8
+    }
+    Write-Host "  운영 서버 패키지: Swagger 끔" -ForegroundColor Yellow
+}
 
 # ---------------------------------------------------------------------------
 # 2. zip (선택)
