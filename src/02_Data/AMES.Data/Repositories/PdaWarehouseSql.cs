@@ -450,7 +450,11 @@ public static class PdaWarehouseSql
             LEFT JOIN dbo.MD_Location L
               ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
             LEFT JOIN dbo.MD_CodeItem WC ON WC.GroupCode='WH_CODE' AND WC.CodeValue=L.WhCode
-            LEFT JOIN dbo.MD_CodeItem AC ON AC.GroupCode='WH_AREA' AND AC.CodeValue=L.AreaCode
+            -- 같은 구역 코드가 여러 창고에 있어도 한 행만 고른다(위치의 창고 소속 구역 우선) — 조인으로 행이 곱해지지 않게
+            OUTER APPLY (SELECT TOP (1) X.CodeName FROM dbo.MD_CodeItem X
+                         LEFT JOIN dbo.MD_CodeItem XP ON XP.CodeID=X.ParentCodeID AND XP.GroupCode='WH_CODE'
+                         WHERE X.GroupCode='WH_AREA' AND X.CodeValue=L.AreaCode
+                         ORDER BY CASE WHEN XP.CodeValue=L.WhCode THEN 0 ELSE 1 END, X.SortOrder, X.CodeID) AC
             WHERE W.PartNo=@ItemNo AND W.Qty>0
               AND NOT (UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
               AND (@AreaCode IS NULL OR L.AreaCode=@AreaCode)

@@ -487,6 +487,8 @@ public sealed partial class WarehouseRepository
             LEFT JOIN dbo.MD_CodeItem W ON W.CodeID=A.ParentCodeID AND W.GroupCode='WH_CODE'
             LEFT JOIN dbo.MD_Location L
                    ON L.AreaCode=A.CodeValue
+                  -- 구역은 자기 창고의 위치만 센다(다른 창고의 같은 구역 코드가 섞이지 않게). 창고가 없는 구역만 예전처럼 코드로 묶는다
+                  AND (W.CodeValue IS NULL OR L.WhCode = W.CodeValue)
                   AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
             LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
@@ -1622,7 +1624,11 @@ public sealed partial class WarehouseRepository
                     ELSE N'Stocked'
                 END AS STATUS
             FROM dbo.MD_Location L
-            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
+            -- 같은 구역 코드가 여러 창고에 있어도 한 행만 고른다(위치의 창고 소속 구역 우선) — 조인으로 행이 곱해지지 않게
+            OUTER APPLY (SELECT TOP (1) X.CodeName FROM dbo.MD_CodeItem X
+                         LEFT JOIN dbo.MD_CodeItem XP ON XP.CodeID=X.ParentCodeID AND XP.GroupCode='WH_CODE'
+                         WHERE X.GroupCode='WH_AREA' AND X.CodeValue=L.AreaCode
+                         ORDER BY CASE WHEN XP.CodeValue=L.WhCode THEN 0 ELSE 1 END, X.SortOrder, X.CodeID) A
             LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
             WHERE COALESCE(L.ActiveFlag, 1) = 1
               AND (@WhCode IS NULL OR L.WhCode = @WhCode)
@@ -1683,7 +1689,11 @@ public sealed partial class WarehouseRepository
             FROM dbo.WH_Inventory S
             LEFT JOIN dbo.MD_Location L ON L.LocationID=S.LocationNo
             LEFT JOIN dbo.MD_Item I ON I.ItemNo=S.PartNo
-            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
+            -- 같은 구역 코드가 여러 창고에 있어도 한 행만 고른다(위치의 창고 소속 구역 우선) — 조인으로 행이 곱해지지 않게
+            OUTER APPLY (SELECT TOP (1) X.CodeName FROM dbo.MD_CodeItem X
+                         LEFT JOIN dbo.MD_CodeItem XP ON XP.CodeID=X.ParentCodeID AND XP.GroupCode='WH_CODE'
+                         WHERE X.GroupCode='WH_AREA' AND X.CodeValue=L.AreaCode
+                         ORDER BY CASE WHEN XP.CodeValue=L.WhCode THEN 0 ELSE 1 END, X.SortOrder, X.CodeID) A
             WHERE S.Qty<>0
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=S.LotNo)
               AND COALESCE(L.ActiveFlag, 1) = 1
