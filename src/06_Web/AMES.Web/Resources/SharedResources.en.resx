@@ -4101,6 +4101,9 @@
   <data name="Err.CodeNameRequired" xml:space="preserve">
     <value>Code name is required.</value>
   </data>
+  <data name="Err.CustomerCodeDuplicate" xml:space="preserve">
+    <value>This customer code is already in use (case-insensitive). Enter a different code.</value>
+  </data>
   <data name="Err.CustomerNameRequired" xml:space="preserve">
     <value>Customer name is required.</value>
   </data>

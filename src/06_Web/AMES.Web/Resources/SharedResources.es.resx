@@ -4098,6 +4098,9 @@
   <data name="Err.CodeNameRequired" xml:space="preserve">
     <value>El nombre de código es obligatorio.</value>
   </data>
+  <data name="Err.CustomerCodeDuplicate" xml:space="preserve">
+    <value>Este código de cliente ya está en uso (sin distinguir mayúsculas). Introduzca otro código.</value>
+  </data>
   <data name="Err.CustomerNameRequired" xml:space="preserve">
     <value>El nombre de cliente es obligatorio.</value>
   </data>

@@ -127,7 +127,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Customer.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -213,7 +213,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Customer.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span>@if (_sel.SAPFlag) { <span class="pill info" style="margin-left:6px;font-size:.72em;" title="@L["Lbl.SapData"]">SAP</span> }</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -449,6 +449,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CustomerName} {L["Msg.Created"]}", false);
         }
+        catch (MasterDataRepository.DuplicateCustomerCodeException) { _modalErr = L["Err.CustomerCodeDuplicate"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -473,6 +474,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
+        catch (MasterDataRepository.DuplicateCustomerCodeException) { _modalErr = L["Err.CustomerCodeDuplicate"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -488,6 +490,7 @@
             if (usages.Count > 0) _deleteBlocked = InUseText(_sel.CustomerID, usages);
             else _confirmDelete = true;
         }
+        catch (MasterDataRepository.DuplicateCustomerCodeException) { _modalErr = L["Err.CustomerCodeDuplicate"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
     }
 

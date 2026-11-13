@@ -202,6 +202,13 @@ public sealed class MasterDataRepository
         .FirstOrDefault() ?? new CommonCodeKpiRow(0, 0);
 
     /// <summary>같은 그룹에 같은 코드값이 이미 있어 등록·수정을 거부했다(대소문자 무시 — DB 콜레이션).</summary>
+    /// <summary>같은 고객 코드가 이미 있어 등록·수정을 거부했다(대소문자 무시 — DB 콜레이션).</summary>
+    public sealed class DuplicateCustomerCodeException(string customerCode)
+        : InvalidOperationException($"Customer code '{customerCode}' already exists.")
+    {
+        public string CustomerCode { get; } = customerCode;
+    }
+
     public sealed class DuplicateCodeValueException(string groupCode, string codeValue)
         : InvalidOperationException($"Code value '{codeValue}' already exists in group '{groupCode}'.")
     {
@@ -1529,6 +1536,8 @@ public sealed class MasterDataRepository
         bool ediFlag, string? currencyCode, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        EnsureCustomerCodeFree(conn, tx, customerCode, null);
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Customer
               (CustomerID,CustomerCode,CustomerName,CustomerNameEn,
@@ -1540,7 +1549,7 @@ public sealed class MasterDataRepository
                @Type,@Biz,@Cty,
                @CP,@Ph,@Em,
                @EDI,@Cur,@St,@By,SYSDATETIME());
-            """, conn);
+            """, conn, tx);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = customerId;
         cmd.Parameters.Add("@Code", SqlDbType.VarChar,  20).Value = (object?)customerCode   ?? DBNull.Value;
         cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 80).Value = (object?)customerName   ?? DBNull.Value;
@@ -1556,6 +1565,19 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@St",   SqlDbType.VarChar,   8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    // 고객 코드는 공백·대소문자를 무시하고 하나뿐이어야 한다(CustomerCode 컬럼 콜레이션이 대소문자 무시). 비어 있으면 검사하지 않는다.
+    static void EnsureCustomerCodeFree(SqlConnection conn, SqlTransaction tx, string? code, string? excludeId)
+    {
+        code = code?.Trim();
+        if (string.IsNullOrEmpty(code)) return;
+        using var chk = new SqlCommand(
+            "SELECT TOP 1 1 FROM dbo.MD_Customer WITH (UPDLOCK, HOLDLOCK) WHERE LTRIM(RTRIM(CustomerCode)) = @Code AND (@Ex IS NULL OR CustomerID <> @Ex)", conn, tx);
+        chk.Parameters.Add("@Code", SqlDbType.VarChar, 20).Value = code.Length > 20 ? code[..20] : code;
+        chk.Parameters.Add("@Ex", SqlDbType.VarChar, 20).Value = (object?)excludeId ?? DBNull.Value;
+        if (chk.ExecuteScalar() is not null) throw new DuplicateCustomerCodeException(code);
     }
 
     public void UpdateCustomer(
@@ -1565,6 +1587,8 @@ public sealed class MasterDataRepository
         bool ediFlag, string? currencyCode, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        EnsureCustomerCodeFree(conn, tx, customerCode, customerId);
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Customer SET
               CustomerCode=@Code, CustomerName=@Name, CustomerNameEn=@NameEn,
@@ -1573,7 +1597,7 @@ public sealed class MasterDataRepository
               EDIFlag=@EDI, CurrencyCode=@Cur, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE CustomerID=@ID;
-            """, conn);
+            """, conn, tx);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = customerId;
         cmd.Parameters.Add("@Code", SqlDbType.VarChar,  20).Value = (object?)customerCode   ?? DBNull.Value;
         cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 80).Value = (object?)customerName   ?? DBNull.Value;
@@ -1589,6 +1613,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@St",   SqlDbType.VarChar,   8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     // 사용처 = 수주·일별 구매계획·예측·출하지·라벨 양식·출하 지시·전용 팔레트·검사 기준(고객 코드)·PO/일별 계획 수집 소스(공통코드 Attribute1).
