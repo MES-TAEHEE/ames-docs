@@ -12,7 +12,7 @@
 
 @if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger" Variant="Variant.Flat">@_actionError</RadzenAlert> }
 <div class="ames-card location-explorer">
-    @if (!_interactiveReady || _navigating)
+    @if (_navigating)
     {
         <LocationMapLoading />
     }
@@ -811,8 +811,12 @@
 
     private RenderFragment RenderMap() => __builder =>
     {
-        var columns = GridLocations.Select(x => Axis(x.Column)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(LocationMapNaming.YOrder).ThenBy(x => x).ToList();
-        var rows = GridLocations.Select(x => Axis(x.Row)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
+        // 칸 목록은 한 번만 만들고 (열, 행) 사전으로 찾는다 — 칸마다 전체 목록을 다시 만들면 칸이 많은 구역에서 느리다
+        var gridLocations = GridLocations;
+        var columns = gridLocations.Select(x => Axis(x.Column)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(LocationMapNaming.YOrder).ThenBy(x => x).ToList();
+        var rows = gridLocations.Select(x => Axis(x.Row)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
+        var cellAt = new Dictionary<(string, string), LocationMapCell>();
+        foreach (var x in gridLocations) cellAt.TryAdd((Axis(x.Column).ToUpperInvariant(), Axis(x.Row).ToUpperInvariant()), x);
 
         if (MapLocations.Count == 0)
         {
@@ -830,7 +834,7 @@
                     <div class="location-axis row">@row</div>
                     @foreach (var column in columns)
                     {
-                        var cell = GridLocations.FirstOrDefault(x => Same(Axis(x.Column), column) && Same(Axis(x.Row), row));
+                        var cell = cellAt.GetValueOrDefault((column.ToUpperInvariant(), row.ToUpperInvariant()));
                         if (cell is null) { <div class="location-map-cell missing"></div> }
                         else
                         {

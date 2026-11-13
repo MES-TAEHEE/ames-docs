@@ -382,24 +382,26 @@ public sealed partial class WarehouseRepository
     public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)
     {
         var like = Like(search);
+        // 구역·위치·재고를 한 번에 조인하면 구역 수 × 위치 수 × 재고 행으로 불어난다(22 × 403 구역·위치에서 3.4초,
+        // 재고 합계도 구역 수만큼 부풀려짐). 항목마다 따로 센다.
         return Query("""
             SELECT
                 W.CodeValue AS WHCD,
                 W.CodeName AS WHNM,
                 CAST(COALESCE(W.UseFlag, 1) AS bit) AS USE_YN,
-                COUNT(DISTINCT A.CodeValue) AS AREA_COUNT,
-                COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
-                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY
+                (SELECT COUNT(DISTINCT A.CodeValue) FROM dbo.MD_CodeItem A
+                 WHERE A.GroupCode='WH_AREA' AND A.ParentCodeID=W.CodeID AND COALESCE(A.UseFlag,1)=1) AS AREA_COUNT,
+                (SELECT COUNT(*) FROM dbo.MD_Location L
+                 WHERE L.WhCode=W.CodeValue AND COALESCE(L.ActiveFlag,1)=1) AS LOCATION_COUNT,
+                COALESCE((SELECT SUM(S.Qty) FROM dbo.MD_Location L
+                          JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
+                          WHERE L.WhCode=W.CodeValue AND COALESCE(L.ActiveFlag,1)=1), 0) AS TOTAL_QTY
             FROM dbo.MD_CodeItem W
-            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.ParentCodeID=W.CodeID AND COALESCE(A.UseFlag,1)=1
-            LEFT JOIN dbo.MD_Location L ON L.WhCode=W.CodeValue AND COALESCE(L.ActiveFlag,1)=1
-            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
             WHERE W.GroupCode='WH_CODE'
               AND (@IncludeInactive = 1 OR COALESCE(W.UseFlag, 1) = 1)
               AND (@Search IS NULL
                    OR W.CodeValue LIKE @Search
                    OR W.CodeName LIKE @Search)
-            GROUP BY W.CodeValue,W.CodeName,W.UseFlag,W.SortOrder
             ORDER BY W.SortOrder,W.CodeValue;
             """, r => new WarehouseMasterRow(
                 GetString(r, "WHCD") ?? "",

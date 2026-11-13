@@ -4,11 +4,13 @@
 @inject AMES.Data.Repositories.WarehouseRepository Warehouse
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject PersistentComponentState PageState
+@implements IDisposable
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>@L["WH.LocMap.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="WH-003" TitleKey="WH.LocMap.Title" />
+<AmesPageHeader Code="WH-02" TitleKey="WH.LocMap.Title" />
 
 @if (_loading)
 {
@@ -24,18 +26,36 @@ else { <LocationMapExplorer Locations="_locations" Inventory="_inventory" Areas=
     private string? _error;
     private bool _canEdit;
     private bool _loading = true;
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // 첫 응답(프리렌더)에 데이터를 넣어 보낸다 — 실시간 연결을 기다린 뒤 읽으면 그동안 로딩 표시만 보인다.
+    // 프리렌더에서 읽은 결과는 연결된 뒤 그대로 넘겨받아 다시 읽지 않는다(화면 깜박임·이중 조회 방지).
+    private const string StateKey = "wh-location-map";
+    private sealed record MapState(List<LocationMapArea> Areas, List<LocationMapCell> Locations, List<LocationMapStock> Inventory, bool CanEdit);
+    private PersistingComponentStateSubscription _persist;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender) return;
+        _persist = PageState.RegisterOnPersisting(() =>
+        {
+            if (!_loading && _error is null) PageState.PersistAsJson(StateKey, new MapState(_areas, _locations, _inventory, _canEdit));
+            return Task.CompletedTask;
+        });
+        var restored = PageState.TryTakeFromJson<MapState>(StateKey, out var state) && state is not null;
+        if (restored)
+        {
+            (_areas, _locations, _inventory, _canEdit) = (state!.Areas, state.Locations, state.Inventory, state.CanEdit);
+            _loading = false;
+        }
         try
         {
             await PermSvc.EnsureAsync(AuthPrvd);
             _canEdit = PermSvc.CanEdit("md/fd/location");
-            await Reload();
+            if (!restored) await Reload();
         }
-        catch (Exception ex) { _error = $"Unable to load Location Map: {ex.Message}"; }
-        finally { _loading = false; await InvokeAsync(StateHasChanged); }
+        catch (Exception ex) { if (!restored) _error = $"Unable to load Location Map: {ex.Message}"; }
+        finally { _loading = false; }
     }
+
+    public void Dispose() => _persist.Dispose();
 
     private async Task Reload()
     {
