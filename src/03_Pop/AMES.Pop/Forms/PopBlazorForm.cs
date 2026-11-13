@@ -24,7 +24,9 @@ public class PopBlazorForm : PopForm
     public PopBlazorForm()
     {
         Text = "A-MES POP";
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? Icon;
+        // dotnet AMES.Pop.dll(디버거)로 띄우면 ExecutablePath 가 dotnet.exe 라 그 아이콘이 나온다 — 옆의 exe 에서 읽는다
+        var appExe = Path.ChangeExtension(typeof(PopBlazorForm).Assembly.Location, ".exe");
+        Icon = Icon.ExtractAssociatedIcon(File.Exists(appExe) ? appExe : Application.ExecutablePath) ?? Icon;
 
         var services = new ServiceCollection();
         services.AddWindowsFormsBlazorWebView();

@@ -25,7 +25,9 @@ public sealed class MainForm : Form
         _runners = pollers.Select(p => new PollerRunner(p, pollingMs, EnqueueLog)).ToList();
 
         Text = "AMES InjAgent — Injection PLC Collector";
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? Icon;
+        // dotnet AMES.InjAgent.dll(디버거)로 띄우면 ExecutablePath 가 dotnet.exe 라 그 아이콘이 나온다 — 옆의 exe 에서 읽는다
+        var appExe = Path.ChangeExtension(typeof(MainForm).Assembly.Location, ".exe");
+        Icon = Icon.ExtractAssociatedIcon(File.Exists(appExe) ? appExe : Application.ExecutablePath) ?? Icon;
         Width = 1000;
         Height = 640;
         StartPosition = FormStartPosition.CenterScreen;
