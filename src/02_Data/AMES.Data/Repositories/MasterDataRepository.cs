@@ -141,6 +141,9 @@ public sealed class MasterDataRepository
     }
 
     // ── MD-01 CodeItem ───────────────────────────────────────────────────
+    /// <summary>MD-025 사유 유형 공통코드 그룹(DOWNTIME·DEFECT·SCRAP).</summary>
+    public const string ReasonTypeGroup = "REASON_TYPE";
+
     public List<CodeItemRow> ListCodeItems(string groupCode)
         => Query("""
             SELECT CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,

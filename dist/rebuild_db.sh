@@ -203,6 +203,7 @@ FILES=(
   migrate_sys_label_printer.sql      # SYS_LabelPrinter + SYS-011 라벨 프린터 관리 — MD-034 서버 출력 프린터(11-09), 순서 무관
   migrate_pp_lineschedule_item.sql   # PP_LineSchedule.ItemNo — 슬롯이 만드는 품번(10-27), 감사 컬럼 정렬 앞
   migrate_mnt_failure_type_widen.sql # MNT_FailureRegister.FailureType varchar(20) — 안돈 원인 코드(10-28)
+  migrate_md_reason_type_code.sql    # 공통코드 REASON_TYPE — MD-025 사유 유형 콤보(11-13), 순서 무관
   migrate_md_bop_insp_std.sql        # MD_Bop.InspStdID — BOP 단계 QC 검사 기준 연결(MD-017 삭제 사용처), 감사 컬럼 정렬 앞
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
   migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
