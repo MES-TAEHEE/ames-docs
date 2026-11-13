@@ -7327,7 +7327,43 @@
     <value>Adjust</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>On-hand cannot be changed here. Adjust quantities on the PDA (Spare Parts › Adjust, admin).</value>
+    <value>On-hand is not edited directly; use "Stock adjustment" below to post a logged IN/OUT/ADJ.</value>
+  </data>
+  <data name="MD.SparePart.Stock.Title" xml:space="preserve">
+    <value>Stock adjustment</value>
+  </data>
+  <data name="MD.SparePart.Stock.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="MD.SparePart.Stock.Qty" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="MD.SparePart.Stock.Note" xml:space="preserve">
+    <value>Reason / note</value>
+  </data>
+  <data name="MD.SparePart.Stock.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="MD.SparePart.Stock.In" xml:space="preserve">
+    <value>Receive (IN)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Out" xml:space="preserve">
+    <value>Issue (OUT)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Adj" xml:space="preserve">
+    <value>Correct (ADJ ±)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Hint" xml:space="preserve">
+    <value>IN/OUT need 1 or more; ADJ takes a ± quantity. Issuing more than on hand is rejected; every change is logged.</value>
+  </data>
+  <data name="MD.SparePart.Ok.Stock" xml:space="preserve">
+    <value>{0} on hand {1} → {2}</value>
+  </data>
+  <data name="MD.SparePart.Err.StockQty" xml:space="preserve">
+    <value>Check the quantity: IN/OUT need 1 or more, ADJ must not be 0.</value>
+  </data>
+  <data name="MD.SparePart.Err.Insufficient" xml:space="preserve">
+    <value>Insufficient stock — you cannot issue or correct below zero.</value>
   </data>
   <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
     <value>Initial stock is recorded as a receipt (IN) transaction.</value>

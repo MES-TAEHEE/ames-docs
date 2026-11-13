@@ -7300,7 +7300,43 @@
     <value>Ajuste</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>La existencia no se puede cambiar aquí. Ajuste las cantidades en la PDA (Repuestos › Adjust, administrador).</value>
+    <value>Las existencias no se editan directamente; use "Ajuste de existencias" abajo.</value>
+  </data>
+  <data name="MD.SparePart.Stock.Title" xml:space="preserve">
+    <value>Ajuste de existencias</value>
+  </data>
+  <data name="MD.SparePart.Stock.Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="MD.SparePart.Stock.Qty" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="MD.SparePart.Stock.Note" xml:space="preserve">
+    <value>Motivo / nota</value>
+  </data>
+  <data name="MD.SparePart.Stock.Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="MD.SparePart.Stock.In" xml:space="preserve">
+    <value>Entrada (IN)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Out" xml:space="preserve">
+    <value>Salida (OUT)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Adj" xml:space="preserve">
+    <value>Corrección (ADJ ±)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Hint" xml:space="preserve">
+    <value>IN/OUT requieren 1 o más; ADJ admite ± cantidad. No se puede sacar más de lo existente; cada cambio queda registrado.</value>
+  </data>
+  <data name="MD.SparePart.Ok.Stock" xml:space="preserve">
+    <value>{0} existencias {1} → {2}</value>
+  </data>
+  <data name="MD.SparePart.Err.StockQty" xml:space="preserve">
+    <value>Revise la cantidad: IN/OUT requieren 1 o más; ADJ no puede ser 0.</value>
+  </data>
+  <data name="MD.SparePart.Err.Insufficient" xml:space="preserve">
+    <value>Existencias insuficientes: no se puede sacar por debajo de cero.</value>
   </data>
   <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
     <value>La existencia inicial se registra como entrada (IN).</value>

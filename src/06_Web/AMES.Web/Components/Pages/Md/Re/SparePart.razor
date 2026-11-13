@@ -11,6 +11,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
+@inject MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
 @inject UomFormat UomFmt
@@ -336,6 +337,33 @@
             @* 현재고는 등록 시 초기 재고(IN 이력)로만 정하고 이후 조정은 PDA 예비품 Adjust 에서 한다 — 화면을 연 시점 값으로 차이를 내면 그사이 PDA 입출고를 덮는다 *@
             <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
+            @* 재고 조정 — 현재고를 직접 고치지 않고 입고·출고·보정 이력으로 반영한다(마스터 현재고 + 이력 한 트랜잭션, 재고보다 많은 출고는 거부).
+               읽은 값과의 차이가 아니라 증감만 보내므로 그사이 PDA 입출고를 덮지 않는다. *@
+            @if (_modal == "edit")
+            {
+                <div class="ames-delete-confirm" style="margin-top:8px;flex-direction:column;align-items:stretch;gap:6px;">
+                    <b>@L["MD.SparePart.Stock.Title"]</b>
+                    <RadzenRow Gap="8px">
+                        <RadzenColumn Size="4">
+                            <RadzenLabel Text="@L["MD.SparePart.Stock.Type"]" />
+                            <RadzenDropDown @bind-Value="_stockType" Data="@StockTypeOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="3">
+                            <RadzenLabel Text="@L["MD.SparePart.Stock.Qty"]" />
+                            <RadzenNumeric TValue="int?" @bind-Value="_stockQty" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="5">
+                            <RadzenLabel Text="@L["MD.SparePart.Stock.Note"]" />
+                            <RadzenTextBox @bind-Value="_stockNote" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MD.SparePart.Stock.Apply"])" Click="@ApplyStock" Disabled="@_busy" Icon="inventory_2" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.SparePart.Stock.Hint"]</span>
+                    </RadzenStack>
+                </div>
+            }
+
             @ImageBlock
 
             @* 보관 구역·칸 — 공통코드 MNT_ZONE · MNT_SLOT (DB 컬럼 순서: 이미지 다음) *@
@@ -426,6 +454,14 @@
     string _fSearch = "";
     string? _fCat, _fActive;
     string _modal = "", _modalErr = "", _msg = "";
+    string _stockType = "IN", _stockNote = "";
+    int? _stockQty;
+    IEnumerable<DropDownItem> StockTypeOptions => new[]
+    {
+        new DropDownItem { Value = "IN",  Text = L["MD.SparePart.Stock.In"].Value },
+        new DropDownItem { Value = "OUT", Text = L["MD.SparePart.Stock.Out"].Value },
+        new DropDownItem { Value = "ADJ", Text = L["MD.SparePart.Stock.Adj"].Value },
+    };
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
     string _actor = "system";
@@ -549,6 +585,7 @@
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
+        _stockType = "IN"; _stockQty = null; _stockNote = "";
         _f = new()
         {
             PartNo = r.PartNo ?? "",
@@ -609,6 +646,31 @@
 
     int? _origImageSize;   // 수정 창을 열 때의 이미지 크기 — 감사 「이전」용(목록 행에는 바이트가 없다)
     static string? ImageNote(int? bytes) => bytes is null ? null : $"({bytes} bytes)";
+
+    // 재고 조정: IN/OUT 은 1 이상, ADJ 는 0 이 아닌 증감(음수 가능). 결과가 음수가 되는 출고·보정은 거부된다.
+    async Task ApplyStock()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = "";
+        var qty = _stockQty ?? 0;
+        if (_stockType == "ADJ" ? qty == 0 : qty <= 0) { _modalErr = L["MD.SparePart.Err.StockQty"]; return; }
+        _busy = true;
+        try
+        {
+            var no = _sel.SparePartNo;
+            var res = await Task.Run(() => Mnt.AdjustSparePartStock(no, _stockType, qty, "ADJ", null, NE(_stockNote), _actor));
+            Audit.Log("MD-026", "STOCK_" + _stockType, "MD_SparePart", no, new { OnHandQty = res.BalanceBefore }, new { OnHandQty = res.BalanceAfter, Move = _stockType, Qty = qty });
+            _f.OnHandQty = res.BalanceAfter;
+            _stockQty = null; _stockNote = "";
+            Reload();
+            _sel = _allRows.FirstOrDefault(x => x.SparePartNo == no) ?? _sel;
+            ShowMsg(string.Format(L["MD.SparePart.Ok.Stock"].Value, no, res.BalanceBefore, res.BalanceAfter), false);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("Insufficient", StringComparison.OrdinalIgnoreCase))
+        { _modalErr = L["MD.SparePart.Err.Insufficient"]; }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
 
     async Task SaveEdit()
     {

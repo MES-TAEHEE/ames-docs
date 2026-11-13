@@ -5226,13 +5226,23 @@ public sealed class MasterDataRepository
         if (Convert.ToInt32(cmd.ExecuteScalar()) == -1) throw new InvalidOperationException($"Spare part {part} does not exist.");
     }
 
-    public void DeletePmTemplateStep(string stepId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PmTemplateStep WHERE PMStepID=@Id;", conn);
-        cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = stepId;
-        cmd.ExecuteNonQuery();
-    }
+    // 점검 단계는 템플릿을 쓰는 곳(취소 아닌 PM 일정·끝나지 않은 보전 작업지시)이 있으면 지우지 않는다 — 템플릿 삭제와 같은 기준.
+    const string PmTemplateStepUsageSql = """
+        DECLARE @T varchar(20) = (SELECT PMTemplateID FROM dbo.MD_PmTemplateStep WITH (UPDLOCK, HOLDLOCK) WHERE PMStepID = @K);
+        IF @T IS NULL RETURN;
+        INSERT @r SELECT 'PM',  ISNULL(PMPlanNumber, CAST(PMScheduleID AS varchar(20))) FROM dbo.MNT_PMSchedule
+            WHERE ChecklistID = @T AND ISNULL(Status, '') <> 'CANCELLED';
+        INSERT @r SELECT 'MWO', ISNULL(WoNumber, CAST(WorkOrderID AS varchar(20))) FROM dbo.MNT_WorkOrder
+            WHERE ChecklistID = @T AND Status NOT IN ('COMPLETED', 'CLOSED');
+        """;
+
+    /// <summary>삭제 전 확인용 — 이 단계의 템플릿이 쓰이는 곳(없으면 빈 목록).</summary>
+    public List<UsageRef> PmTemplateStepUsages(string stepId)
+        => DeleteIfUnused(PmTemplateStepUsageSql, "", stepId, checkOnly: true, keyLength: 24);
+
+    /// <summary>템플릿이 쓰이지 않으면 단계를 지우고 빈 목록, 쓰이면 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeletePmTemplateStep(string stepId)
+        => DeleteIfUnused(PmTemplateStepUsageSql, "DELETE dbo.MD_PmTemplateStep WHERE PMStepID = @K;", stepId, keyLength: 24);
 
     // ── MD_LineTimePattern CRUD ──────────────────────────────────────
     public bool LineTimePatternExists(string patternId)

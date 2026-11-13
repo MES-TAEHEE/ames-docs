@@ -7327,7 +7327,43 @@
     <value>조정</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>현재고는 여기서 바꿀 수 없습니다. 수량 조정은 PDA 예비품 Adjust(관리자)에서 하세요.</value>
+    <value>현재고는 직접 바꾸지 않고 아래 「재고 조정」으로 입고·출고·보정 이력을 남기며 반영합니다.</value>
+  </data>
+  <data name="MD.SparePart.Stock.Title" xml:space="preserve">
+    <value>재고 조정</value>
+  </data>
+  <data name="MD.SparePart.Stock.Type" xml:space="preserve">
+    <value>구분</value>
+  </data>
+  <data name="MD.SparePart.Stock.Qty" xml:space="preserve">
+    <value>수량</value>
+  </data>
+  <data name="MD.SparePart.Stock.Note" xml:space="preserve">
+    <value>사유·메모</value>
+  </data>
+  <data name="MD.SparePart.Stock.Apply" xml:space="preserve">
+    <value>재고 반영</value>
+  </data>
+  <data name="MD.SparePart.Stock.In" xml:space="preserve">
+    <value>입고 (+)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Out" xml:space="preserve">
+    <value>출고 (−)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Adj" xml:space="preserve">
+    <value>보정 (±)</value>
+  </data>
+  <data name="MD.SparePart.Stock.Hint" xml:space="preserve">
+    <value>입고·출고는 1 이상, 보정은 ± 수량. 재고보다 많은 출고는 거부되고 이력이 남습니다.</value>
+  </data>
+  <data name="MD.SparePart.Ok.Stock" xml:space="preserve">
+    <value>{0} 재고 {1} → {2}</value>
+  </data>
+  <data name="MD.SparePart.Err.StockQty" xml:space="preserve">
+    <value>수량을 확인하세요. 입고·출고는 1 이상, 보정은 0이 아닌 수량입니다.</value>
+  </data>
+  <data name="MD.SparePart.Err.Insufficient" xml:space="preserve">
+    <value>재고가 부족해 출고(보정)할 수 없습니다. 현재고보다 많이 뺄 수 없습니다.</value>
   </data>
   <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
     <value>초기 재고는 입고(IN) 이력으로 기록됩니다.</value>

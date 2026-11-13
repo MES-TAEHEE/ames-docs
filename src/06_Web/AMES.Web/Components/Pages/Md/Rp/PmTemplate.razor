@@ -154,7 +154,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -224,7 +224,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PMTemplateID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -307,7 +307,7 @@
 @if (_stepModal is "create" or "edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnStepBgMouseDown" @onclick="OnStepBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["MD.PmTemplate.Steps"] — @(_stepModal == "create" ? L["Modal.Create"] : L["Modal.Edit"])
                 <span class="dim" style="font-weight:400;font-size:.9em;">@_expandedId</span>
@@ -357,6 +357,14 @@
                 </RadzenStack>
             }
 
+            else if (!string.IsNullOrEmpty(_stepBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_stepBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _stepBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
             @if (!string.IsNullOrEmpty(_stepErr))
             {
                 <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_stepErr</RadzenAlert>
@@ -366,7 +374,7 @@
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveStep" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
                 @if (_stepModal == "edit")
                 {
-                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _stepConfirmDelete = true; _stepErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["Btn.Delete"]" Click="@AskStepDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseStepModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
@@ -400,7 +408,7 @@
     // ── Step(점검 단계) 편집 상태 ──
     string _stepModal = "";
     bool _stepConfirmDelete;
-    string _stepErr = "";
+    string _stepErr = "", _stepBlocked = "";
     MasterDataRepository.PmTemplateStepRow? _stepSel;
     StepFormModel _stepF = new();
 
@@ -633,7 +641,7 @@
     {
         if (!_canEdit || _expandedId is null) return;
         LoadSpareParts();
-        _stepSel = null; _stepErr = ""; _stepConfirmDelete = false;
+        _stepSel = null; _stepErr = ""; _stepBlocked = ""; _stepConfirmDelete = false;
         _stepF = new() { StepSeq = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepSeq ?? 0) + 1 };
         _stepModal = "create";
     }
@@ -642,7 +650,7 @@
     {
         if (!_canEdit) return;
         LoadSpareParts();
-        _stepSel = s; _stepErr = ""; _stepConfirmDelete = false;
+        _stepSel = s; _stepErr = ""; _stepBlocked = ""; _stepConfirmDelete = false;
         _stepF = new()
         {
             StepSeq            = s.StepSeq,
@@ -657,7 +665,7 @@
 
     void OpenStepDelete(MasterDataRepository.PmTemplateStepRow s) { OpenStepEdit(s); _stepConfirmDelete = true; }
 
-    void CloseStepModal() { _stepModal = ""; _stepSel = null; _stepErr = ""; _stepConfirmDelete = false; }
+    void CloseStepModal() { _stepModal = ""; _stepSel = null; _stepErr = ""; _stepBlocked = ""; _stepConfirmDelete = false; }
 
     void OnStepBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnStepBgClick() { if (_bgMouseDownOnSelf) CloseStepModal(); _bgMouseDownOnSelf = false; }
@@ -686,6 +694,19 @@
         finally { _busy = false; }
     }
 
+    void AskStepDelete()
+    {
+        if (!_canEdit || _stepSel is null) return;
+        _stepErr = ""; _stepBlocked = "";
+        try
+        {
+            var usages = MD.PmTemplateStepUsages(_stepSel.PMStepID);
+            if (usages.Count > 0) _stepBlocked = InUseText(_stepSel.PMTemplateID ?? _stepSel.PMStepID, usages);
+            else _stepConfirmDelete = true;
+        }
+        catch (Exception ex) { _stepErr = ex.Message; }
+    }
+
     void SaveStepDelete()
     {
         if (!_canEdit) return;
@@ -693,7 +714,8 @@
         _busy = true;
         try
         {
-            MD.DeletePmTemplateStep(_stepSel.PMStepID);
+            var usages = MD.DeletePmTemplateStep(_stepSel.PMStepID);
+            if (usages.Count > 0) { _stepBlocked = InUseText(_stepSel.PMTemplateID ?? _stepSel.PMStepID, usages); _stepConfirmDelete = false; return; }
             Audit.Deleted("MD-027", "MD_PmTemplateStep", _stepSel.PMStepID, _stepSel);
             CloseStepModal(); ReloadSteps();
             ShowMsg(L["Msg.Deleted"].Value, false);
