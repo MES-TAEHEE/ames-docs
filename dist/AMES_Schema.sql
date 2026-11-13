@@ -967,6 +967,7 @@ CREATE TABLE [dbo].[MD_Bop](
 	[StepDescription] [nvarchar](120) COLLATE DATABASE_DEFAULT NULL,
 	[ActiveFlag] [bit] NULL,
 	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[InspStdID] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -986,6 +987,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 번호 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'ItemNo'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Routing Type · char(1)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'RoutingType'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'QC 검사 기준 ID (MD_InspectionStandard) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'InspStdID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Step Seq · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'StepSeq'
 GO

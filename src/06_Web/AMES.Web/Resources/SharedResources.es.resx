@@ -4542,6 +4542,9 @@
   <data name="Opt.RootLevel" xml:space="preserve">
     <value>Nivel raíz</value>
   </data>
+  <data name="MD.Bop.InspStd" xml:space="preserve">
+    <value>Norma de inspección</value>
+  </data>
   <data name="MD.Bop.QcRequired" xml:space="preserve">
     <value>Verificación QC Requerida</value>
   </data>

@@ -4545,6 +4545,9 @@
   <data name="Opt.RootLevel" xml:space="preserve">
     <value>최상위</value>
   </data>
+  <data name="MD.Bop.InspStd" xml:space="preserve">
+    <value>검사 기준</value>
+  </data>
   <data name="MD.Bop.QcRequired" xml:space="preserve">
     <value>QC 검사 필요</value>
   </data>

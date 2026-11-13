@@ -427,6 +427,7 @@
         _canEdit = PermSvc.CanEdit("md/rp/bop");
         try { _itemList = MD.ListItems();       } catch { }
         try { _stationList = MD.ListStations(); } catch { }
+        try { _inspStds = MD.ListInspectionStandards(); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
@@ -632,6 +633,7 @@
             CycleTime   = step.StdCycleTime   ?? 0,
             SetupTime   = step.StdSetupTime   ?? 0,
             QcRequired  = step.QcRequiredFlag,
+            InspStdID   = step.InspStdID      ?? "",
             StepDesc    = step.StepDescription ?? "",
             ActiveFlag  = step.ActiveFlag,
         };
@@ -696,7 +698,7 @@
                 NE(_f.StationCode),
                 _f.CycleTime == 0 ? null : _f.CycleTime,
                 _f.SetupTime == 0 ? null : _f.SetupTime,
-                _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor);
+                _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor, NE(_f.InspStdID));
             Audit.Created("MD-005", "MD_Bop", id, _f);
 
             var newItemNo = _f.ItemNo.Trim().ToUpper();
@@ -737,7 +739,7 @@
                 NE(_f.StationCode),
                 _f.CycleTime == 0 ? null : _f.CycleTime,
                 _f.SetupTime == 0 ? null : _f.SetupTime,
-                _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor);
+                _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor, NE(_f.InspStdID));
             Audit.Updated("MD-005", "MD_Bop", _f.BopId, _steps.FirstOrDefault(s => s.BOPID == _f.BopId), _f);
             LoadSteps(); CloseModal();
             await RestorePages();
@@ -836,6 +838,13 @@
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.QcRequired" Name="StepFormChkQc" />
                 <RadzenLabel Text="@L["MD.Bop.QcRequired"]" Component="StepFormChkQc" style="cursor:pointer;" />
             </RadzenStack>
+            @if (_f.QcRequired)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="flex:1;min-width:0;">
+                    <RadzenLabel Text="@L["MD.Bop.InspStd"]" />
+                    <RadzenDropDown @bind-Value="_f.InspStdID" Data="@InspStdOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            }
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="StepFormChkActive" />
                 <RadzenLabel Text="@L["MD.Bop.ActiveFlag"]" Component="StepFormChkActive" style="cursor:pointer;" />
@@ -860,6 +869,12 @@
     }
 
     // 선택 공정에 속한 스테이션만 노출 (공정 미선택 시 비움)
+    List<MasterDataRepository.InspectionStandardRow> _inspStds = new();
+    // 활성 검사 기준 + 이미 연결돼 있는 값(비활성이어도 수정 창에서 비지 않게)
+    IEnumerable<DropDownItem> InspStdOptions => _inspStds
+        .Where(s => s.ActiveFlag || s.InspStdID == _f.InspStdID)
+        .Select(s => new DropDownItem { Value = s.InspStdID, Text = $"[{s.InspStdID}] {s.CharName}" });
+
     private IEnumerable<DropDownItem> StationOptions =>
         _stationList
             .Where(s => !string.IsNullOrEmpty(_f.ProcessCode) && s.ProcessCode == _f.ProcessCode)
@@ -876,6 +891,7 @@
         public decimal CycleTime    { get; set; } = 0;
         public decimal SetupTime    { get; set; } = 0;
         public bool    QcRequired   { get; set; } = false;
+        public string  InspStdID    { get; set; } = "";
         public string  StepDesc     { get; set; } = "";
         public bool    ActiveFlag   { get; set; } = true;
     }

@@ -1175,7 +1175,7 @@ public sealed class MasterDataRepository
                    ISNULL(b.QcRequiredFlag,0) AS QcRequiredFlag,
                    b.StepDescription,
                    ISNULL(b.ActiveFlag,1) AS ActiveFlag,
-                   b.CreatedBy, b.CreatedTS, b.ModifiedBy, b.ModifiedTS
+                   b.CreatedBy, b.CreatedTS, b.ModifiedBy, b.ModifiedTS, b.InspStdID
             FROM   dbo.MD_Bop b
             LEFT JOIN dbo.MD_Station s ON s.StationCode = b.StationCode
             WHERE  b.ItemNo = @N{where2}
@@ -1197,7 +1197,8 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]      as string,
                 r["CreatedTS"]      is DateTime cts ? cts : null,
                 r["ModifiedBy"]     as string,
-                r["ModifiedTS"]     is DateTime mts ? mts : null), p2);
+                r["ModifiedTS"]     is DateTime mts ? mts : null,
+                r["InspStdID"]      as string), p2);
     }
 
     /// <summary>같은 품목의 다른 단계가 이미 이 STEP 번호를 쓴다(11-05 — 한 품목 안에서 STEP 은 하나뿐).</summary>
@@ -1235,47 +1236,48 @@ public sealed class MasterDataRepository
     public void InsertBopStep(string bopId, string itemNo, string? routingType,
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
-        string? stepDesc, bool activeFlag, string createdBy)
+        string? stepDesc, bool activeFlag, string createdBy, string? inspStdId = null)
     {
-        try { InsertBopStepCore(bopId, itemNo, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, createdBy); }
+        try { InsertBopStepCore(bopId, itemNo, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, createdBy, inspStdId); }
         catch (SqlException ex) when (ex.Number == 52090) { throw new BopStepDuplicateException(stepSeq); }
     }
 
     void InsertBopStepCore(string bopId, string itemNo, string? routingType,
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
-        string? stepDesc, bool activeFlag, string createdBy)
+        string? stepDesc, bool activeFlag, string createdBy, string? inspStdId)
         => Exec($"""
             SET XACT_ABORT ON;
             BEGIN TRAN;
             {BopSeqGuardSql}
             INSERT INTO dbo.MD_Bop
                    (BOPID,ItemNo,RoutingType,StepSeq,StationCode,
-                    StdCycleTime,StdSetupTime,QcRequiredFlag,StepDescription,
+                    StdCycleTime,StdSetupTime,QcRequiredFlag,StepDescription,InspStdID,
                     ActiveFlag,CreatedBy,CreatedTS)
             VALUES (@ID,@No,@RT,@Seq,@SC,
-                    @CT,@ST,@QC,@Desc,
+                    @CT,@ST,@QC,@Desc,@Insp,
                     @Active,@By,SYSDATETIME());
             COMMIT;
             """,
             ("@ID", "MD_Bop.BOPID", bopId),       ("@No", "MD_Bop.ItemNo", itemNo),      ("@RT", "MD_Bop.RoutingType", routingType),
             ("@Seq", "MD_Bop.StepSeq", stepSeq),     ("@SC", "MD_Bop.StationCode", stationCode),
             ("@CT", "MD_Bop.StdCycleTime", stdCycleTime),("@ST", "MD_Bop.StdSetupTime", stdSetupTime),("@QC", "MD_Bop.QcRequiredFlag", qcRequired),
-            ("@Desc", "MD_Bop.StepDescription", stepDesc),    ("@Active", "MD_Bop.ActiveFlag", activeFlag), ("@By", "MD_Bop.CreatedBy", createdBy));
+            ("@Desc", "MD_Bop.StepDescription", stepDesc),    ("@Active", "MD_Bop.ActiveFlag", activeFlag), ("@By", "MD_Bop.CreatedBy", createdBy),
+            ("@Insp", "MD_Bop.InspStdID", NormalizeBopInspStd(qcRequired, inspStdId)));
 
     public void UpdateBopStep(string bopId, string? routingType,
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
-        string? stepDesc, bool activeFlag, string modifiedBy)
+        string? stepDesc, bool activeFlag, string modifiedBy, string? inspStdId = null)
     {
-        try { UpdateBopStepCore(bopId, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, modifiedBy); }
+        try { UpdateBopStepCore(bopId, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, modifiedBy, inspStdId); }
         catch (SqlException ex) when (ex.Number == 52090) { throw new BopStepDuplicateException(stepSeq); }
     }
 
     void UpdateBopStepCore(string bopId, string? routingType,
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
-        string? stepDesc, bool activeFlag, string modifiedBy)
+        string? stepDesc, bool activeFlag, string modifiedBy, string? inspStdId)
         => Exec($"""
             SET XACT_ABORT ON;
             BEGIN TRAN;
@@ -1284,7 +1286,7 @@ public sealed class MasterDataRepository
             UPDATE dbo.MD_Bop
             SET    RoutingType=@RT, StepSeq=@Seq, StationCode=@SC,
                    StdCycleTime=@CT, StdSetupTime=@ST,
-                   QcRequiredFlag=@QC, StepDescription=@Desc,
+                   QcRequiredFlag=@QC, StepDescription=@Desc, InspStdID=@Insp,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  BOPID=@ID;
             COMMIT;
@@ -1292,7 +1294,12 @@ public sealed class MasterDataRepository
             ("@ID", "MD_Bop.BOPID", bopId),       ("@RT", "MD_Bop.RoutingType", routingType), ("@Seq", "MD_Bop.StepSeq", stepSeq),
             ("@SC", "MD_Bop.StationCode", stationCode), ("@CT", "MD_Bop.StdCycleTime", stdCycleTime),
             ("@ST", "MD_Bop.StdSetupTime", stdSetupTime),("@QC", "MD_Bop.QcRequiredFlag", qcRequired),  ("@Desc", "MD_Bop.StepDescription", stepDesc),
-            ("@Active", "MD_Bop.ActiveFlag", activeFlag),  ("@By", "MD_Bop.ModifiedBy", modifiedBy));
+            ("@Active", "MD_Bop.ActiveFlag", activeFlag),  ("@By", "MD_Bop.ModifiedBy", modifiedBy),
+            ("@Insp", "MD_Bop.InspStdID", NormalizeBopInspStd(qcRequired, inspStdId)));
+
+    // QC 필수가 아니면 검사 기준 연결은 두지 않는다(앞뒤 공백 제거, 빈 값은 NULL).
+    internal static string? NormalizeBopInspStd(bool qcRequired, string? inspStdId)
+        => qcRequired && !string.IsNullOrWhiteSpace(inspStdId) ? inspStdId.Trim() : null;
 
     public void DeleteBopStep(string bopId)
         => Exec("DELETE dbo.MD_Bop WHERE BOPID=@I", ("@I", "MD_Bop.BOPID", bopId));
@@ -1314,11 +1321,11 @@ public sealed class MasterDataRepository
             using var ins = new SqlCommand("""
                 INSERT INTO dbo.MD_Bop
                     (BOPID, ItemNo, RoutingType, StepSeq, StationCode,
-                     StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                     StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription, InspStdID,
                      ActiveFlag, CreatedBy, CreatedTS)
                 SELECT 'P' + LEFT(REPLACE(CONVERT(varchar(36), NEWID()), '-', ''), 23),
                        @T, RoutingType, StepSeq, StationCode,
-                       StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                       StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription, InspStdID,
                        ISNULL(ActiveFlag,1), @By, SYSDATETIME()
                 FROM   dbo.MD_Bop
                 WHERE  ItemNo=@S;
@@ -1358,7 +1365,8 @@ public sealed class MasterDataRepository
         decimal? StdCycleTime, decimal? StdSetupTime,
         bool QcRequiredFlag, string? StepDescription, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        string? InspStdID = null);
 
     // ── MD-031 라우팅 템플릿 (MD_RoutingStep) ─────────────────────────────
     public record RoutingStepRow(
@@ -3587,14 +3595,18 @@ public sealed class MasterDataRepository
             ("@MB",   "MD_InspectionStandard.ModifiedBy",    modifiedBy));
     }
 
-    public void DeleteInspectionStandard(string id)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_InspectionStandard WHERE InspStdID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = QC 검사 기준을 연결한 BOP 단계(MD_Bop.InspStdID — MD-005 에서 QC 필수 단계에 지정).
+    const string InspectionStandardUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_InspectionStandard WITH (UPDLOCK, HOLDLOCK) WHERE InspStdID = @K) RETURN;
+        INSERT @r SELECT 'BOP', b.ItemNo + N' (BOP ' + ISNULL(b.RoutingType, '') + N' ' + ISNULL(CAST(b.StepSeq AS varchar(10)), '') + N')'
+            FROM dbo.MD_Bop b WHERE b.InspStdID = @K;
+        """;
+
+    public List<UsageRef> InspectionStandardUsages(string id) => UsagesOf(InspectionStandardUsageSql, id, 20);
+
+    /// <summary>BOP 단계가 QC 검사 기준으로 쓰는 검사 기준은 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeleteInspectionStandard(string id)
+        => DeleteIfUnused(InspectionStandardUsageSql, "DELETE dbo.MD_InspectionStandard WHERE InspStdID = @K;", id, keyLength: 20);
 
     // ── MD_Location ──────────────────────────────────────────────────
     // 10-22 2단계 — 1차(1) = SAP 수신(SAPFlag 1) 또는 MES 등록, 재고 없이 하위 상세를 묶는다 · 상세(2) = 재고 위치, 상위는 1차만

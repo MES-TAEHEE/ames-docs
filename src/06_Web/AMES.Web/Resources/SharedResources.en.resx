@@ -4545,6 +4545,9 @@
   <data name="Opt.RootLevel" xml:space="preserve">
     <value>Root level</value>
   </data>
+  <data name="MD.Bop.InspStd" xml:space="preserve">
+    <value>Inspection std</value>
+  </data>
   <data name="MD.Bop.QcRequired" xml:space="preserve">
     <value>QC Check Required</value>
   </data>
