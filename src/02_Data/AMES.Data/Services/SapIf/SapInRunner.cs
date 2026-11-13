@@ -99,6 +99,7 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
                     if (kind == 'N') created++; else if (kind == 'C') changed++; else same++;
                     log.Write(runId, s.IfId, "IN", key, seq, action, "OK",
                         (target.DryRun ? "DRYRUN(반영 롤백) " : "") + note, affected, (int)sw.ElapsedMilliseconds);
+                    if (target.DryRun) DryRunNote(eosConn, s, row, seq, "AMES 반영 예정 결과 — " + note);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -109,6 +110,7 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
                         try { WriteBack(eosConn, s, seq, 'E', msg); }
                         catch (Exception wb) { msg += " | 되쓰기 실패: " + SapIfRules.ErrorMessage(wb); }
                     }
+                    else DryRunNote(eosConn, s, row, seq, "AMES 반영 시 오류 — " + msg);
                     log.Write(runId, s.IfId, "IN", key, seq, action, "FAIL", msg, null, (int)sw.ElapsedMilliseconds);
                 }
             }
@@ -204,6 +206,25 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
             list.Add(d);
         }
         return list;
+    }
+
+    /// <summary>
+    /// DryRun 결과를 그 행의 IF_MSG 에만 적는다 — IF_STATUS·PROC_TS 는 건드리지 않아 행은 N 으로 남고 웅진의 처리 흐름에 영향이 없다.
+    /// 같은 문구면 쓰지 않는다. 실패해도 DryRun 을 막지 않는다(AMES 의 SAP_IfLog 에는 이미 남았다).
+    /// </summary>
+    private static void DryRunNote(SqlConnection conn, MasterSpec s, IReadOnlyDictionary<string, object?> row, long seq, string text)
+    {
+        try
+        {
+            var msg = SapIfRules.DryRunMessage(text);
+            if (!SapIfRules.NeedsDryRunWrite(row.GetValueOrDefault("IF_MSG") as string, msg)) return;
+            using var cmd = new SqlCommand($"UPDATE dbo.{s.EosTable} SET IF_MSG = @M WHERE IF_SEQ = @Q AND IF_STATUS = 'N'", conn)
+            { CommandTimeout = 20 };
+            cmd.Parameters.Add("@M", System.Data.SqlDbType.NVarChar, 1000).Value = msg;
+            cmd.Parameters.Add("@Q", System.Data.SqlDbType.BigInt).Value = seq;
+            cmd.ExecuteNonQuery();
+        }
+        catch { /* 의도적 무시 */ }
     }
 
     private static void WriteBack(SqlConnection conn, MasterSpec s, long seq, char status, string? msg)

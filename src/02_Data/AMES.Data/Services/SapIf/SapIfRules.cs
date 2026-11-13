@@ -80,6 +80,16 @@ public static class SapIfRules
         return amesKeys.Where(k => !sap.Contains(k)).OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>
+    /// DryRun 결과를 SAP·웅진 쪽이 EOS_IF 에서 바로 볼 수 있게 IF_MSG 에 적는 문구. IF_STATUS 는 N 그대로라 처리 흐름에 영향이 없다.
+    /// 본 처리(Y)가 되면 IF_MSG 는 NULL 로 지워진다.
+    /// </summary>
+    public static string DryRunMessage(string text) => Truncate("[DRYRUN] " + text, MsgMax)!;
+
+    /// <summary>같은 문구를 매 주기 다시 쓰지 않는다(EOS_IF 쓰기를 최소로).</summary>
+    public static bool NeedsDryRunWrite(string? currentMsg, string newMsg)
+        => !string.Equals(currentMsg, newMsg, StringComparison.Ordinal);
+
     /// <summary>IF_ACTION 'D' = 삭제가 아니라 비활성(정의서 2.2).</summary>
     public static bool IsDeactivate(string? action) => string.Equals(action, "D", StringComparison.Ordinal);
 }

@@ -177,6 +177,17 @@ public class SapIfRulesTests
     }
 
     [Fact]
+    public void DryRun_message_is_marked_bounded_and_written_only_when_it_changes()
+    {
+        var m = SapIfRules.DryRunMessage("신규 등록(SAP 값)");
+        Assert.Equal("[DRYRUN] 신규 등록(SAP 값)", m);
+        Assert.True(SapIfRules.DryRunMessage(new string('x', 5000)).Length <= SapIfRules.MsgMax);
+        Assert.False(SapIfRules.NeedsDryRunWrite(m, m));       // 같은 문구는 매 주기 다시 쓰지 않는다
+        Assert.True(SapIfRules.NeedsDryRunWrite(null, m));
+        Assert.True(SapIfRules.NeedsDryRunWrite("[DRYRUN] 동일(변경 없음)", m));
+    }
+
+    [Fact]
     public void Po_and_mrp_use_header_and_line_tables()
     {
         Assert.Equal("IF_TX_PO_LINE", SapInRunner.ChildTable(MasterKind.Po));
