@@ -339,7 +339,7 @@
 
             @* 재고 조정 — 현재고를 직접 고치지 않고 입고·출고·보정 이력으로 반영한다(마스터 현재고 + 이력 한 트랜잭션, 재고보다 많은 출고는 거부).
                읽은 값과의 차이가 아니라 증감만 보내므로 그사이 PDA 입출고를 덮지 않는다. *@
-            @if (_modal == "edit")
+            @if (StockAdjustEnabled && _modal == "edit")
             {
                 <div class="ames-delete-confirm" style="margin-top:8px;flex-direction:column;align-items:stretch;gap:6px;">
                     <b>@L["MD.SparePart.Stock.Title"]</b>
@@ -454,6 +454,8 @@
     string _fSearch = "";
     string? _fCat, _fActive;
     string _modal = "", _modalErr = "", _msg = "";
+    // 재고 조정은 아직 반영하지 않는다(사용자 결정) — 켜려면 true. 현재고는 PDA 예비품 Adjust 에서만 조정한다.
+    const bool StockAdjustEnabled = false;
     string _stockType = "IN", _stockNote = "";
     int? _stockQty;
     IEnumerable<DropDownItem> StockTypeOptions => new[]

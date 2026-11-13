@@ -7300,7 +7300,7 @@
     <value>Ajuste</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>Las existencias no se editan directamente; use "Ajuste de existencias" abajo.</value>
+    <value>La existencia no se puede cambiar aquí. Ajuste las cantidades en la PDA (Repuestos › Adjust, administrador).</value>
   </data>
   <data name="MD.SparePart.Stock.Title" xml:space="preserve">
     <value>Ajuste de existencias</value>

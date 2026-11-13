@@ -7327,7 +7327,7 @@
     <value>조정</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>현재고는 직접 바꾸지 않고 아래 「재고 조정」으로 입고·출고·보정 이력을 남기며 반영합니다.</value>
+    <value>현재고는 여기서 바꿀 수 없습니다. 수량 조정은 PDA 예비품 Adjust(관리자)에서 하세요.</value>
   </data>
   <data name="MD.SparePart.Stock.Title" xml:space="preserve">
     <value>재고 조정</value>

@@ -7327,7 +7327,7 @@
     <value>Adjust</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>On-hand is not edited directly; use "Stock adjustment" below to post a logged IN/OUT/ADJ.</value>
+    <value>On-hand cannot be changed here. Adjust quantities on the PDA (Spare Parts › Adjust, admin).</value>
   </data>
   <data name="MD.SparePart.Stock.Title" xml:space="preserve">
     <value>Stock adjustment</value>
