@@ -25,7 +25,8 @@
         <span>▼ @L["SCM.DeliveryProgress.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" MaxLength="120" Placeholder='@L["SCM.DeliveryProgress.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
-            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["Col.Supplier"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorID" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Code"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Name"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <div class="delivery-progress-filter-group">
                 <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' Component="DeliveryShipDateFrom" />
                 <RadzenDatePicker TValue="DateTime?" Name="DeliveryShipDateFrom" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />

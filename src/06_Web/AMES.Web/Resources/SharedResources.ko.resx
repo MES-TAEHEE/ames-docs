@@ -13563,4 +13563,6 @@
   <data name="Btn.NextWeek" xml:space="preserve">
     <value>다음 1주</value>
   </data>
+  <data name="SCM.Supplier.Code" xml:space="preserve"><value>업체 코드</value></data>
+  <data name="SCM.Supplier.Name" xml:space="preserve"><value>업체명</value></data>
 </root>

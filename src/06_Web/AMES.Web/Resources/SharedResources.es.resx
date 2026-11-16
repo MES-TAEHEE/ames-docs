@@ -13563,4 +13563,6 @@
   <data name="Btn.NextWeek" xml:space="preserve">
     <value>Semana siguiente</value>
   </data>
+  <data name="SCM.Supplier.Code" xml:space="preserve"><value>Código de proveedor</value></data>
+  <data name="SCM.Supplier.Name" xml:space="preserve"><value>Nombre del proveedor</value></data>
 </root>

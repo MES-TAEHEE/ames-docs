@@ -48,8 +48,9 @@
                 <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="SearchKeyDown" Placeholder='@(Mode == "Deliveries" ? L["SCM.Preview.Ph.DeliverySearch"] : L["SCM.Preview.Ph.OrderSearch"])' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 @if (!IsPortal)
                 {
-                    <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendor" />
-                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
+                    <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendorCode" />
+                    <RadzenDropDown Name="ScmDropDownVendorCode" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["SCM.Supplier.Code"]' AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+                    <RadzenDropDown Name="ScmDropDownVendorName" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorNameOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["SCM.Supplier.Name"]' AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
                 }
                 @if (!IsPortal && Mode == "Orders")
                 {
@@ -580,7 +581,8 @@
     string PagerSize => L["Pager.PageSize"];
     public record Opt(string Value, string Text);
     public record LineOpt(int Id, string Text);
-    IEnumerable<Opt> VendorFilterOptions => _vendors.Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
+    IEnumerable<Opt> VendorCodeOptions => _vendors.Select(v => new Opt(v.VendorID, v.VendorID));
+    IEnumerable<Opt> VendorNameOptions => _vendors.Select(v => new Opt(v.VendorID, v.VendorName ?? v.VendorID));
     readonly HashSet<string> _creators=new(StringComparer.OrdinalIgnoreCase);
     IEnumerable<Opt> CreatorFilterOptions => _creators.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Select(x => new Opt(x, Actors.Display(x))).OrderBy(x => x.Text);
     IEnumerable<Opt> VendorEditOptions => _vendors.Where(v => v.ActiveFlag).Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
