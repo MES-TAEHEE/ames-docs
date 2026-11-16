@@ -6,6 +6,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
 @inject ILogger<LogHistory> Logger
+@inject IJSRuntime JS
 @using AMES.Data.Repositories
 @using Radzen
 
@@ -33,6 +34,7 @@
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+            <RadzenButton Text='@L["WH.Inventory.Export"]' Icon="download" Click="ExportHistory" Disabled="@(_loading || _rows.Count==0)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <RadzenDataGrid TItem="WarehouseRepository.OperationLogRow" Data="@_rows" KeyProperty="RowKey" IsLoading="_loading" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["WH.LogHistory.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
@@ -130,6 +132,14 @@
     </div>
 }
 @code {
+    async Task ExportHistory()
+    {
+        if (_loading || _rows.Count==0) return;
+        var headers=new[]{L["Col.DateTime"].Value,L["Col.Event"].Value,L["Col.Reference"].Value,"LOT",L["Col.PartNo"].Value,L["Col.Qty"].Value,L["Col.Unit"].Value,L["Col.Location"].Value,L["Col.Customer"].Value,L["Col.Worker"].Value,L["Col.Result"].Value,L["Col.Details"].Value};
+        var data=_rows.Select(r=>(IReadOnlyList<object?>)new object?[]{r.EventTime?.ToString(DateFmt.DateTimeSec),L[DisplayEvent(r)].Value,r.ReferenceNo,r.LotNo,r.PartNo,r.Qty,UomFmt.Sym(r.Unit),r.LocationId,r.Customer,r.WorkerId,r.Result,r.Message});
+        var bytes=XlsxWriter.Build(L["WH.LogHistory.Title"],headers,data,24);
+        await JS.InvokeVoidAsync("amesDownload",$"InventoryHistory_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx",Convert.ToBase64String(bytes),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
     List<WarehouseRepository.OperationLogRow> _rows = [];
     readonly IEnumerable<int> _pageSizeOptions = [25,50,100];
     List<FinishedGoodsRepository.ShipmentPalletPartRow> _detailParts = [];
