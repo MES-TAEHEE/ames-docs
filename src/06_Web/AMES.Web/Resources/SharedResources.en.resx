@@ -2631,6 +2631,12 @@
   <data name="PP.WoDetail.Flow.ExitFullscreen" xml:space="preserve">
     <value>Exit full screen</value>
   </data>
+  <data name="PP.Upload.WoConflict.Completed" xml:space="preserve">
+    <value>{0} order(s) already have a completed work order and cannot be processed, so they will not be imported. Change the order number and upload again.</value>
+  </data>
+  <data name="PP.Upload.WoConflict.Issued" xml:space="preserve">
+    <value>{0} order(s) already have a work order. Only quantity and due date would change and the existing work order would stay as is. Change the order number and upload again.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>

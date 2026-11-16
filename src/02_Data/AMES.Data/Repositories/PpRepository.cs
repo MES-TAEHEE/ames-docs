@@ -469,6 +469,31 @@ public sealed partial class PpRepository
     }
 
     /// <summary>
+    /// 수동 업로드 전 검사 — 올릴 수주 번호에 이미 연결된 WO(취소 제외). 같은 수주 번호를 다시 올리면 수량·납기만 바뀌고
+    /// 기존 WO 는 그대로라 어긋나므로 화면이 새 번호로 올리도록 알린다. 결과는 <see cref="AMES.Data.Services.Upload.UploadWoConflictRules.ByOrder"/> 로 판정한다.
+    /// </summary>
+    public List<AMES.Data.Services.Upload.OrderWoConflict> ListOrderWoConflicts(string customerId, IEnumerable<string> soNumbers)
+    {
+        var sos = soNumbers.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var list = new List<AMES.Data.Services.Upload.OrderWoConflict>();
+        if (sos.Count == 0) return list;
+        const string sql = """
+            SELECT s.SoNumber, s.SoLineNo, w.WoNumber, w.Status
+            FROM   dbo.PP_CustomerOrder s
+            JOIN   dbo.PP_WorkOrder w ON w.SoID = s.SoID AND w.Status <> 'Cancelled'
+            WHERE  s.CustomerID = @Cust AND s.SoNumber IN (SELECT value FROM STRING_SPLIT(@Sos, '|'));
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Cust", "PP_CustomerOrder.CustomerID", customerId ?? "");
+        ColumnParams.AddFilter(cmd, "@Sos", null, string.Join("|", sos));
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            list.Add(new(r.GetString(0), r.IsDBNull(1) ? null : r.GetInt32(1), r.GetString(2), r.GetString(3)));
+        return list;
+    }
+
+    /// <summary>
     /// PP-002 SAP 구매오더(고객주문) 업서트 — (SoNumber, SoLineNo, CustomerID) 기준
     /// UPDATE, 없으면 INSERT. 신규 행은 Status='Open'으로 삽입, 기존 행의 Status는
     /// 보존(Confirmed 상태가 재임포트로 덮이지 않음). 매 실행 시 SapSyncedAt 갱신.

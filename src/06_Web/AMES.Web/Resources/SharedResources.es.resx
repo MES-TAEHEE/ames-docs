@@ -2628,6 +2628,12 @@
   <data name="PP.WoDetail.Flow.ExitFullscreen" xml:space="preserve">
     <value>Salir de pantalla completa</value>
   </data>
+  <data name="PP.Upload.WoConflict.Completed" xml:space="preserve">
+    <value>{0} pedido(s) ya tienen una orden de trabajo completada y no se pueden procesar; no se importarán. Cambie el número de pedido y súbalo de nuevo.</value>
+  </data>
+  <data name="PP.Upload.WoConflict.Issued" xml:space="preserve">
+    <value>{0} pedido(s) ya tienen una orden de trabajo. Solo cambiarían la cantidad y la fecha y la orden existente quedaría igual. Cambie el número de pedido y súbalo de nuevo.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

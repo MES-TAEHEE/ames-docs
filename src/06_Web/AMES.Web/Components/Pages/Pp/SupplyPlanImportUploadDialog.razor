@@ -51,6 +51,20 @@
                     <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span>
                 </div>
             }
+            @if (_blockedRows.Count > 0)
+            {
+                <div style="color:var(--ames-tx-red-400);margin-top:8px;">
+                    ⛔ @string.Format(L["PP.Upload.WoConflict.Completed"].Value, _blockedRows.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@WoConflictText(_blockedRows)</span>
+                </div>
+            }
+            @if (_issuedRows.Count > 0)
+            {
+                <div style="color:var(--ames-tx-amber-400);margin-top:8px;">
+                    ⚠ @string.Format(L["PP.Upload.WoConflict.Issued"].Value, _issuedRows.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@WoConflictText(_issuedRows)</span>
+                </div>
+            }
             @if (_cancelCandidates.Count > 0)
             {
                 <div style="margin-top:8px;">
@@ -73,7 +87,7 @@
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
                       Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.SupplyPlanImport.Btn.RunUpload"].Value)"
-                      Disabled="@(_busy || _preview is null || string.IsNullOrEmpty(_upCustomer) || _verdict == SrmVendorCheck.Verdict.Mismatch || !HasEffectiveChanges)"
+                      Disabled="@(_busy || _preview is null || string.IsNullOrEmpty(_upCustomer) || _verdict == SrmVendorCheck.Verdict.Mismatch || !HasEffectiveChanges || AllBlocked)"
                       Click="DoUpload" />
     </div>
 </div>
@@ -99,6 +113,11 @@
     List<PpRepository.CancelCandidate> _cancelCandidates = new();
     bool _cancelMissing;
     UploadDiff? _diff;
+    // 같은 수주 번호에 이미 WO 가 있는 줄 — 끝난 WO 가 있으면 가져오지 않고(Blocked), 안 끝난 WO 면 새 번호로 올리도록 알린다(Issued)
+    List<(string Key, string Text)> _blockedRows = new();
+    List<(string Key, string Text)> _issuedRows = new();
+    bool AllBlocked => _preview is not null && _preview.Count > 0 && _blockedRows.Count >= _preview.Select(r => UploadWoConflictRules.Key(r.SoNumber, r.SoLineNo)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    static string WoConflictText(List<(string Key, string Text)> rows) => string.Join(", ", rows.Take(5).Select(r => r.Text)) + (rows.Count > 5 ? " …" : "");
 
     /// <summary>추가·변경이 있거나, 취소 옵션을 켠 채 파일에 없는 라인이 있을 때만 저장할 것이 있다.</summary>
     bool HasEffectiveChanges => _diff is not null && (_diff.Added + _diff.Changed > 0 || (_cancelMissing && _diff.Removed > 0));
@@ -106,7 +125,7 @@
     async Task OnFile(InputFileChangeEventArgs e)
     {
         _modalErr = ""; _preview = null; _unmatched = new(); _vendor = ""; _negSkipped = 0; _fileName = e.File.Name;
-        _cancelCandidates = new(); _cancelMissing = false; _fileVendor = null; _vendorMsg = "";
+        _cancelCandidates = new(); _cancelMissing = false; _fileVendor = null; _vendorMsg = ""; _blockedRows = new(); _issuedRows = new();
         try
         {
             using var ms = new MemoryStream();
@@ -139,6 +158,7 @@
             _preview = rows;
             RefreshVendorCheck();
             RefreshCancelCandidates();
+            RefreshWoConflicts();
         }
         catch (IOException)        { _modalErr = L["PP.SupplyPlanImport.Err.TooLarge"]; }
         catch (FormatException fx) { _modalErr = $"{L["PP.SupplyPlanImport.Err.Parse"]} — {fx.Message}"; }
@@ -160,6 +180,7 @@
             _ => L["PP.Upload.Vendor.NotConfigured"].Value,
         };
         RefreshCancelCandidates();
+        RefreshWoConflicts();
         RefreshDiff();
     }
 
@@ -190,6 +211,22 @@
         _cancelMissing = _cancelCandidates.Count > 0;
     }
 
+    /// <summary>올릴 수주 번호에 이미 연결된 WO 를 찾아 처리 불가(끝난 WO)·새 번호 안내(진행 중 WO)로 가른다.</summary>
+    void RefreshWoConflicts()
+    {
+        _blockedRows = new(); _issuedRows = new();
+        if (string.IsNullOrEmpty(_upCustomer) || _preview is null || _preview.Count == 0) return;
+        var found = UploadWoConflictRules.ByOrder(Pp.ListOrderWoConflicts(_upCustomer, _preview.Select(r => r.SoNumber)));
+        foreach (var r in _preview)
+        {
+            var key = UploadWoConflictRules.Key(r.SoNumber, r.SoLineNo);
+            if (!found.TryGetValue(key, out var hit) || hit.Level == WoConflictLevel.None) continue;
+            var item = (key, $"{r.SoNumber}-{r.SoLineNo} ({string.Join(", ", hit.WoNumbers)})");
+            if (hit.Level == WoConflictLevel.Completed) { if (!_blockedRows.Any(x => x.Key == key)) _blockedRows.Add(item); }
+            else if (!_issuedRows.Any(x => x.Key == key)) _issuedRows.Add(item);
+        }
+    }
+
     async Task DoUpload()
     {
         if (_preview is null || string.IsNullOrEmpty(_upCustomer)) return;
@@ -199,7 +236,9 @@
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
-            var rows  = _preview.Select(r => new PpRepository.CustomerOrderImportRow(
+            // 끝난 WO 가 있는 수주 줄은 처리하지 않는다 — 올려도 완료된 건이라 바꿀 수 없다
+            var blocked = _blockedRows.Select(x => x.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var rows  = _preview.Where(r => !blocked.Contains(UploadWoConflictRules.Key(r.SoNumber, r.SoLineNo))).Select(r => new PpRepository.CustomerOrderImportRow(
                 r.SoNumber, r.SoLineNo, r.ItemNo, r.OrderQty, r.ShippedQty,
                 r.OrderDate, r.RequestedDeliveryDate)).ToList();
 
