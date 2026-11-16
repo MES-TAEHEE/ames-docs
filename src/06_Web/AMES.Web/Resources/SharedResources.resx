@@ -2619,6 +2619,9 @@
   <data name="PP.WoDetail.Operator.Now" xml:space="preserve">
     <value>현재 작업자</value>
   </data>
+  <data name="PP.WoDetail.Operator.Logout" xml:space="preserve">
+    <value>Logout</value>
+  </data>
   <data name="PP.WoDetail.Operator.Last" xml:space="preserve">
     <value>최근 실적</value>
   </data>

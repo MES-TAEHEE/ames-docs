@@ -210,7 +210,9 @@ else
             if (o.Sessions.Count > 0)
                 map[o.LineId] = ($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})"))), true);
             else if (o.LastOperator is not null)
-                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
+                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Logout"].Value} · {L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
+            else
+                map[o.LineId] = (L["PP.WoDetail.Operator.Logout"].Value, false);   // 열린 세션도 실적도 없으면 로그아웃
         }
         return map;
     }
