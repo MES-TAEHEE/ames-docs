@@ -11,6 +11,7 @@
 @inject ILogger<PickingOrders> Log
 @inject DialogService Dialog
 @inject AuditLogger Audit
+@inject IJSRuntime JS
 
 <PageTitle>WH-003 @L["WH.Picking.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="WH-003" TitleKey="WH.Picking.Title" />
@@ -47,7 +48,7 @@
             </RadzenStack>
         </div>
         <RadzenDataGrid @ref="_ordersGrid" TItem="PickingSlipHeaderRow" Data="VisibleOrders" RowSelect="SelectOrder" AllowMultiColumnSorting="false"
-            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed wh-picking-orders-grid">
+            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed wh-picking-orders-grid picking-readable-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px" />
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Destination"].Value" Width="150px" MinWidth="150px" />
@@ -72,7 +73,6 @@
         </RadzenDataGrid>
     </section>
     </AmesTab>
-    <AmesTab Title="@L["WH.Picking.Tab.LineStock"].Value">
     <AmesTab Title='@L["WH.Picking.Releases"]'>
     <section class="ames-card">
         <div class="ames-card-h master-list-toolbar">
@@ -101,6 +101,7 @@
         </RadzenDataGrid>
     </section>
     </AmesTab>
+    <AmesTab Title="@L["WH.Picking.Tab.LineStock"].Value">
         <section class="ames-card wh-pick-list">
             <div class="ames-card-h master-list-toolbar">
                 <span>@L["WH.Picking.Lbl.LineStockSafety"]</span>
@@ -131,7 +132,7 @@
             <span>@_selected.PickSlipNo · @L["Col.Destination"] @_selected.ReqLocation</span>
         </div>
         @if (_cancelError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_cancelError</RadzenAlert> }
-        <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid">
+        <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid picking-readable-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="SeqNo" Title="@L["Col.No"].Value" Width="60px" MinWidth="60px" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="WorkOrderNumber" Title="@L["WH.Picking.Col.WorkOrder"].Value" Width="160px" MinWidth="160px" />
@@ -151,13 +152,40 @@
         </RadzenDataGrid>
     </section>
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+        <RadzenButton Text='@L["Btn.Print"]' Icon="print" Click="PrintOrder" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
         <RadzenButton Text="@L["WH.Picking.Btn.Cancel"].Value" Icon="cancel" Click="CancelSelection" Disabled="@(_cancelling || _refreshing || !CanCancelSelection || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
         <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" Disabled="_cancelling" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
     </RadzenStack>
     </div></div>
+
 }
 
+@if (_printPreview && _selected is not null)
+{
+    <div class="ames-modal-bg picking-print-modal-bg" @onclick="()=>_printPreview=false"><div class="ames-modal picking-print-modal" @onclick:stopPropagation>
+        <div class="ames-modal-h">@L["SCM.Preview.Print.Preview"] · @_selected.PickSlipNo</div>
+        <div class="picking-print-preview"><PickingOrderDocument Header="_selected" Lines="_details" StockSource="PrintSourceText" /></div>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text='@L["Btn.Print"]' Icon="print" Click="PrintDocument" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text='@L["Btn.Close"]' Icon="close" Click="()=>_printPreview=false" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+        </RadzenStack>
+    </div></div>
+}
 @code {
+    bool _printPreview;
+    void PrintOrder() => _printPreview=true;
+    Task PrintDocument() => JS.InvokeVoidAsync("amesPrintLabels",".picking-order-document","A4 portrait",true).AsTask();
+    string PrintSourceText(PickingSlipLineRow row)
+    {
+        var remaining=Math.Max(0,row.ReqBoxQty-row.PickedBoxQty);
+        if(remaining==0)return "Released";
+        var boxes=_sources.Where(x=>string.Equals(x.PartNo,row.PartNo,StringComparison.OrdinalIgnoreCase)).ToList();
+        var locations=boxes.GroupBy(x=>string.IsNullOrWhiteSpace(x.LocationNo)?"Unassigned":x.LocationNo.Trim(),StringComparer.OrdinalIgnoreCase)
+            .Select(g=>$"{g.Key} · {EnglishPrint.Quantity(row.QuantityUnit=="BOX" ? g.Count() : g.Sum(x=>x.Qty),row.QuantityUnit)}").ToList();
+        var available=row.QuantityUnit=="BOX" ? boxes.Count : boxes.Sum(x=>x.Qty);
+        if(available<remaining)locations.Add($"Shortage · {EnglishPrint.Quantity(remaining-available,row.QuantityUnit)}");
+        return string.Join("\n",locations);
+    }
     [SupplyParameterFromQuery(Name="order")] public string? RequestedOrder { get; set; }
     List<LineStockRow> _stock = [];
     List<PickingSlipHeaderRow> _orders = [];
@@ -199,6 +227,7 @@
         _allowed = Permissions.CanOpen("wh/picking-orders");
         if (!_allowed) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         Load();
+        await LoadReleases();
         if(!string.IsNullOrWhiteSpace(RequestedOrder) && _orders.FirstOrDefault(row=>row.PickSlipNo==RequestedOrder) is {} requested) SelectOrder(requested);
     }
     void Load()
@@ -242,9 +271,9 @@
                 _error = L["WH.Picking.Err.NoPermission"].Value;
                 return;
             }
-        await LoadReleases();
             await Task.Run(() => WH.GenerateLinePickingOrders());
             Load();
+            await LoadReleases();
         }
         catch (Exception ex)
         {
@@ -284,11 +313,11 @@
     }
     void SelectOrder(PickingSlipHeaderRow row)
     {
+        _printPreview=false;
         _error = "";
         _cancelError = "";
         _selected = null;
         try
-            await LoadReleases();
         {
             _details = WH.ListPickingSlipLines(row.PickSlipNo);
             _sources = WH.ListPickingSlipFifoLots(row.PickSlipNo);

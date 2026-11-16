@@ -5,7 +5,7 @@ namespace AMES.Data.Tests;
 public sealed class PickingOrdersDisplayTests
 {
     [Fact]
-    public void Picking_order_details_keep_materials_and_sources_without_barcode_or_printing()
+    public void Picking_order_details_print_a_material_request_without_a_barcode()
     {
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor");
         Assert.Contains("RowSelect=\"SelectOrder\"", page);
@@ -14,7 +14,10 @@ public sealed class PickingOrdersDisplayTests
         Assert.Contains("@SourceText(row)", page);
         Assert.Contains("Property=\"LineCode\"", page);
         Assert.Contains("@L[\"Btn.Close\"].Value", page);
-        foreach (var removed in new[] { "Code128Barcode", "PrintBarcode", "wh-slip-print-area", "BuildPrintRows", "window.print", "@inject IJSRuntime" })
+        Assert.Contains("Click=\"PrintOrder\"",page);
+        Assert.Contains("<PickingOrderDocument Header=\"_selected\"",page);
+        Assert.Contains("\"amesPrintLabels\",\".picking-order-document\",\"A4 portrait\",true",page);
+        foreach (var removed in new[] { "Code128Barcode", "PrintBarcode", "wh-slip-print-area", "BuildPrintRows", "window.print" })
             Assert.DoesNotContain(removed, page);
         foreach (var path in new[] { "src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor.css", "src/06_Web/AMES.Web/wwwroot/app.css" })
             Assert.DoesNotContain("wh-slip-print-area", Read(path));

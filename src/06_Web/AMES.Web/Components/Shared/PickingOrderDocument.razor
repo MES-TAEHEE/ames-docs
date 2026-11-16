@@ -1,0 +1,28 @@
+@using static AMES.Data.Repositories.WarehouseRepository
+<article class="picking-order-document" lang="en">
+    <header class="pick-document-header"><div><div class="pick-document-brand">EOS · A-MES</div><h1>PICKING ORDER</h1></div><div class="pick-document-reference">@Header.PickSlipNo</div></header>
+    <dl class="pick-document-meta">
+        <div><dt>Destination</dt><dd>@Header.ReqLocation</dd></div>
+        <div><dt>Created date</dt><dd>@EnglishPrint.Date(Header.CreatedAt)</dd></div>
+        <div><dt>Due date</dt><dd>@EnglishPrint.Date(Header.DueAt)</dd></div>
+        <div><dt>Status</dt><dd>@Header.Status</dd></div>
+        <div><dt>Request source</dt><dd>@SourceName</dd></div>
+        <div><dt>Materials</dt><dd>@Lines.Count</dd></div>
+    </dl>
+    <table>
+        <colgroup><col style="width:4%" /><col style="width:19%" /><col style="width:25%" /><col style="width:11%" /><col style="width:11%" /><col style="width:11%" /><col style="width:19%" /></colgroup>
+        <thead><tr><th>No.</th><th>Part No.</th><th>Part name / Work order</th><th class="number">Requested</th><th class="number">Released</th><th class="number">Remaining</th><th>Stock source</th></tr></thead>
+        <tbody>@foreach(var line in Lines)
+        {
+            <tr><td>@line.SeqNo</td><td class="part-number">@line.PartNo</td><td>@line.PartName@if(!string.IsNullOrWhiteSpace(line.WorkOrderNumber)){<small>WO: @line.WorkOrderNumber</small>}@if(line.LineCode!=Header.ReqLocation){<small>To: @line.LineCode</small>}</td>
+                <td class="number">@EnglishPrint.Quantity(line.ReqBoxQty,line.QuantityUnit)</td><td class="number">@EnglishPrint.Quantity(line.PickedBoxQty,line.QuantityUnit)</td><td class="number">@EnglishPrint.Quantity(Math.Max(0,line.ReqBoxQty-line.PickedBoxQty),line.QuantityUnit)</td><td class="pick-document-source">@StockSource(line)</td></tr>
+        }</tbody>
+    </table>
+    <footer><span>Printed: @EnglishPrint.DateTime(AMES.Data.Services.DbClock.Now)</span><span>@Header.PickSlipNo</span></footer>
+</article>
+@code {
+    [Parameter, EditorRequired] public PickingSlipHeaderRow Header {get;set;}=default!;
+    [Parameter] public IReadOnlyList<PickingSlipLineRow> Lines {get;set;}=[];
+    [Parameter] public Func<PickingSlipLineRow,string> StockSource {get;set;}=_=>"—";
+    string SourceName => Header.GenerationSource switch {"WORK_ORDER"=>"Work order","MINIMUM"=>"Minimum stock","REQUEST"=>"Picking request","BOTH"=>"Work order / Minimum stock",_=>"—"};
+}
