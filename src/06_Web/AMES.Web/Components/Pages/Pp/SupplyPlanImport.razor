@@ -153,8 +153,8 @@ else
                     <span class="pill @(r.Status == "Confirmed" ? "ok" : "warn")">@r.Status</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="250px" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
-                                  Filterable="false" Sortable="false" Width="250px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="250px" Property="WoLinkLabel" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
+                                  Width="250px">
                 <Template Context="r">
                     @if (!string.IsNullOrEmpty(r.WoNumber))
                     {
@@ -167,8 +167,8 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
-                                  Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Property="ActionLabel" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
+                                  TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (_canApprove && r.Status == "Open")
                     {
@@ -302,7 +302,19 @@ else
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
         _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsOpen(r)));
+        FillFilterLabels();
         ApplyFilters();
+    }
+
+    // WO 연계·작업 열의 필터 목록에 보일 문구 — 칸에 보이는 내용과 같은 기준(WO 상태 · 대기 · 확정 버튼 · 없음)
+    void FillFilterLabels()
+    {
+        foreach (var r in _rows)
+        {
+            r.WoLinkLabel = !string.IsNullOrEmpty(r.WoNumber) ? (r.WoStatus ?? "—")
+                          : r.Status == "Confirmed" ? L["PP.SupplyPlanImport.WoLink.Awaiting"].Value : "—";
+            r.ActionLabel = _canApprove && r.Status == "Open" ? L["Btn.Confirm"].Value : "—";
+        }
     }
 
     // SO 번호 / 품번·품명 부분일치 + 상태 클라이언트 필터.

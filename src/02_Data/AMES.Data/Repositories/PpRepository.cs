@@ -50,7 +50,13 @@ public sealed partial class PpRepository
     public sealed record SoRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty,
         DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status,
-        string? WoNumber, string? WoStatus, bool ItemExists, int WoCount = 0);
+        string? WoNumber, string? WoStatus, bool ItemExists, int WoCount = 0)
+    {
+        /// <summary>화면이 채우는 열 필터용 표시 문구(언어별) — WO 연계 열. 저장소는 건드리지 않는다.</summary>
+        public string? WoLinkLabel { get; set; }
+        /// <summary>화면이 채우는 열 필터용 표시 문구 — 작업 열.</summary>
+        public string? ActionLabel { get; set; }
+    }
 
     public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
         decimal OrderQty, decimal? ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate);   // ShippedQty null = 원천이 납품수량을 주지 않음(기존 값 유지, 새 행 0)
