@@ -1,0 +1,28 @@
+@* 작업지시(WO) 번호 링크 — 누르면 그 작업지시의 내용·현재 상태·흐름을 팝업(Pp/WoDetailDialog)으로 연다.
+   WO 번호를 보이는 화면은 번호 글자 대신 이 컴포넌트를 둔다: <WoLink WoNumber="@w.WoNumber" />
+   행 클릭·행 펼침 같은 바깥 클릭 동작과 겹치지 않게 클릭을 여기서 멈춘다. 번호가 비면 빈 값 표시(—)만 보인다. *@
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+@if (string.IsNullOrWhiteSpace(WoNumber))
+{
+    <span class="dim">@Empty</span>
+}
+else
+{
+    <a href="javascript:void(0)" class="code wo-link @Class" style="@Style" title="@L["PP.WoDetail.ClickTip"]"
+       @onclick="Open" @onclick:stopPropagation="true">@(Text ?? WoNumber)</a>
+}
+
+@code {
+    [Parameter] public string? WoNumber { get; set; }
+    /// <summary>링크에 보일 글자 — 비우면 WO 번호.</summary>
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string Empty { get; set; } = "—";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
+
+    async Task Open()
+        => await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.WoDetailDialog>(WoNumber!, new Dictionary<string, object?> { ["WoNumber"] = WoNumber },
+               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = false });
+}

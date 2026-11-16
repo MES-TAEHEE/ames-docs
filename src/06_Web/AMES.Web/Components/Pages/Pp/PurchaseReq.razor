@@ -152,7 +152,7 @@ else
             </div>
 
             <div class="pr-dsub">@L["PP.PurchaseReq.Detail.LinkedWo"]</div>
-            @if (_sel.WoNumber is { Length: > 0 }) { <span class="pr-wochip">@_sel.WoNumber</span> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">—</span> }
+            @if (_sel.WoNumber is { Length: > 0 }) { <span class="pr-wochip"><WoLink WoNumber="@_sel.WoNumber" /></span> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">—</span> }
             <a class="pr-link" href="@($"pp/mrp?item={Uri.EscapeDataString(_sel.ItemNo)}")" style="margin-left:10px;font-size:calc(11px + var(--ames-fs-bump));">→ @L["PP.PurchaseReq.Detail.Mrp"]</a>
 
             <div class="pr-dsub">@L["PP.PurchaseReq.Detail.Log"]</div>

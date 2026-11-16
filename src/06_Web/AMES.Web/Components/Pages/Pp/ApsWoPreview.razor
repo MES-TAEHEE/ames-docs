@@ -278,7 +278,7 @@ else if (_released)
                             ShowPagingSummary="true" class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px" Frozen="true">
-                        <Template Context="o"><span class="code" style="font-weight:700;">@o.WoNumber</span></Template>
+                        <Template Context="o"><WoLink WoNumber="@o.WoNumber" Style="font-weight:700;" /></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="130px" Property="PlanDate" Title="@L["PP.Aps.Wo.Col.Date"].Value" Width="130px" TextAlign="TextAlign.Center">
                         <Template Context="o"><span class="code">@o.PlanDate.ToString(DateFmt.Date)</span></Template>

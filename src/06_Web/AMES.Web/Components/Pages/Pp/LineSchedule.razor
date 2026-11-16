@@ -149,7 +149,7 @@
                     <Template Context="s"><span class="pill info">@SlotLabel(s)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StagedWo" MinWidth="130px" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
-                    <Template Context="s"><span class="code">@s.WoNumber</span></Template>
+                    <Template Context="s"><WoLink WoNumber="@s.WoNumber" /></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StagedWo" MinWidth="200px" Title="@L["Col.Item"]" >
                     <Template Context="s"><span class="dim">@(s.ItemName ?? "—")</span></Template>

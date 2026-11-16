@@ -251,7 +251,7 @@
     var d = _detail;
     <div class="ames-modal-bg" @onclick="() => _showDetail = false">
         <div class="ames-modal" @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["PP.Calendar.Modal.Detail"] @d.WoNumber</div>
+            <div class="ames-modal-h">@L["PP.Calendar.Modal.Detail"] <WoLink WoNumber="@d.WoNumber" /></div>
             <div class="ames-detail-grid">
                 <div class="ames-detail-label">@L["Col.Item"]</div>
                 <div>
@@ -317,7 +317,7 @@
         <div class="ames-modal" style="max-width:360px;">
             <div class="ames-modal-h">@L["PP.Calendar.Modal.Reschedule"]</div>
             <div style="font-size:14px;color:var(--ames-tx-slate-400);margin-bottom:12px;line-height:1.8;">
-                <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
+                <div>@L["PP.Calendar.Lbl.WoNo"] <WoLink WoNumber="@_detail.WoNumber" /></div>
                 <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString(DateFmt.Date) ?? "—")</span></div>
             </div>
             <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />

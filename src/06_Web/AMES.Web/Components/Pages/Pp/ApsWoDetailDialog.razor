@@ -9,7 +9,7 @@
     <div class="wp-tiles">
         @if (IsWo)
         {
-            <div class="wp-tile"><span class="dim">@L["Col.WoNo"]</span><b class="code">@(Block.WoNumber ?? "—")</b></div>
+            <div class="wp-tile"><span class="dim">@L["Col.WoNo"]</span><b><WoLink WoNumber="@Block.WoNumber" /></b></div>
             <div class="wp-tile"><span class="dim">@L["Col.ItemNo"]</span><b class="code">@(Block.ItemNo ?? "—")</b></div>
             @if (Order is { } o)
             {
@@ -31,7 +31,7 @@
         else if (IsMc)
         {
             <div class="wp-tile"><span class="dim">@L["PP.LineSchedule.Mc.Name"]</span><b class="code">@(Block.Title ?? Block.MoldId ?? "—")</b></div>
-            @if (Block.WoNumber is not null) { <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Detail.Before"]</span><b class="code">@Block.WoNumber · @Block.ItemNo</b></div> }
+            @if (Block.WoNumber is not null) { <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Detail.Before"]</span><b><WoLink WoNumber="@Block.WoNumber" /> <span class="code">· @Block.ItemNo</span></b></div> }
         }
         else
         {
@@ -66,7 +66,7 @@
             <div class="dim" style="margin-top:6px;">@L["PP.Aps.Wo.Siblings"]</div>
             <table class="ames-table" style="width:100%;">
                 <thead><tr><th>@L["Col.WoNo"]</th><th>@L["Col.ItemNo"]</th><th style="text-align:right;">@L["Col.Qty"]</th></tr></thead>
-                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)@if (s.OverQty > 0) { <div class="wp-over">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))</div> }</td></tr> }</tbody>
+                <tbody>@foreach (var s in Block.Siblings) { <tr><td><WoLink WoNumber="@s.WoNumber" /></td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)@if (s.OverQty > 0) { <div class="wp-over">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))</div> }</td></tr> }</tbody>
             </table>
         }
     </div>

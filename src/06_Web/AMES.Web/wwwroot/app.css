@@ -5947,3 +5947,7 @@ input[data-ames-x] {
 /* 흐름 보기 — 팝업 본문을 세로 flex 로 만들어 흐름 영역이 남는 높이를 채우고 버튼 줄은 아래에 둔다 */
 .rz-dialog-content:has(.ames-flow-fill) { display: flex; flex-direction: column; }
 .rz-dialog-content > .ames-flow-fill { flex: 1 1 auto; min-height: 0; }
+
+/* WO 번호 링크(Shared/WoLink) — 그 위에 열리는 작업지시 팝업(Radzen 대화상자)이 ames-modal(1000) 위, BOM 미리보기(1100) 아래에 온다 */
+.wo-link { text-decoration: underline dotted; text-underline-offset: 3px; }
+.rz-dialog-mask, .rz-dialog-wrapper { z-index: 1050; }

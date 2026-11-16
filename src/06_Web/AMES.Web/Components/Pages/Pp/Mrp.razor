@@ -162,7 +162,7 @@ else
             {
                 foreach (var w in _sel.Wos)
                 {
-                    <span class="mrp-wochip" title="@(w.DueDate?.ToString(DateFmt.Date))">@(w.WoNumber ?? $"WO#{w.WoId}") · @Q(w.Qty)</span>
+                    <span class="mrp-wochip" title="@(w.DueDate?.ToString(DateFmt.Date))"><WoLink WoNumber="@w.WoNumber" Text="@(w.WoNumber ?? $"WO#{w.WoId}")" /> · @Q(w.Qty)</span>
                 }
             }
             @if (_sel.IsShort)
@@ -193,7 +193,7 @@ else
                             <span class="mrp-pr-col code">@Q(p.RequiredQty, _sel.Uom) <span class="dim">@UomFmt.Sym(_sel.Uom)</span></span>
                             <span class="mrp-pr-col dim">@(p.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span>
                             <span class="mrp-pr-col"><span class="pill @PrStCls(p.Status)">@(p.Status ?? "—")</span></span>
-                            <span class="mrp-pr-col wide code dim">@(p.WoNumber ?? "—")</span>
+                            <span class="mrp-pr-col wide"><WoLink WoNumber="@p.WoNumber" /></span>
                         </div>
                     }
                 </div>

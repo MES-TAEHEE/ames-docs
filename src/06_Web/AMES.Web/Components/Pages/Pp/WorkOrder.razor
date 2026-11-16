@@ -68,7 +68,7 @@ else
                     class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
-                <Template Context="w"><span class="code">@w.WoNumber</span></Template>
+                <Template Context="w"><WoLink WoNumber="@w.WoNumber" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="470px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="470px">
                 <Template Context="w">
@@ -187,7 +187,7 @@ else
                             }</div>
                         <span class="dim" style="align-self:center;">→</span>
                         <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Wo"]</div>
-                            <div>@tr.WoNumber</div>
+                            <div><WoLink WoNumber="@tr.WoNumber" /></div>
                             <div class="dim" style="font-size:.8em;">@w.OrderQty.ToString("#,0") EA · @w.Status</div></div>
                         <span class="dim" style="align-self:center;">→</span>
                         <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Slots"]</div>

@@ -113,7 +113,7 @@
                 <Template Context="r"><span class="dim" style="white-space:nowrap;" title="@r.CauseCode">@(r.CauseCode is null ? "—" : CauseText(r.CauseCode))</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="90px" Property="WoNumber" Title="@L["Col.WO"]" Width="140px" TextAlign="TextAlign.Center">
-                <Template Context="r"><span class="code">@(r.WoNumber ?? "—")</span></Template>
+                <Template Context="r"><WoLink WoNumber="@r.WoNumber" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="100px" Property="EndTs" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="r">
