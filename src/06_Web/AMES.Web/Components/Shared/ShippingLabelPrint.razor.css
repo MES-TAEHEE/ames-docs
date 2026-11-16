@@ -1,0 +1,7 @@
+.shipping-print-method-modal-bg { z-index:1500; }
+.shipping-print-method-modal { width:min(700px,94vw); max-width:94vw; }
+.shipping-preview-toolbar { margin-top:16px; }
+.shipping-print-controls { padding-top:12px; border-top:1px solid var(--ames-bd-white-a12); }
+.shipping-printer-hint { font-size:.8rem; color:var(--ames-tx-slate-400); margin:8px 0 12px; }
+.shipping-zebra-preview { overflow:auto; padding:12px; margin-top:8px; background:var(--ames-sf-172238); border:1px solid var(--ames-bd-white-a12); border-radius:6px; }
+@media print { .shipping-print-method-modal-bg { display:none!important; } }

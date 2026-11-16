@@ -68,7 +68,8 @@ public sealed class ScmShippingUnitUiTests
         Assert.DoesNotContain("<strong>PALLET</strong>", label);
         Assert.Contains("<Code128Barcode Value=\"@_case.Number\"", label);
         Assert.Contains("Scm.GetDeliveryCase(Number, id)", label);
-        Assert.Contains("L[\"Portal.Create.Items\"]", Read("src/06_Web/AMES.Web/Components/Pages/Portal/DeliveryNote.razor")); // 값: Shipping Units
+        Assert.Contains("<DeliveryNoteDocument", Read("src/06_Web/AMES.Web/Components/Pages/Portal/DeliveryNote.razor"));
+        Assert.Contains("SHIPPING UNITS", Read("src/06_Web/AMES.Web/Components/Shared/DeliveryNoteDocument.razor"));
         var preview = Read("src/06_Web/AMES.Web/Components/Shared/ScmPreview.razor");
         Assert.Contains("OpenCasePreview(item.Number)", preview);
         Assert.Contains("Pages.Portal.DeliveryBoxes", preview);
@@ -78,7 +79,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.Contains("<Code128Barcode Value=\"@b.Number\"", childLabel);
         Assert.DoesNotContain("StartsWith(\"PT-\"", childLabel);
         Assert.DoesNotContain("\"BOX\"", childLabel);
-        Assert.Contains("<th>@L[\"Portal.Create.Col.BoxesParts\"]</th>", Read("src/06_Web/AMES.Web/Components/Pages/Portal/DeliveryNote.razor")); // 값: Unit Items
+        Assert.Contains("Unit Items</th>", Read("src/06_Web/AMES.Web/Components/Shared/DeliveryNoteDocument.razor"));
     }
 
     [Fact]

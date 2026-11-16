@@ -9179,7 +9179,7 @@
     <value>조회 결과가 없습니다.</value>
   </data>
   <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
-    <value>발주 조회·수주 확인</value>
+    <value>Orders</value>
   </data>
   <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
     <value>구매발주 관리</value>
@@ -11526,7 +11526,7 @@
     <value>박스 {0}개 · 부품 {1}개</value>
   </data>
   <data name="Portal.Create.AddHeadFmt" xml:space="preserve">
-    <value>{0} 추가 · 수주 확인된 발주</value>
+    <value>Add {0} · Purchase Orders</value>
   </data>
   <data name="Portal.Create.ExpandFmt" xml:space="preserve">
     <value>{0} 펼치기</value>
@@ -11604,7 +11604,7 @@
     <value>선택 {0} / {1} · 총 납품 수량 {2}</value>
   </data>
   <data name="Portal.Create.NoOrders" xml:space="preserve">
-    <value>보낼 수량이 남은 수주 확인 발주가 없습니다.</value>
+    <value>No issued purchase orders with quantities left to send.</value>
   </data>
   <data name="Portal.Create.SelectedForFmt" xml:space="preserve">
     <value>{0}에 담을 항목</value>
@@ -13563,4 +13563,31 @@
   <data name="Btn.NextWeek" xml:space="preserve">
     <value>다음 1주</value>
   </data>
+  <data name="SCM.Supplier.Code" xml:space="preserve"><value>Supplier code</value></data>
+  <data name="SCM.Supplier.Name" xml:space="preserve"><value>Supplier name</value></data>
+  <data name="SCM.Import.Title" xml:space="preserve"><value>Import order items</value></data>
+  <data name="SCM.Import.Template" xml:space="preserve"><value>Excel template</value></data>
+  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Set packing quantity</value></data>
+  <data name="WH.Picking.Releases" xml:space="preserve"><value>Released items</value></data>
+  <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Released at</value></data>
+  <data name="WH.Picking.Operator" xml:space="preserve"><value>Operator</value></data>
+  <data name="MD.Location.NoChildLabels" xml:space="preserve"><value>No active detail locations are linked to this location.</value></data>
+  <data name="WH.LocMap.PrintArea" xml:space="preserve"><value>Print area barcodes</value></data>
+  <data name="SCM.Label.Printers" xml:space="preserve"><value>Connect Zebra</value></data>
+  <data name="SCM.Label.Printer" xml:space="preserve"><value>Zebra printer</value></data>
+  <data name="SCM.Label.ZebraPrint" xml:space="preserve"><value>Print ZPL</value></data>
+  <data name="SCM.Label.OneCopy" xml:space="preserve"><value>1 copy per label</value></data>
+  <data name="SCM.Label.PrinterUnavailable" xml:space="preserve"><value>Zebra Browser Print printer unavailable.</value></data>
+  <data name="SCM.Label.PrintFailed" xml:space="preserve"><value>Print failed. Check the printer before retrying.</value></data>
+  <data name="SCM.Print.All" xml:space="preserve"><value>Print All</value></data>
+  <data name="SCM.Print.ZebraLabels" xml:space="preserve"><value>Zebra Label Print</value></data>
+  <data name="Print.SelectPrinter" xml:space="preserve"><value>Select printer type</value></data>
+  <data name="Print.ZebraPrinter" xml:space="preserve"><value>Zebra label printer</value></data>
+  <data name="Print.GeneralPrinter" xml:space="preserve"><value>General printer</value></data>
+  <data name="SCM.Label.Previous" xml:space="preserve"><value>Previous label</value></data>
+  <data name="SCM.Label.Next" xml:space="preserve"><value>Next label</value></data>
+  <data name="SCM.Label.PreviewChanged" xml:space="preserve"><value>Labels changed. Review the updated preview, then print again.</value></data>
+  <data name="SCM.Label.DefaultPrinter" xml:space="preserve"><value>Default printer</value></data>
+  <data name="SCM.Label.BluetoothFind" xml:space="preserve"><value>Find Bluetooth</value></data>
+  <data name="SCM.Label.BluetoothHelp" xml:space="preserve"><value>Pair the Bluetooth printer in the computer settings first, then select it. Your printer choice is saved as this browser's default.</value></data>
 </root>

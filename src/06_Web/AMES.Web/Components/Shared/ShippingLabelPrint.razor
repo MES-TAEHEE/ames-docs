@@ -1,0 +1,179 @@
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
+@using System.Text.Json
+<RadzenButton Text='@(Text ?? L["Btn.Print"].Value)' Icon="print" Click="OpenChoice" Disabled="Disabled" Size="ButtonSize.Small" class="ames-rz-btn" />
+@if (_open)
+{
+<div class="ames-modal-bg shipping-print-method-modal-bg" data-no-busy>
+    <div class="ames-modal shipping-print-method-modal" role="dialog" aria-modal="true" aria-label='@L["Print.SelectPrinter"]'>
+        <div class="ames-modal-h">@L[_zebra ? "SCM.Print.ZebraLabels" : "Print.SelectPrinter"]</div>
+        <div class="ames-modal-body">
+        @if (!_zebra)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                <RadzenButton Text='@L["Print.ZebraPrinter"]' Icon="label" Click="SelectZebra" Size="ButtonSize.Small" class="ames-rz-btn" Style="flex:1;min-width:180px" />
+                <RadzenButton Text='@L["Print.GeneralPrinter"]' Icon="print" Click="SelectBrowser" Size="ButtonSize.Small" class="ames-rz-btn" Style="flex:1;min-width:180px" />
+            </RadzenStack>
+        }
+        else
+        {
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
+    <RadzenLabel Text='@L["SCM.Label.DefaultPrinter"]' Component="ZebraPrinter" />
+    <RadzenDropDown TValue="string" Name="ZebraPrinter" @bind-Value="_printer" Change="@(_=>FixPrinter())" Data="_printers" TextProperty="Name" ValueProperty="Uid" DisabledProperty="Disabled" Placeholder='@L["SCM.Label.Printer"]' Disabled="_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
+    <RadzenButton Text='@L["SCM.Label.Printers"]' Icon="refresh" Click="()=>FindPrinters(true)" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+    <RadzenButton Text='@L["SCM.Label.BluetoothFind"]' Icon="bluetooth_searching" Click="FindBluetooth" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+        </RadzenStack>
+        <p class="shipping-printer-hint">@L["SCM.Label.BluetoothHelp"]</p>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="shipping-print-controls">
+            <RadzenLabel Text="DPI" Component="ZebraDpi" /><RadzenDropDown TValue="int" Name="ZebraDpi" @bind-Value="_dpi" Change="@(_=>SaveDpi())" Data="_resolutions" Disabled="_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px" />
+            <RadzenButton Text='@L["SCM.Label.ZebraPrint"]' Icon="print" Click="PrintZebra" Disabled="@(_busy || _previewLabels.Count==0 || !SelectedPrinterAvailable || _layoutError.Length>0)" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+        @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
+        @if (_layoutError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Warning">@_layoutError</RadzenAlert> }
+        @if(_previewLabels.Count>0)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" class="shipping-preview-toolbar">
+                <span>@L["SCM.Preview.Print.Preview"] · 100 × 40 mm · @L["SCM.Label.OneCopy"]</span>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenButton Icon="chevron_left" aria-label='@L["SCM.Label.Previous"]' Click="PreviousLabel" Disabled="@(_busy || _previewIndex==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                    <span>@(_previewIndex+1) / @_previewLabels.Count</span>
+                    <RadzenButton Icon="chevron_right" aria-label='@L["SCM.Label.Next"]' Click="NextLabel" Disabled="@(_busy || _previewIndex==_previewLabels.Count-1)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                </RadzenStack>
+            </RadzenStack>
+            @if(_layoutError.Length==0){<div class="shipping-zebra-preview"><CompactQrLabelSheet Label="_previewLabels[_previewIndex]" Dpi="_dpi" /></div>}
+        }
+        }
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            @if(_zebra){<RadzenButton Text='@L["Print.SelectPrinter"]' Icon="arrow_back" Click="Back" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />}
+            <RadzenButton Text='@L["Btn.Close"]' data-portal-close Click="Close" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+}
+@code {
+    [Parameter, EditorRequired] public Func<Task<IReadOnlyList<ShippingLabel>>> LoadLabels { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback BrowserPrint {get;set;}
+    [Parameter] public string? Text {get;set;}
+    [Parameter] public bool Disabled {get;set;}
+    readonly int[] _resolutions = [203, 300];
+    List<Printer> _printers = [];
+    IReadOnlyList<ShippingLabel> _previewLabels=[];
+    int _previewIndex;
+    string _printer = "", _error = "", _layoutError="";
+    int _dpi = 203;
+    bool _busy, _open, _zebra, _settingsLoaded, _hasSavedSettings;
+    bool SelectedPrinterAvailable=>_printers.Any(p=>p.Uid==_printer && p.Available);
+    public sealed record Printer(string Uid, string Name,string Connection="",bool Available=true) { public bool Disabled=>!Available; }
+    public sealed record Devices(bool Ok, List<Printer> Printers, string? DefaultUid, string? Error);
+    public sealed record Result(bool Ok, string? Error);
+    public sealed record BluetoothChoice(bool Ok,bool Cancelled,Printer? Printer,string? Error);
+    public sealed record PrinterSettings(int Dpi);
+    const string SettingsKey="ames.portal.label-settings";
+    void OpenChoice(){_error="";_layoutError="";_previewLabels=[];_previewIndex=0;_zebra=false;_open=true;}
+    void Close()=>_open=false;
+    void Back(){_zebra=false;_error="";}
+    void PreviousLabel(){if(_previewIndex>0)_previewIndex--;}
+    void NextLabel(){if(_previewIndex+1<_previewLabels.Count)_previewIndex++;}
+    async Task SelectZebra()
+    {
+        _zebra=true;_busy=true;_error="";
+        try
+        {
+            if(!_settingsLoaded)
+            {
+                var json=await JS.InvokeAsync<string?>("amesLabelPref.get",SettingsKey);
+                try
+                {
+                    var settings=string.IsNullOrWhiteSpace(json)?null:JsonSerializer.Deserialize<PrinterSettings>(json);
+                    if(settings is not null){_=new CompactQrLabelLayout(settings.Dpi);_dpi=settings.Dpi;_hasSavedSettings=true;}
+                }
+                catch(Exception ex) when(ex is JsonException or ArgumentOutOfRangeException){ }
+                _settingsLoaded=true;
+            }
+            _previewLabels=await LoadLabels();_previewIndex=0;
+            if(_previewLabels.Count==0)throw new InvalidOperationException(L["Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain"]);
+            ValidatePreview();
+        }
+        catch(Exception ex){_previewLabels=[];_error=ex.Message;}
+        finally{_busy=false;}
+        if(_previewLabels.Count>0)await FindPrinters();
+    }
+    async Task SelectBrowser(){_open=false;await BrowserPrint.InvokeAsync();}
+    void ValidatePreview()
+    {
+        _layoutError="";
+        try
+        {
+            _=new CompactQrLabelLayout(_dpi);
+            foreach(var label in _previewLabels)_=ShippingLabelZpl.Build(label,_dpi);
+        }
+        catch(ArgumentException ex){_layoutError=ex.Message;}
+    }
+    async Task SaveDpi()
+    {
+        ValidatePreview();
+        if(_layoutError.Length>0)return;
+        _hasSavedSettings=true;
+        try{await JS.InvokeVoidAsync("amesLabelPref.set",SettingsKey,JsonSerializer.Serialize(new PrinterSettings(_dpi)));}
+        catch(JSException ex){_error=ex.Message;}
+    }
+    async Task FindPrinters(bool force=false)
+    {
+        if (_busy) return;
+        _busy = true; _error = "";
+        try
+        {
+            var result = await JS.InvokeAsync<Devices>("amesZebraPrinters",new {portalDefault=true,forceDiscovery=force});
+            _printers = result.Printers;
+            _printer = result.DefaultUid ?? "";
+            if(!_hasSavedSettings && _printers.FirstOrDefault(p=>p.Uid==_printer)?.Name.Contains("300dpi",StringComparison.OrdinalIgnoreCase)==true){_dpi=300;ValidatePreview();}
+            if (!result.Ok || _printers.Count == 0 || !string.IsNullOrWhiteSpace(result.Error)) _error = L["SCM.Label.PrinterUnavailable"] + " " + result.Error;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    async Task FixPrinter()
+    {
+        if(_busy || !SelectedPrinterAvailable)return;
+        _busy=true;_error="";
+        try{var result=await JS.InvokeAsync<Result>("amesZebraSetDefault",_printer);if(!result.Ok)_error=result.Error??L["SCM.Label.PrinterUnavailable"];}
+        catch(JSException ex){_error=ex.Message;}
+        finally{_busy=false;}
+    }
+    async Task FindBluetooth()
+    {
+        if(_busy)return;
+        _busy=true;_error="";
+        try
+        {
+            var result=await JS.InvokeAsync<BluetoothChoice>("amesZebraBluetoothFind");
+            if(result.Cancelled)return;
+            if(!result.Ok || result.Printer is null){_error=result.Error??L["SCM.Label.PrinterUnavailable"];return;}
+            _printers.RemoveAll(p=>p.Connection=="bluetooth-serial");_printers.Add(result.Printer);_printer=result.Printer.Uid;
+        }
+        catch(JSException ex){_error=ex.Message;}
+        finally{_busy=false;}
+    }
+    async Task PrintZebra()
+    {
+        if (_busy || !SelectedPrinterAvailable || _previewLabels.Count==0 || _layoutError.Length>0) return;
+        _busy = true; _error = "";
+        try
+        {
+            // Re-read vendor access, cancellation and quantities immediately before sending.
+            var labels = await LoadLabels();
+            if (labels.Count == 0) throw new InvalidOperationException(L["Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain"]);
+            if(!labels.SequenceEqual(_previewLabels))
+            {
+                _previewLabels=labels;_previewIndex=0;ValidatePreview();_error=L["SCM.Label.PreviewChanged"];return;
+            }
+            var zpl = string.Concat(labels.Select(label => ShippingLabelZpl.Build(label, _dpi)));
+            var result = await JS.InvokeAsync<Result>("amesZebraWrite", _printer, zpl, true);
+            if (!result.Ok) _error = L["SCM.Label.PrintFailed"] + " " + result.Error;
+            else _open=false;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+}

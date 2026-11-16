@@ -7,18 +7,21 @@
 
         <div class="location-label-preview">
             <div class="location-label-print-area">
+                @foreach (var code in Codes)
+                {
                 <div class="location-label-paper">
                     @{
-                        var barcode = BuildCode128(LocationCode);
+                        var barcode = BuildCode128(code);
                     }
-                    <svg class="location-label-barcode" viewBox="0 0 @barcode.Width 76" preserveAspectRatio="none" role="img" aria-label="@($"{L["WH.LocBarcode.Title"]} {LocationCode}")">
+                    <svg class="location-label-barcode" viewBox="0 0 @barcode.Width 76" preserveAspectRatio="none" role="img" aria-label="@($"{L["WH.LocBarcode.Title"]} {code}")">
                         @foreach (var bar in barcode.Bars)
                         {
                             <rect x="@bar.X" y="0" width="@bar.Width" height="76"></rect>
                         }
                     </svg>
-                    <div class="location-label-readable">@LocationCode</div>
+                    <div class="location-label-readable">@(code)</div>
                 </div>
+                }
             </div>
         </div>
 
@@ -30,12 +33,14 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired] public string LocationCode { get; set; } = "";
+    [Parameter] public string LocationCode { get; set; } = "";
+    [Parameter] public IReadOnlyList<string>? LocationCodes { get; set; }
+    IEnumerable<string> Codes => LocationCodes ?? new[] { LocationCode };
     [Parameter] public EventCallback OnClose { get; set; }
 
     private async Task PrintAsync()
     {
-        await JS.InvokeVoidAsync("window.print");
+        await JS.InvokeVoidAsync("amesPrintLabels", ".location-label-print-area", "100mm 60mm");
     }
 
     private Task CloseAsync() => OnClose.InvokeAsync();

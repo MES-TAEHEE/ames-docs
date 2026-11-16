@@ -1,0 +1,18 @@
+.picking-order-document { box-sizing:border-box; width:190mm; max-width:100%; margin:20px auto; padding:8mm; background:#fff; color:#111; font:10pt/1.4 Arial,sans-serif; }
+.pick-document-header { display:flex; align-items:center; justify-content:space-between; gap:8mm; padding-bottom:5mm; border-bottom:2px solid #111; }
+.pick-document-brand { font-size:9pt; letter-spacing:.12em; }
+h1 { margin:2mm 0 0; font-size:22pt; line-height:1.1; }
+.pick-document-reference { font-size:14pt; font-weight:bold; text-align:right; overflow-wrap:anywhere; }
+.pick-document-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3mm 6mm; margin:0; padding:5mm 0; }
+dt { font-size:8pt; text-transform:uppercase; color:#555; } dd { margin:1mm 0 0; font-weight:bold; overflow-wrap:anywhere; }
+table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:9pt; }
+th { text-align:left; background:#e8e8e8; border-top:1.5px solid #111; border-bottom:1px solid #555; }
+th,td { padding:3mm 1.5mm; vertical-align:top; overflow-wrap:anywhere; border-bottom:1px solid #bbb; }
+td.part-number { font-weight:bold; } small { display:block; margin-top:1mm; color:#444; font-size:8pt; }
+.number { text-align:right; font-variant-numeric:tabular-nums; } .pick-document-source { white-space:pre-line; font-size:8pt; }
+footer { display:flex; justify-content:space-between; gap:5mm; margin-top:6mm; border-top:1px solid #111; padding-top:2mm; font-size:8pt; }
+@media print {
+    @page picking-order-document { size:A4 portrait; margin:10mm; }
+    .picking-order-document { page:picking-order-document; width:190mm; max-width:none; margin:0; padding:0; }
+    thead { display:table-header-group; } tr { break-inside:avoid; }
+}

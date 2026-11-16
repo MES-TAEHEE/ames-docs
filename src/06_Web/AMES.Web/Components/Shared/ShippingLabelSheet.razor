@@ -1,0 +1,29 @@
+<article class="shipping-label-sheet @(A4Sheet ? "shipping-label-a4" : null)" lang="en">
+@foreach (var label in Labels)
+{
+    <section class="shipping-label-paper @(label.PartNo.Length>0 ? "shipping-label-has-part" : null) @(label.Fifo.Length>0 ? "shipping-label-has-details" : null)">
+        <strong class="shipping-label-kind">@label.Kind</strong>
+        <div class="shipping-label-vendor">@label.Vendor</div>
+        <div class="shipping-label-barcode"><Code128Barcode Value="@label.Barcode" Height="64" /></div>
+        <div class="shipping-label-number">@label.Barcode</div>
+        <div class="shipping-label-divider"></div>
+        @if(label.PartNo.Length>0){<div class="shipping-label-product">Product: @label.PartNo</div>}
+        <div class="shipping-label-name">@label.PartName</div>
+        <strong class="shipping-label-qty">Quantity: @label.Quantity</strong>
+        @if(label.Fifo.Length>0)
+        {
+            <div class="shipping-label-destination">Delivery: @label.Destination</div>
+            <div class="shipping-label-fifo">FIFO: @label.Fifo</div>
+            <div class="shipping-label-order">PO: @label.Order</div>
+            <div class="shipping-label-lot">Lot No: @label.Lot</div>
+            <div class="shipping-label-sequence">Item Cnt.: @label.Sequence</div>
+        }
+        else{<div class="shipping-label-reference">@label.Reference</div>}
+        @if (label.PartNo.Length > 0) { <div class="shipping-label-part"><Code128Barcode Value="@label.PartNo" Height="36" /><strong>@label.PartNo</strong></div> }
+    </section>
+}
+</article>
+@code {
+    [Parameter] public IReadOnlyList<ShippingLabel> Labels { get; set; } = [];
+    [Parameter] public bool A4Sheet {get;set;}
+}

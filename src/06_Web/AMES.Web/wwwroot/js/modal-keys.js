@@ -17,6 +17,9 @@
     }
 
     function closeButton(modal) {
+        const explicit = Array.from(modal.querySelectorAll('[data-portal-close]'))
+            .filter(b => b.closest('.ames-modal') === modal);
+        if (explicit.length) return explicit.find(b => !b.disabled && visible(b)) || null;
         const btns = Array.from(modal.querySelectorAll('button')).filter(b => !b.disabled && visible(b));
         const byIcon = btns.filter(b => {
             const i = b.querySelector('.rzi, .material-icons, .notranslate');
@@ -27,14 +30,47 @@
         return byText.length ? byText[byText.length - 1] : null;
     }
 
+    function modalLayer(modal) {
+        const layers = [];
+        for (let el = modal.parentElement; el; el = el.parentElement) {
+            if (el.matches('.ames-modal-bg')) layers.unshift(parseInt(getComputedStyle(el).zIndex, 10) || 0);
+        }
+        return layers;
+    }
+
+    function topModal(modals) {
+        return modals.reduce((top, modal) => {
+            const a = modalLayer(top), b = modalLayer(modal);
+            for (let i = 0; i < Math.max(a.length, b.length); i++) {
+                if ((a[i] || 0) !== (b[i] || 0)) return (b[i] || 0) > (a[i] || 0) ? modal : top;
+            }
+            return modal;
+        });
+    }
+
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
         if (popupOpen()) return;
+        const path = window.location.pathname.toLowerCase();
+        const portal = path === '/portal' || path.startsWith('/portal/');
+        // Radzen handles its own dialog; do not also dismiss the page beneath it.
+        if (portal && Array.from(document.querySelectorAll('.rz-dialog')).some(visible)) return;
         const modals = Array.from(document.querySelectorAll('.ames-modal')).filter(visible);
-        if (!modals.length) return;
-        const btn = closeButton(modals[modals.length - 1]);
+        if (!modals.length) {
+            // Keyboard events inside an embedded print preview do not bubble to its parent.
+            if (portal && window.parent !== window) {
+                try {
+                    window.parent.document.dispatchEvent(new window.parent.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+                    e.preventDefault();
+                    e.stopPropagation();
+                } catch { /* Cross-origin frames cannot dismiss the surrounding page. */ }
+            }
+            return;
+        }
+        const btn = closeButton(portal ? topModal(modals) : modals[modals.length - 1]);
         if (!btn) return;
         e.preventDefault();
+        e.stopPropagation();
         btn.click();
     });
 

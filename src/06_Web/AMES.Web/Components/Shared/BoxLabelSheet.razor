@@ -16,7 +16,7 @@
                 <div class="label-details">
                     <div class="label-stock">
                         <div class="fifo-row"><small>FIFO</small><strong>@LabelDate(b.ProductionDate)</strong></div>
-                        <div class="quantity-row"><small>Quantity</small><strong class="@(QuantityText(b.Quantity,b.Unit).Length>7 ? "compact" : "")">@QuantityText(b.Quantity,b.Unit)</strong><span>@UomFmt.Sym(b.Unit)</span></div>
+                        <div class="quantity-row"><small>Quantity</small><strong class="@(QuantityText(b.Quantity,b.Unit).Length>7 ? "compact" : "")">@QuantityText(b.Quantity,b.Unit)</strong><span>@b.Unit.ToUpperInvariant()</span></div>
                         <div class="destination"><small>Delivery</small><strong>@b.Destination</strong></div>
                     </div>
                     <div class="label-reference">
@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <div class="part-barcode"><small>Part No</small><Code128Barcode Value="@b.Item" Height="28" /></div>
-                <footer class="label-footer"><span>UNIT ITEM (UIT) · @b.Delivery</span><span>@_printedAt.ToString("dd/MM/yyyy HH:mm",System.Globalization.CultureInfo.InvariantCulture)</span></footer>
+                <footer class="label-footer"><span>UNIT ITEM (UIT) · @b.Delivery</span><span>@_printedAt.ToString("MM/dd/yyyy HH:mm",System.Globalization.CultureInfo.InvariantCulture)</span></footer>
             </section>
         }
         </div>
@@ -38,5 +38,5 @@
     [Parameter] public IReadOnlyList<ScmRepository.DeliveryBox> Boxes {get;set;}=[];
     [Parameter] public Func<decimal,string,string> QuantityText {get;set;}=(q,u)=>q.ToString("0.###");
     readonly DateTime _printedAt=DbClock.Now;
-    static string LabelDate(DateTime date)=>date.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture);
+    static string LabelDate(DateTime date)=>date.ToString("MM/dd/yyyy",System.Globalization.CultureInfo.InvariantCulture);
 }

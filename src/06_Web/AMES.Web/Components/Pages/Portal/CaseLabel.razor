@@ -1,19 +1,18 @@
 @page "/portal/case-label/{Number}"
 @layout EmptyLayout
 @rendermode InteractiveServer
-@inject UomFormat UomFmt
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<CaseLabel> Logger
-@inject PortalQuantityFormat QtyFormat
 @inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Portal.CaseLabel.Title"] · @Number</PageTitle>
 <div class="label-tools portal-print-toolbar">
     <a href="/portal/deliveries">@L["Portal.Text.BackToDeliveryManagement"]</a>
     @if (_case is not null)
     {
-        <button type="button" class="ames-btn" data-delivery-note-print data-no-busy>@L["Btn.Print"]</button>
+        <ShippingLabelPrint LoadLabels="ReloadLabels" BrowserPrint="PrintBrowser" />
     }
     @if(_message.Length>0){<p role="alert">@_message</p>}
 </div>
@@ -32,7 +31,7 @@
                 <span>Unit Items<strong>@_case.Boxes.Count</strong></span>
             </div>
             <table><thead><tr><th>Part No</th><th>Part Name</th><th>Unit Items</th><th>Qty</th><th>Unit</th></tr></thead>
-                <tbody>@foreach (var item in page) { <tr><td>@item.Item</td><td>@item.Name</td><td>@item.Boxes</td><td>@QtyFormat.Text(item.Qty,item.Unit)</td><td>@UomFmt.Sym(item.Unit)</td></tr> }</tbody>
+                <tbody>@foreach (var item in page) { <tr><td>@item.Item</td><td>@item.Name</td><td>@item.Boxes</td><td>@EnglishPrint.Number(item.Qty)</td><td>@item.Unit.ToUpperInvariant()</td></tr> }</tbody>
             </table>
         </section>
     }
@@ -42,9 +41,20 @@
     [Parameter] public string Number { get; set; } = "";
     ScmRepository.DeliveryCase? _case;
     string _message = "";
+    Task PrintBrowser() => JS.InvokeVoidAsync("amesPrintLabels",".case-labels","Letter portrait",true).AsTask();
+    ShippingLabel ToLabel(ScmRepository.DeliveryCase c)=>EnglishPrint.ShippingUnit(c);
+    async Task<IReadOnlyList<ShippingLabel>> ReloadLabels()
+    {
+        var u = (await Authentication.GetAuthenticationStateAsync()).User;
+        var id = u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!PortalAuth.IsPortalUser(u) || string.IsNullOrWhiteSpace(id)) return [];
+        var c = await Task.Run(()=>Scm.GetDeliveryCase(Number,id));
+        return c is { Boxes.Count: > 0 } ? new[] { ToLabel(c) } : [];
+    }
     protected override async Task OnParametersSetAsync()
     {
         _case = null; _message = "";
+
         var u = (await Authentication.GetAuthenticationStateAsync()).User;
         var id = u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!PortalAuth.IsPortalUser(u) || string.IsNullOrWhiteSpace(id)) { _message = L["Portal.Note.AccessDenied"]; return; }

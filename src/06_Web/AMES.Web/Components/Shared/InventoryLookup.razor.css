@@ -1,0 +1,6 @@
+::deep .inventory-summary-grid .rz-cell-data { font-size:.84rem; line-height:1.4; }
+::deep .inventory-summary-grid .rz-state-highlight > td { background:var(--ames-sf-172238)!important; color:var(--ames-tx-dbe5ef)!important; }
+::deep .inventory-summary-grid .rz-state-highlight .rz-cell-data,
+::deep .inventory-summary-grid .rz-state-highlight .code,
+::deep .inventory-summary-grid .rz-state-highlight .dim { color:inherit!important; }
+::deep .inventory-summary-grid .rz-state-highlight > td:first-child { box-shadow:inset 3px 0 var(--ames-tx-blue-300); }

@@ -1,4 +1,6 @@
 @inject PortalQuantityFormat QtyFormat
+@using AMES.Data.Services
+@inject IJSRuntime JS
 @inject ScmPreviewStore Store
 @inject PermissionService Permissions
 @inject AuthenticationStateProvider Authentication
@@ -31,7 +33,7 @@
     {
     <div class="ames-kpis">
         <div class="ames-kpi info"><div class="ames-kpi-l">@L["Portal.Home.Kpi.Orders"]</div><div class="ames-kpi-v">@Rows.Count</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["Scm.Text.AwaitingConfirmation"]</div><div class="ames-kpi-v">@Rows.Count(x => (x.Status is "Published" or "Confirmed") && x.SupplierConfirmedAt is null)</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["Scm.Text.Published"]</div><div class="ames-kpi-v">@Rows.Count(x => x.Status is "Published" or "Confirmed")</div></div>
         <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Portal.Home.Kpi.InDelivery"]</div><div class="ames-kpi-v">@Rows.Count(x => x.Lines.Any(l => l.PendingDelivery > 0))</div></div>
         <div class="ames-kpi bad"><div class="ames-kpi-l">@L["Portal.Home.Kpi.Overdue"]</div><div class="ames-kpi-v">@Rows.Count(x => x.Due.Date < DbClock.Today && Store.Remaining(x) > 0 && x.Status is "Published" or "Confirmed")</div></div>
     </div>
@@ -43,13 +45,14 @@
 
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="white-space:nowrap;">▼ @Title · @(IsPortal && Mode=="Deliveries" ? PortalNoteRows.Count : Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : Rows.Count) @L["Scm.Text.Items"]</span>
+            <span style="white-space:nowrap;">▼ @Title · @(IsPortal && Mode=="Deliveries" ? PortalNoteRows.Count : Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : OrderItems.Count()) @L["Scm.Text.Items"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="SearchKeyDown" Placeholder='@(Mode == "Deliveries" ? L["SCM.Preview.Ph.DeliverySearch"] : L["SCM.Preview.Ph.OrderSearch"])' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 @if (!IsPortal)
                 {
-                    <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendor" />
-                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
+                    <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendorCode" />
+                    <RadzenDropDown Name="ScmDropDownVendorCode" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["SCM.Supplier.Code"]' AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+                    <RadzenDropDown Name="ScmDropDownVendorName" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorNameOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["SCM.Supplier.Name"]' AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
                 }
                 @if (!IsPortal && Mode == "Orders")
                 {
@@ -87,15 +90,6 @@
                 }
             </RadzenStack>
         </div>
-        @if (!IsPortal) { <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">
-            ℹ
-            @if (IsPortal && Mode=="Due") { @L["Scm.Text.OriginalRegisteredAndRemainingQuantitiesAreShownForConfirmed"] }
-            else if(Mode=="Progress") { @L["Scm.Text.TrackSupplierConfirmationAndDeliveriesShippedIsTheCumulative"] }
-            else if (IsPortal) { @L["Scm.Text.ViewPurchaseOrdersConfirmOrdersRegisterDeliveriesAndConfirm"] }
-            else { @L["Scm.Text.CreatePurchaseOrdersAndViewTheirStatusAndReceived"] }
-            @if (IsPortal) { <span> · @L["Scm.Text.OnlyOrdersForLinkedVendorsAreVisibleUnlinkedAccounts"]</span> }
-        </div>
-        }
         @if (_from > _to)
         {
             <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["Scm.Text.EndDateMustFollowStartDate"]</RadzenAlert>
@@ -172,57 +166,26 @@
                 </Columns>
             </RadzenDataGrid>
         }
-        else if(IsPortal && Mode=="Due")
-        {
-            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
-                            EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
-                <Columns>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title='@L["Col.RowNo"]' MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
-                        <Template Context="o"><span class="dim">@GridRowNo.Of(_orderGrid, o)</span></Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title='@L["SCM.Preview.Col.PoNo"]'><Template Context="o"><span class="code">@o.Number</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title='@L["Scm.Text.DueDate"]'><Template Context="o"><span style="@(o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="160px" Property="VendorName" Title='@L["Scm.Text.Supplier"]' />
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right" Title='@L["Scm.Text.Lines"]'><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Title='@L["Scm.Text.Ordered"]'><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="150px" MinWidth="150px" TextAlign="TextAlign.Right" Title='@L["SCM.Preview.Col.RegisteredQty"]'><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="170px" MinWidth="170px" TextAlign="TextAlign.Right" Title='@L["SCM.Preview.Col.QtyToDeliver"]'><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        }
         else
         {
-            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
-                            RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="@RowLinkOrder" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+            <RadzenDataGrid @ref="_orderGrid" TItem="OrderItemRow" Data="@OrderItems" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+                RowClick="@(e=>{if(e.Data is {} row)Select(row.Order);})" RowRender="RowLinkOrder" EmptyText="@Empty" PageSizeChanged="s=>_pageRows=s" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title='@L["Col.RowNo"]' MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
-                        <Template Context="o"><span class="dim">@GridRowNo.Of(_orderGrid, o)</span></Template>
-                    </RadzenDataGridColumn>
-                    @if (Mode == "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Scm.Text.Order"]'>
-                        <Template Context="o"><span class="code">@o.Number</span></Template>
-                    </RadzenDataGridColumn>
-                    @if (Mode == "Orders") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="125px" MinWidth="125px" Property="Ordered" Title='@L["Scm.Text.OrderDate"]' TextAlign="TextAlign.Center"><Template Context="o">@o.Ordered.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
-                    @if (!IsPortal && Mode == "Orders") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="160px" MinWidth="160px" Property="CreatedBy" Title='@L["SCM.Preview.Col.CreatedBy"]' TextAlign="TextAlign.Center"><Template Context="o">@Actors.Display(o.CreatedBy)</Template></RadzenDataGridColumn> }
-                    @if (!IsPortal) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="240px" MinWidth="240px" Property="Vendor" Title='@L["Scm.Text.Supplier"]'><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="210px" MinWidth="210px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Scm.Text.Item"]'><Template Context="o"><span class="code">@(o.Lines.FirstOrDefault()?.Item)</span>@if (o.LineCount > 1) { <span class="pill info" style="margin-left:6px;" title="@o.Item">+@(o.LineCount - 1)</span> }</Template></RadzenDataGridColumn>
-                    @if(Mode!="Progress")
-                    {
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="200px" Property="Name" Title='@L["Scm.Text.Description"]'><Template Context="o"><span title="@o.Name">@(o.Lines.FirstOrDefault()?.Name)</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" Property="LineCount" Title='@L["Scm.Text.Lines"]' TextAlign="TextAlign.Right" />
-                    }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="170px" MinWidth="170px" Title='@L["Scm.Text.Ordered"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => l.Quantity)</Template></RadzenDataGridColumn>
-                    @if(Mode=="Progress")
-                    {
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="170px" MinWidth="170px" Title='@L["Scm.Text.Shipped.f4dea6"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o,l=>l.ShippedQuantity)</Template></RadzenDataGridColumn>
-                    }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="160px" MinWidth="160px" Title='@L["Scm.Text.Received.2c7750"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="170px" MinWidth="170px" Title='@L["Scm.Text.Remaining"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
-                    @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o"><span style="@(IsPortal && o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="240px" MinWidth="240px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="o">@{var status=IsPortal && Mode=="Orders" ? PortalOrderStatus(o) : Mode=="Progress" ? ProgressCode(o) : o.Status;}<span class="pill @Badge(status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(status))</span></Template></RadzenDataGridColumn>
-                    @if (Mode != "Progress") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="210px" MinWidth="210px" TextAlign="TextAlign.Center" Title='@(IsPortal ? L["SCM.Preview.Col.Confirmation"] : L["Scm.Text.SupplierConfirmation"])'><Template Context="o">@if(o.SupplierConfirmedAt.HasValue || o.Status is "Published" or "Confirmed"){<span class="pill @ConfirmationBadge(o)">@ConfirmationLabel(o)</span>}else{<span class="dim">—</span>}</Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="OrderItemRow" Title='@L["Col.RowNo"]' Width="60px" Sortable="false"><Template Context="r">@GridRowNo.Of(_orderGrid,r)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Number" Title='@L["SCM.Preview.Col.PoNo"]' Width="175px" />
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Id" Title='@L["Col.No"]' Width="65px" />
+                    @if (!IsPortal) { <RadzenDataGridColumn TItem="OrderItemRow" Property="Order.VendorName" Title='@L["Scm.Text.Supplier"]' MinWidth="180px"><Template Context="r">@r.Order.Vendor<div class="dim">@VendorName(r.Order.Vendor)</div></Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Item" Title='@L["Scm.Text.Item"]' Width="190px" />
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Name" Title='@L["Scm.Text.Description"]' MinWidth="240px" />
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Unit" Title='@L["Col.Unit"]' Width="85px"><Template Context="r">@UomFmt.Sym(r.Line.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Quantity" Title='@L["Scm.Text.Ordered"]' Width="125px" TextAlign="TextAlign.Right"><Template Context="r">@QuantityText(r.Line.Quantity,r.Line.Unit,3)</Template></RadzenDataGridColumn>
+                    @if (Mode=="Progress") { <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.ShippedQuantity" Title='@L["Scm.Text.Shipped.f4dea6"]' Width="125px" TextAlign="TextAlign.Right"><Template Context="r">@QuantityText(r.Line.ShippedQuantity,r.Line.Unit,3)</Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Received" Title='@L["Scm.Text.Received.2c7750"]' Width="125px" TextAlign="TextAlign.Right"><Template Context="r">@QuantityText(r.Line.Received,r.Line.Unit,3)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Remaining" Title='@L["Scm.Text.Remaining"]' Width="125px" TextAlign="TextAlign.Right"><Template Context="r">@QuantityText(r.Remaining,r.Line.Unit,3)</Template></RadzenDataGridColumn>
+                    @if (IsPortal) { <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.AvailableDelivery" Title='@L["SCM.Preview.Col.QtyToDeliver"]' Width="150px" TextAlign="TextAlign.Right"><Template Context="r">@QuantityText(r.Line.AvailableDelivery,r.Line.Unit,3)</Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="OrderItemRow" Property="Order.Due" Title='@L["Scm.Text.DueDate"]' Width="130px"><Template Context="r"><span style="@(r.Order.Due.Date<DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@r.Order.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OrderItemRow" Title='@L["Col.Status"]' Width="160px"><Template Context="r">@{ var status=IsPortal ? PortalOrderStatus(r.Order) : Mode=="Progress" ? ProgressCode(r.Order) : r.Order.Status; }<span class="pill @Badge(status)">@Status(status)</span></Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
@@ -237,6 +200,14 @@
                     <RadzenButton Icon="close" aria-label='@L["Btn.Close"]' data-portal-close Click="@(()=>{_printingDelivery=null;_printingNote=null;})" />
                 </div>
                 <div class="ames-modal-body scm-print-body" style="overflow:auto;min-height:0;">
+                    @if(PrintDocumentNumber is {} documentNumber)
+                    {
+                        <section class="scm-print-section">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="width:100%">
+                                <ShippingLabelPrint @key="documentNumber" Text='@L["SCM.Print.All"]' LoadLabels="ReloadPrintingLabels" BrowserPrint="()=>OpenPrintPacket(documentNumber)" />
+                            </RadzenStack>
+                        </section>
+                    }
                     <section class="scm-print-section">
                         <h3>@L["SCM.Preview.Print.Note"]</h3>
                         <table class="ames-table scm-print-table"><thead><tr><th>@L["Scm.Text.DeliveryNote"]</th><th>@L["SCM.Preview.Col.Action"]</th></tr></thead><tbody>
@@ -369,12 +340,7 @@
                     <span class="pill @Badge(orderStatus)" style="margin-left:8px;">@Status(orderStatus)</span>
                 </div>
 
-<div class="scm-dgrid">                @if (Mode != "Progress") { <div class="scm-dt"><div class="scm-dl">@(IsPortal ? L["SCM.Preview.Col.Confirmation"] : L["Scm.Text.SupplierConfirmation"])</div><div class="scm-dv">@ConfirmationLabel(_selected)</div></div> }
-                @if (Mode != "Progress" && _selected.SupplierConfirmedAt is not null)
-                {
-                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.ConfirmedBy"]</div><div class="scm-dv">@_selected.SupplierConfirmedBy</div></div>
-                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.ConfirmedAt"]</div><div class="scm-dv">@_selected.SupplierConfirmedAt.Value.ToString(DateFmt.DateTimeSec)</div></div>
-                }
+                <div class="scm-dgrid">
 
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Buyer"]</div><div class="scm-dv">EOS</div></div>
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Supplier"]</div><div class="scm-dv">@VendorLabel(_selected.Vendor)</div></div>
@@ -415,8 +381,6 @@
                     }
                     @if (!IsPortal && Mode == "Orders" && CanEdit && _selected.Status is "Draft" or "Published" && Store.Delivered(_selected) == 0)
                     { <RadzenButton Text='@L["Scm.Text.CancelOrder"]' Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='@(() => ChangeStatus("Cancelled"))' class="ames-rz-btn" /> }
-                    @if (CanConfirmOrder)
-                    { <RadzenButton Text="@L["Scm.Text.ConfirmOrder"]" Icon="task_alt" Click="ConfirmOrderPrompt" class="ames-rz-btn" /> }
                     <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
@@ -525,6 +489,8 @@
                 <div class="scm-dsub scm-line-toolbar">
                     <span>@L["Scm.Text.OrderLines"] · @_edit.Lines.Count</span>
                     <RadzenButton Text='@L["Scm.Text.AddItem"]' Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="AddLine" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Excel.Upload"]' Icon="upload" Click="()=>_showImport=true" Disabled="@(_materials.Count==0 || _materialLoading || _orderBusy)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["SCM.Import.Template"]' Icon="download" Click="DownloadPurchaseTemplate" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
                 </div>
                 <div class="scm-scroll">
                     <table class="ames-table scm-lines">
@@ -562,16 +528,60 @@
                 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_error</RadzenAlert> }
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                     <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" Disabled="@(_orderBusy || _materialLoading || _priceLoading.Count>0)" class="ames-rz-btn" />
-                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" Disabled="@_orderBusy" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" Disabled="@_orderBusy" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
         </div>
     }
 }
+@if (_showImport && _edit is not null)
+{
+    <ExcelImportModal Title='@L["SCM.Import.Title"]' Parse="ParsePurchaseLines" Apply="ApplyPurchaseLines" OnClose="changed=>_showImport=false" />
+}
 @code {
+    bool _showImport;
+    ScmPreviewStore.Order? _importEditor;
+    string _importVendor="";
+    IReadOnlyList<PurchaseOrderExcel.Line> _importLines=[];
+    ExcelImportPreview ParsePurchaseLines(List<string[]> rows)
+    {
+        _importEditor=_edit;
+        _importVendor=_edit?.Vendor ?? "";
+        var result=PurchaseOrderExcel.Parse(rows,_materials.Select(i=>i.ItemNo));
+        var existing=_edit?.Lines.Select(l=>l.Item).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        _importLines=result.Lines.Where(l=>!existing.Contains(l.PartNo)).ToArray();
+        return new(_importLines.Select(l=>$"{l.PartNo}: {l.Quantity}").ToArray(),result.Lines.Where(l=>existing.Contains(l.PartNo)).Select(l=>l.PartNo).ToArray(),result.Problems);
+    }
+    async Task<ExcelImportOutcome> ApplyPurchaseLines()
+    {
+        if(_edit is null || _edit!=_importEditor || _edit.Vendor!=_importVendor || !CanEdit || !await Permissions.RecheckEditAsync(Authentication,"scm/purchase-orders")) return new(0,0,[L["WH.Picking.Err.NoPermission"]]);
+        var editor=_edit;
+        var staged=new List<ScmPreviewStore.OrderLine>();
+        var next=editor.Lines.Select(l=>l.Id).DefaultIfEmpty().Max()+1;
+        foreach(var item in _importLines)
+        {
+            if(editor.Lines.Any(l=>string.Equals(l.Item,item.PartNo,StringComparison.OrdinalIgnoreCase)))continue;
+            var line=new ScmPreviewStore.OrderLine{Id=next++,Item=item.PartNo,Quantity=item.Quantity};
+            await SelectMaterial(line);
+            staged.Add(line);
+        }
+        if(_edit!=editor) return new(0,0,[L["Btn.Refresh"]]);
+        editor.Lines.RemoveAll(l=>string.IsNullOrWhiteSpace(l.Item));
+        editor.Lines.AddRange(staged);
+        return new(staged.Count,_importLines.Count-staged.Count,[]);
+    }
+    Task DownloadPurchaseTemplate() => JS.InvokeVoidAsync("amesDownload","PurchaseOrderTemplate.xlsx",
+        Convert.ToBase64String(XlsxWriter.Build("Purchase Order",new[]{"PartNo","Quantity"},Array.Empty<IReadOnlyList<object?>>())),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").AsTask();
+    public sealed record OrderItemRow(ScmPreviewStore.Order Order, ScmPreviewStore.OrderLine Line)
+    {
+        public string Number => Order.Number;
+        public decimal Remaining => Math.Max(0,Line.Quantity-Line.Received);
+    }
+    IEnumerable<OrderItemRow> OrderItems => Rows.SelectMany(o=>o.Lines.Select(l=>new OrderItemRow(o,l)));
     string QuantityText(decimal quantity,string unit,int digits) => IsPortal ? QtyFormat.Text(quantity,unit) : UomFmt.Qty(quantity,unit);
     // ── 화면 구성(표준 화면과 같은 목록·모달) ─────────────────────────
-    RadzenDataGrid<ScmPreviewStore.Order>? _orderGrid;
+    RadzenDataGrid<OrderItemRow>? _orderGrid;
     RadzenDataGrid<ScmPreviewStore.Delivery>? _deliveryGrid;
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
@@ -580,14 +590,15 @@
     string PagerSize => L["Pager.PageSize"];
     public record Opt(string Value, string Text);
     public record LineOpt(int Id, string Text);
-    IEnumerable<Opt> VendorFilterOptions => _vendors.Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
+    IEnumerable<Opt> VendorCodeOptions => _vendors.Select(v => new Opt(v.VendorID, v.VendorID));
+    IEnumerable<Opt> VendorNameOptions => _vendors.Select(v => new Opt(v.VendorID, v.VendorName ?? v.VendorID));
     readonly HashSet<string> _creators=new(StringComparer.OrdinalIgnoreCase);
     IEnumerable<Opt> CreatorFilterOptions => _creators.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Select(x => new Opt(x, Actors.Display(x))).OrderBy(x => x.Text);
     IEnumerable<Opt> VendorEditOptions => _vendors.Where(v => v.ActiveFlag).Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
     IEnumerable<Opt> StatusFilterOptions => OrderStatuses.Select(x => new Opt(x, Status(x)));
     IEnumerable<LineOpt> DeliveryLineOptions => _selected is null ? [] : _selected.Lines.Where(l => Store.Remaining(_selected, l) > 0).Select(l => new LineOpt(l.Id, $"{l.Item} · {l.Name}"));
     string VendorName(string vendorId) => _vendors.Find(x => x.VendorID == vendorId)?.VendorName ?? _dbOrders.FirstOrDefault(o => o.Vendor == vendorId)?.VendorName ?? "";
-    static void RowLinkOrder(RowRenderEventArgs<ScmPreviewStore.Order> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
+    static void RowLinkOrder(RowRenderEventArgs<OrderItemRow> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
     static void RowLinkDelivery(RowRenderEventArgs<ScmPreviewStore.Delivery> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
     void CloseDetail() { if(_orderBusy)return; _selected = null; _delivery = null; _message = ""; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
@@ -623,6 +634,18 @@
             if(_printingNote==note)_printingCases=cases;
         }
         catch(Exception ex) { Logger.LogWarning(ex,"Print case list failed"); if(_printingNote==note)_printingError=L["SCM.Preview.Err.LoadCases"]; }
+    }
+    string? PrintDocumentNumber => _printingNote is {} n && _printingDelivery is {} d && n.Number!=d.Number ? n.Number
+        : _printingDelivery is {} current && _noteDeliveries.TryGetValue(current.Number,out var choice) ? choice.NoteNumber : null;
+    void OpenPrintPacket(string number)=>OpenPreview("/portal/delivery-print/"+Uri.EscapeDataString(number)+"?autoPrint=true");
+    async Task<IReadOnlyList<ShippingLabel>> ReloadPrintingLabels()
+    {
+        var user=(await Authentication.GetAuthenticationStateAsync()).User;
+        var id=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var number=PrintDocumentNumber;
+        if(!PortalAuth.IsPortalUser(user)||string.IsNullOrWhiteSpace(id)||string.IsNullOrWhiteSpace(number))throw new InvalidOperationException(L["Portal.Note.AccessDenied"]);
+        try{return (await Task.Run(()=>DeliveryPrintBundle.Load(Scm,number,id))).AllLabels;}
+        catch(Exception ex){Logger.LogError(ex,"Delivery label packet load failed");throw new InvalidOperationException(L["Portal.Note.Unavailable"]);}
     }
     void OpenPreview(string url) => _previewUrl=url;
     void OpenCasePreview(string number) => OpenPreview("/portal/case-label/"+Uri.EscapeDataString(number));
@@ -666,14 +689,6 @@
     public record MaterialOption(string Value, string Text);
     IEnumerable<MaterialOption> MaterialOptions => _materials.Select(x => new MaterialOption(x.ItemNo, $"{x.ItemNo} · {x.ItemName}"));
     bool CanEdit => !IsPortal && Permissions.CanEdit(Href);
-    bool CanConfirmOrder => IsPortal && Mode == "Orders"
-        && !_confirmOrderBusy
-        && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
-        && _selected is { SupplierConfirmedAt: null, Status: "Published" or "Confirmed" };
-    string ConfirmationLabel(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue
-        ? L["Scm.Text.Confirmed"] : o.Status is "Published" or "Confirmed"
-        ? L["Scm.Text.AwaitingConfirmation.6a70d7"] : "—";
-    static string ConfirmationBadge(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue ? "ok" : "warn";
     bool CanApprove => Permissions.CanApprove(Href);
     bool DeliveryEditable => IsPortal && Mode == "Deliveries"
         && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
@@ -683,7 +698,7 @@
     IEnumerable<string> OrderStatuses => IsPortal && Mode=="Due" ? ["Published","Confirmed"]
         : IsPortal && Mode=="Deliveries" ? ["Registered","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
         : IsPortal && Mode=="Orders" ? ["Published","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
-        : Mode == "Progress" ? ["Draft","AwaitingConfirmation","SupplierConfirmed","PreparingDelivery","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
+        : Mode == "Progress" ? ["Draft","Published","PreparingDelivery","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
         : Mode == "Deliveries" ? ["Registered", "Shipped", "Received", "Cancelled"]
         : IsPortal ? ["Published", "Confirmed", "Closed", "Cancelled"] : ["Draft", "Published", "Confirmed", "Closed", "Cancelled"];
     string Title => Mode switch {
@@ -697,8 +712,8 @@
     List<ScmPreviewStore.Order> Rows => _dbOrders
         .Where(o=>!IsPortal || Mode!="Orders" || (_includeClosed || PortalOrderStatus(o)!="Received") && (_includeCancelled || PortalOrderStatus(o)!="Cancelled"))
         .Where(o=>Mode!="Progress" || (_includeClosed || !ProgressReceived(o)) && (_includeCancelled || o.Status!="Cancelled"))
-        .Where(o => !IsPortal || Mode!="Due" || (o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0)))
-        .Where(o => Mode != "Entry" || o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l => l.AvailableDelivery > 0))
+        .Where(o => !IsPortal || Mode!="Due" || ((o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0)))
+        .Where(o => Mode != "Entry" || (o.Status is "Published" or "Confirmed") && o.Lines.Any(l => l.AvailableDelivery > 0))
         .Where(o => (string.IsNullOrEmpty(_vendor) || o.Vendor == _vendor) && (string.IsNullOrEmpty(_creator) || o.CreatedBy == _creator) && (string.IsNullOrEmpty(_status) || (_status=="Outstanding" ? (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0) : IsPortal && Mode=="Orders" ? PortalOrderStatus(o)==_status : Mode=="Progress" ? ProgressCode(o)==_status : o.Status == _status)))
         .Where(o => _from <= _to || _from == null || _to == null)
         .Where(o => (!_from.HasValue || o.Due >= _from) && (!_to.HasValue || o.Due <= _to))
@@ -918,8 +933,6 @@
             return false;
         }
     }
-    string Quantities(ScmPreviewStore.Order order, Func<ScmPreviewStore.OrderLine, decimal> quantity)
-        => string.Join(" / ", order.Lines.GroupBy(l => l.Unit).Select(g => $"{QuantityText(g.Sum(quantity),g.Key,2)} {UomFmt.Sym(g.Key)}"));
     void AddLine()
     {
         if (_edit is null) return;
@@ -1084,37 +1097,6 @@
         }
         _selected.Status = status; Done();
     }
-    async Task ConfirmOrderPrompt()
-    {
-        if (!CanConfirmOrder || _selected is null) return;
-        var confirmed = await Dialog.Confirm(L["SCM.Preview.Dlg.ConfirmOrderFmt", _selected.Number], L["Scm.Text.ConfirmOrder"],
-            new ConfirmOptions { OkButtonText = L["Lbl.Yes"], CancelButtonText = L["Msg.No"] });
-        if (confirmed == true) await ConfirmOrder();
-    }
-    bool _confirmOrderBusy;
-    async Task ConfirmOrder()
-    {
-        if (!CanConfirmOrder || _selected is null) return;
-        var number = _selected.Number;
-        var previouslyConfirmed=_selected.SupplierConfirmedAt;
-        var versions=new Dictionary<int,string>(_selected.Versions);
-        _confirmOrderBusy=true;
-        try
-        {
-            var changed = await Task.Run(()=>Scm.ConfirmSupplierOrder(number,versions,_portalUserId!,_actor));
-            if (changed) Audit.Log(ScreenCode, "CONFIRM", "WH_PurchaseOrder", number,
-                new { SupplierConfirmedAt = previouslyConfirmed }, new { Confirmed = true, Actor = _actor });
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Supplier order confirmation failed");
-            _message = L["Scm.Text.ConfirmationFailedReloadAndCheckOrderStatusAndVendor"];
-            return;
-        }
-        finally { _confirmOrderBusy=false; }
-        if (await ReloadOrdersAsync(_selected?.Number==number?number:null)) _message = L["Scm.Text.OrderConfirmationCompleted"];
-        else _message = L["Scm.Text.ConfirmationSavedButReloadFailed"];
-    }
     bool _isExternalPortalUser;
     string _actor = "";
     string? _portalUserId;
@@ -1240,7 +1222,6 @@
         || order.Lines.Count>0 && order.Lines.All(line=>line.Received>=line.Quantity);
     static string ProgressCode(ScmPreviewStore.Order o) => ScmRepository.ProgressOrderStatus(o.Status,o.SupplierConfirmedAt.HasValue,
         o.Lines.Select(l=>(l.Quantity,l.ShippedQuantity,l.Received,l.RegisteredDelivery)));
-    string ProgressStatus(ScmPreviewStore.Order o) => Status(ProgressCode(o));
     static string Badge(string status) => status switch { "Closed" or "Received" or "Inspected" => "ok", "Draft" or "PartiallyReceived" => "warn", "Cancelled" => "bad", _ => "info" };
     string Status(string status) => status switch {
         "AwaitingConfirmation" => L["Scm.Text.AwaitingConfirmation.c207aa"],

@@ -22,10 +22,11 @@
 @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert>}
 <div class="ames-card scm-delivery-progress">
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ @L["SCM.DeliveryProgress.Title"] · @_rows.Count @L["Lbl.Items"]</span>
+        <span>▼ @L["SCM.DeliveryProgress.Title"] · @MainItems.Count() @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" MaxLength="120" Placeholder='@L["SCM.DeliveryProgress.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
-            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["Col.Supplier"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorID" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Code"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Name"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <div class="delivery-progress-filter-group">
                 <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' Component="DeliveryShipDateFrom" />
                 <RadzenDatePicker TValue="DateTime?" Name="DeliveryShipDateFrom" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
@@ -40,20 +41,21 @@
             </div>
         </RadzenStack>
     </div>
-    <RadzenDataGrid @ref="_grid" TItem="SupplierDeliveryProgressDto" Data="_rows" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
-        ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center" RowClick="e=>_selected=e.Data" RowRender="RenderNoteRow"
+    <RadzenDataGrid @ref="_grid" TItem="DeliveryItemRow" Data="@MainItems" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
+        ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center" RowClick="e=>{if(e.Data is {} row)_selected=row.Note;}" RowRender="RenderProgressItem"
         Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageSize}")" EmptyText='@L["Scm.Text.NoResults"]'>
         <Columns>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.RowNo"]' Width="60px" MinWidth="60px" Sortable="false"><Template Context="d">@GridRowNo.Of(_grid,d)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' Width="190px" MinWidth="190px" />
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="VendorName" Title='@L["Col.Supplier"]' MinWidth="170px"><Template Context="d">@d.VendorName<div class="dim">@d.VendorId</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="ShipDate" Title='@L["SCM.DeliveryProgress.ShipDate"]' Width="150px" MinWidth="150px"><Template Context="d">@(d.ShipDate?.ToString(DateFmt.Date)??"—")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="DeliveryDate" Title='@L["Scm.Text.DeliveryDate"]' Width="150px" MinWidth="150px"><Template Context="d">@d.DeliveryDate.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.Quantity"]' Width="160px" MinWidth="160px"><Template Context="d">@Totals(d,l=>l.Quantity)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Received"]' Width="140px" MinWidth="140px"><Template Context="d">@Totals(d,l=>l.Received)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Remaining"]' Width="160px" MinWidth="160px"><Template Context="d">@Totals(d,l=>l.Remaining)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Portal.Boxes.Title"]' Width="120px" MinWidth="120px"><Template Context="d">@d.ReceivedItems / @d.UnitItems</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Status" Title='@L["Col.Status"]' Width="170px" MinWidth="170px"><Template Context="d"><span class="pill receipt-status @(d.Complete?"ok":d.Status=="PartiallyReceived"?"warn":"info")">@if(d.Complete){<RadzenIcon Icon="check_circle" />}@Status(d.Status)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Title='@L["Col.RowNo"]' Width="60px" Sortable="false"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Note.Number" Title='@L["Scm.Text.DeliveryNote"]' Width="190px" />
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Note.VendorName" Title='@L["Col.Supplier"]' MinWidth="170px"><Template Context="r">@r.Note.VendorName<div class="dim">@r.Note.VendorId</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Line.OrderNumber" Title='@L["SCM.Preview.Col.PoNo"]' Width="160px" />
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Line.PartNo" Title='@L["Col.ItemNo"]' Width="170px" />
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Line.PartName" Title='@L["Col.ItemName"]' MinWidth="240px" />
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Item.Barcode" Title='@L["SCM.Preview.Print.BoxBarcode"]' Width="230px" />
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Item.Quantity" Title='@L["Col.Quantity"]' Width="130px" TextAlign="TextAlign.Right"><Template Context="r">@Uom.QtyUnit(r.Item.Quantity,r.Line.Unit)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Note.ShipDate" Title='@L["SCM.DeliveryProgress.ShipDate"]' Width="145px"><Template Context="r">@r.Note.ShipDate?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Note.DeliveryDate" Title='@L["Scm.Text.DeliveryDate"]' Width="145px"><Template Context="r">@r.Note.DeliveryDate.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="DeliveryItemRow" Property="Item.Received" Title='@L["Col.Status"]' Width="160px"><Template Context="r"><span class="pill receipt-status @(r.Item.Received ? "ok" : "warn")"><RadzenIcon Icon="@(r.Item.Received ? "check_circle" : "schedule")" />@(r.Item.Received ? L["Scm.Text.Received"] : L["SCM.DeliveryProgress.NotReceived"])</span></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
@@ -80,17 +82,19 @@
 }
 
 @code {
-    RadzenDataGrid<SupplierDeliveryProgressDto>? _grid;
+    RadzenDataGrid<DeliveryItemRow>? _grid;
     List<SupplierDeliveryProgressDto> _rows=[];
     List<MasterDataRepository.VendorRow> _vendors=[];
     SupplierDeliveryProgressDto? _selected;
+    public sealed record DeliveryItemRow(SupplierDeliveryProgressDto Note,SupplierDeliveryLineDto Line,SupplierDeliveryItemDto Item);
+    IEnumerable<DeliveryItemRow> MainItems => _rows.SelectMany(note=>UnitItems(note).Select(r=>new DeliveryItemRow(note,r.Line,r.Item)));
+    static void RenderProgressItem(RowRenderEventArgs<DeliveryItemRow> args)
+    { if(args.Data?.Item.Received==true) args.Attributes["class"]="ames-row-link scm-received-row"; else args.Attributes["class"]="ames-row-link"; }
     sealed record UnitItemRow(SupplierDeliveryLineDto Line,SupplierDeliveryItemDto Item);
     static List<UnitItemRow> UnitItems(SupplierDeliveryProgressDto note)=>note.Lines
         .SelectMany(line=>line.Items.Select(item=>new UnitItemRow(line,item))).ToList();
     static void RenderItemRow(RowRenderEventArgs<UnitItemRow> args)
     {if(args.Data?.Item.Received==true)args.Attributes["class"]="scm-received-row";}
-    static void RenderNoteRow(RowRenderEventArgs<SupplierDeliveryProgressDto> args)
-    {if(args.Data?.Complete==true)args.Attributes["class"]="scm-received-row";}
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
     string? _vendor;
     string _search="",_error="";
@@ -132,6 +136,5 @@
     }
     async Task Reset(){_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);_vendor=null;_search="";_includeReceived=false;await Reload();}
     string Status(string status)=>status switch{"OnTheWay"=>L["SCM.DeliveryProgress.OnTheWay"],"PartiallyReceived"=>L["SCM.DeliveryProgress.Partial"],"Received"=>L["Scm.Text.Received"],_=>L["Portal.Text.Registered"]};
-    string Totals(SupplierDeliveryProgressDto d,Func<SupplierDeliveryLineDto,decimal> value)=>string.Join(" / ",d.Lines.GroupBy(l=>l.Unit).Select(g=>Uom.QtyUnit(g.Sum(value),g.Key)));
     public async ValueTask DisposeAsync(){_stop.Cancel();if(_refresh is not null)await _refresh;_stop.Dispose();}
 }

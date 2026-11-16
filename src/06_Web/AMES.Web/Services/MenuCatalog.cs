@@ -52,7 +52,7 @@ public sealed class MenuCatalog
         new("scm", "scm/delivery-progress", "SCM-003", "납품 진행 현황", "Delivery Progress"),
         new("scm", "scm/purchase-items", "SCM-004", "발주품목 관리", "Purchase Items"),
         new("scm", "scm/portal-users", "SCM-005", "외부 사용자 관리", "Portal Users"),
-        new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
+        new("portal", "portal/orders", "PORTAL-001", "발주 조회", "Orders"),
         new("portal", "portal/due-orders", "PORTAL-002", "납품 생성", "Delivery Creation"),
         new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
         new("portal", "portal/packing-quantities", "PORTAL-004", "적입량 관리", "Packing Quantities"),
@@ -214,8 +214,8 @@ public sealed class MenuCatalog
                     s.ProcessCode!.ToLowerInvariant(),
                     s.HRef!.TrimStart('/'),
                     s.LidLabel ?? s.ScreenCode,
-                    s.ScreenName,
-                    s.ScreenNameEn ?? s.ScreenName,
+                    s.HRef!.TrimStart('/') == "portal/orders" ? "발주 조회" : s.ScreenName,
+                    s.HRef!.TrimStart('/') == "portal/orders" ? "Orders" : s.ScreenNameEn ?? s.ScreenName,
                     s.SubProcessCode))
                 .ToList();
 
@@ -281,7 +281,7 @@ public sealed class MenuCatalog
         ["scm/delivery-progress"] = "Seguimiento de entregas",
         ["scm/purchase-items"] = "Artículos de compra",
         ["scm/portal-users"] = "Usuarios del portal",
-        ["portal/orders"] = "Pedidos y confirmación",
+        ["portal/orders"] = "Pedidos",
         ["portal/due-orders"] = "Creación de entregas",
         ["portal/deliveries"] = "Gestión de entregas",
         ["portal/delivery-notes"] = "Notas de entrega",

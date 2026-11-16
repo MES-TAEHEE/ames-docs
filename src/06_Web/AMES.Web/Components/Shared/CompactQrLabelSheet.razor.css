@@ -1,0 +1,10 @@
+.compact-qr-label { position:relative; box-sizing:border-box; width:100mm; height:40mm; margin:0 auto; background:#fff; color:#000; border:1px solid #242424; font-family:Arial,sans-serif; }
+.compact-qr-code { position:absolute; left:var(--qr-left); top:var(--qr-top); width:var(--qr-side); height:var(--qr-side); }
+.compact-qr-code ::deep svg { display:block; width:100%; height:100%; }
+.compact-qr-number,.compact-qr-kind,.compact-qr-fields { position:absolute; left:31.6mm; width:64.4mm; }
+.compact-qr-number { top:3.1mm; height:3mm; white-space:nowrap; font-family:Consolas,monospace; }
+.compact-qr-kind { top:6.9mm; height:1.7mm; font-size:1.7mm; line-height:1.7mm; color:#555; }
+.compact-qr-fields { top:10.8mm; display:grid; grid-auto-rows:6mm; }
+.compact-qr-field { position:relative; min-width:0; }
+.compact-qr-field > span { display:block; font-size:1.7mm; line-height:1.7mm; color:#555; white-space:nowrap; }
+.compact-qr-field > strong { position:absolute; left:0; top:2.1mm; display:block; white-space:nowrap; }

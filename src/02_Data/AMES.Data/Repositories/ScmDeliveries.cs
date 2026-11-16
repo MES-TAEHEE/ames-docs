@@ -78,10 +78,10 @@ public sealed partial class ScmRepository
             throw new InvalidOperationException("Order is not issued.");
         using(var confirmed=new SqlCommand("""
             SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N
-              AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME())
+              AND (@Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME())
                    OR (@Ship=1 AND OrderDate>CONVERT(date,SYSDATETIME())));
             """,conn,tx))
-        {Filter(confirmed,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,shipImmediately));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
+        {Filter(confirmed,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,shipImmediately));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Check the order and delivery dates.");}
         if(draftCases is not null)
             caseNumbers=draftCases.Select(boxes=>CreatePreparedCase(conn,tx,number,boxes,userId)).ToArray();
         if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items,caseBatch);
@@ -215,8 +215,8 @@ public sealed partial class ScmRepository
         {
             if(locked.Count==0 || locked.Any(x=>x.Status is not ("Open" or "Partial" or "Complete" or "Received")))
                 throw new InvalidOperationException("Order is no longer issued.");
-            using(var dates=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR (@Ship=0 AND @Date<CONVERT(date,SYSDATETIME())) OR (@Ship=1 AND @Date>CONVERT(date,SYSDATETIME())))",conn,tx))
-            {Filter(dates,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,ship));if((int)dates.ExecuteScalar()!>0)throw new InvalidOperationException("Invalid date or unconfirmed order.");}
+            using(var dates=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N AND (@Date<OrderDate OR (@Ship=0 AND @Date<CONVERT(date,SYSDATETIME())) OR (@Ship=1 AND @Date>CONVERT(date,SYSDATETIME())))",conn,tx))
+            {Filter(dates,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,ship));if((int)dates.ExecuteScalar()!>0)throw new InvalidOperationException("Invalid delivery date.");}
             var existing=new HashSet<int>();
             using(var lineIds=new SqlCommand("SELECT PoID FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx))
             {Filter(lineIds,("@ID", "SCM_DeliveryLine.DeliveryID",id));using var r=lineIds.ExecuteReader();while(r.Read())existing.Add(r.GetInt32(0));}

@@ -42,8 +42,8 @@
                         Class="ames-rz-grid ames-grid-fixed inventory-summary-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="180px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="200px" Property="PartName" Title="@L["Col.ItemName"].Value" />
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="160px" Property="VendorNames" Title="@L["Col.Vendor"]" />
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="260px" Property="PartName" Title="@L["Col.ItemName"].Value"><Template Context="r"><span title="@r.PartName">@r.PartName</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="VendorNames" Title="@L["Col.Vendor"]"><Template Context="r"><span title="@r.VendorNames">@r.VendorNames</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" Width="110px" MinWidth="110px" Property="ItemCategory" Title="@L["Col.Category"]"><Template Context="r">@CodeName("ITEM_CATEGORY", r.ItemCategory)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="140px" Property="Qty" Title="@L["WH.Inventory.CurrentQty"].Value" TextAlign="TextAlign.Right" Width="140px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
