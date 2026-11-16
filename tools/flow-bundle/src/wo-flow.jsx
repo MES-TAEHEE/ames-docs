@@ -87,6 +87,16 @@ function Flow({ elementId, graph, labels }) {
     return () => document.removeEventListener('fullscreenchange', on);
   }, [elementId, fitView]);
 
+  // 호스트 크기가 바뀌면(팝업 크기 조정·처음 배치) 화면을 다시 맞춘다 — 처음 작은 크기로 맞춰져 잘리는 것을 막는다
+  useEffect(() => {
+    const host = document.getElementById(elementId);
+    if (!host || typeof ResizeObserver === 'undefined') return;
+    let t;
+    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => fitView({ padding: 0.3, duration: 200 }), 150); });
+    ro.observe(host);
+    return () => { clearTimeout(t); ro.disconnect(); };
+  }, [elementId, fitView]);
+
   const toggleFullscreen = useCallback(() => {
     const host = document.getElementById(elementId);
     if (!host) return;
@@ -95,7 +105,7 @@ function Flow({ elementId, graph, labels }) {
   }, [elementId]);
 
   const focusRunning = useCallback(() => {
-    fitView(curIds.current.length ? { nodes: curIds.current, padding: 0.9, duration: 500, maxZoom: 0.9 } : { padding: 0.3, duration: 500 });
+    fitView(curIds.current.length ? { nodes: curIds.current, padding: 0.9, duration: 500, maxZoom: 0.9 } : { padding: 0.5, duration: 500 });
   }, [fitView]);
 
   return (

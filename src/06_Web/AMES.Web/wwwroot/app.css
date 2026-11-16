@@ -5940,3 +5940,7 @@ input[data-ames-x] {
 .ames-flow-btn-cur { border-color: #3b82f6; color: #3b82f6; font-weight: 700; }
 .ames-flow-hint { font-size: 12px; opacity: .7; }
 .ames-flow-host:fullscreen { height: 100vh !important; width: 100vw !important; border: 0; border-radius: 0; background: var(--ames-surface, #0f172a); }
+
+/* 흐름 보기 — 팝업 본문을 세로 flex 로 만들어 흐름 영역이 남는 높이를 채우고 버튼 줄은 아래에 둔다 */
+.rz-dialog-content:has(.ames-flow-fill) { display: flex; flex-direction: column; }
+.rz-dialog-content > .ames-flow-fill { flex: 1 1 auto; min-height: 0; }
