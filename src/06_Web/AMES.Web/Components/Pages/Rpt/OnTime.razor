@@ -129,11 +129,37 @@
         <span style="white-space:nowrap;">▼ @L["RPT.OnTime.Item.Title"] · @_items.Count @L["Lbl.Items"]</span>
     </div>
 
-    <RadzenDataGrid TItem="ItemAgg" Data="@_items" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid TItem="ItemAgg" Data="@_items" RowExpand="@LoadLinks" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.OnTime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
+        <Template Context="a">
+            <div style="padding:8px 14px;">
+                <div class="dim" style="font-size:.8em;margin-bottom:4px;">@L["RPT.OnTime.Detail.Title"]</div>
+                <table class="ames-table" style="width:100%;">
+                    <thead><tr>
+                        <th>@L["Col.SoNo"]</th><th>@L["Col.Requested"]</th><th style="text-align:right;">@L["Col.Order"] / @L["Col.Ship"]</th>
+                        <th>@L["RPT.OnTime.Detail.Wo"]</th><th>@L["RPT.OnTime.Detail.ShipOrder"]</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach (var o in RowsOf(a))
+                    {
+                        var links = _links.TryGetValue(o.SoId, out var ls) ? ls : new();
+                        <tr>
+                            <td><span class="code">@o.SoNumber@(o.SoLineNo is int ln ? "-" + ln : "")</span></td>
+                            <td>@(o.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</td>
+                            <td style="text-align:right;">@o.OrderQty.ToString("#,0") / @o.ShippedQty.ToString("#,0")</td>
+                            <td>@foreach (var w in links.Where(x => x.Kind == "WO")) { <span style="margin-right:10px;white-space:nowrap;"><WoLink WoNumber="@w.Number" /> <span class="pill info">@w.Status</span></span> }
+                                @if (!links.Any(x => x.Kind == "WO")) { <span class="dim">—</span> }</td>
+                            <td>@foreach (var s in links.Where(x => x.Kind == "SHIP")) { <a href="/fg/shipping-orders" class="code" style="margin-right:10px;white-space:nowrap;" title="@L["RPT.OnTime.Detail.ShipOrderTip"]">@s.Number</a><span class="pill info" style="margin-right:10px;">@s.Status</span> }
+                                @if (!links.Any(x => x.Kind == "SHIP")) { <span class="dim">—</span> }</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </Template>
         <Columns>
             <RadzenDataGridColumn TItem="ItemAgg" Property="ItemName" Title="@L["Col.Item"]">
-                <Template Context="r"><b style="white-space:nowrap;">@r.ItemName</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span></Template>
+                <Template Context="r"><b style="white-space:nowrap;">@r.ItemName</b><span class="dim code" style="font-size:.85em;margin-left:6px;" data-item="@(string.IsNullOrEmpty(r.ItemNo) ? null : r.ItemNo)">@r.ItemNo</span></Template>
                 <FooterTemplate><b>@L["RPT.OnTime.Total"]</b></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ItemAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="320px" MinWidth="320px">
@@ -173,6 +199,22 @@
     List<HeatRow>                           _heat      = new();
     Dictionary<DateTime, decimal?>          _monthAvg  = new();
     List<ItemAgg>                           _items     = new();
+    readonly Dictionary<int, List<PpRepository.OrderLinkRow>> _links = new();   // 품목 행을 펼칠 때 읽는 수주 라인별 연결(WO·출하 오더)
+
+    IEnumerable<PpRepository.OtdRow> RowsOf(ItemAgg a)
+        => _rows.Where(r => r.ItemNo == a.ItemNo && (r.CustomerId ?? "—") == a.CustomerId).OrderBy(r => r.RequestedDeliveryDate).ThenBy(r => r.SoNumber).ThenBy(r => r.SoLineNo);
+
+    void LoadLinks(ItemAgg a)
+    {
+        var need = RowsOf(a).Select(r => r.SoId).Where(id => !_links.ContainsKey(id)).ToList();
+        if (need.Count == 0) return;
+        try
+        {
+            var found = Pp.ListOrderLinks(need).GroupBy(x => x.SoId).ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var id in need) _links[id] = found.TryGetValue(id, out var l) ? l : new();
+        }
+        catch (Exception ex) { _msg = ex.Message; _isErr = true; }
+    }
     List<MasterDataRepository.CustomerRow>  _customers = new();
 
     DateTime _fFrom = FirstOfMonth(DbClock.Today).AddMonths(-5), _fTo = FirstOfMonth(DbClock.Today).AddMonths(1).AddDays(-1);

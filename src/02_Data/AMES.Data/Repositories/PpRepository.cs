@@ -2112,6 +2112,35 @@ public sealed partial class PpRepository
         return Query(sql, MapOtd, ("@D", null, daysBack), ("@Today", "PP_CustomerOrder.RequestedDeliveryDate", DbClock.Today));
     }
 
+    /// <summary>수주 라인에 연결된 작업지시(Kind WO)·출하 오더(Kind SHIP) 한 건 — 납기 보고서에서 수주 ↔ WO ↔ 출하를 함께 보는 용도.</summary>
+    public sealed record OrderLinkRow(int SoId, string Kind, string Number, string? Status, DateTime? Date);
+
+    /// <summary>수주 라인(SoID)별 연결된 WO(취소 제외, PP_WorkOrder.SoID)와 출하 오더(FG_ShippingOrderLine.SoID).</summary>
+    public List<OrderLinkRow> ListOrderLinks(IEnumerable<int> soIds)
+    {
+        var ids = soIds.Distinct().ToList();
+        var list = new List<OrderLinkRow>();
+        if (ids.Count == 0) return list;
+        const string sql = """
+            SELECT w.SoID, 'WO' AS Kind, w.WoNumber AS Number, w.Status, w.DueDate AS Dt
+            FROM   dbo.PP_WorkOrder w
+            WHERE  w.SoID IN (SELECT CAST(value AS int) FROM STRING_SPLIT(@Ids, ',')) AND ISNULL(w.Status,'') <> 'Cancelled'
+            UNION ALL
+            SELECT l.SoID, 'SHIP', o.OrderNo, o.Status, o.ShipDate
+            FROM   dbo.FG_ShippingOrderLine l
+            JOIN   dbo.FG_ShippingOrder o ON o.OrderID = l.OrderID
+            WHERE  l.SoID IN (SELECT CAST(value AS int) FROM STRING_SPLIT(@Ids, ','))
+            ORDER  BY 1, 2, 3;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Ids", null, string.Join(",", ids));
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            list.Add(new(r.GetInt32(0), r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.IsDBNull(4) ? null : r.GetDateTime(4)));
+        return list;
+    }
+
     /// <summary>PP-OTD 필터 조회 — 기간·고객(정규화 ID)·상태 조합.</summary>
     public List<OtdRow> ListOtdFiltered(
         DateTime? from       = null,

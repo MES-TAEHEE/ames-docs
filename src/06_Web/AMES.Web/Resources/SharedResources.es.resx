@@ -2637,6 +2637,18 @@
   <data name="PP.Upload.WoConflict.Issued" xml:space="preserve">
     <value>{0} pedido(s) ya tienen una orden de trabajo. Solo cambiarían la cantidad y la fecha y la orden existente quedaría igual. Cambie el número de pedido y súbalo de nuevo.</value>
   </data>
+  <data name="RPT.OnTime.Detail.Title" xml:space="preserve">
+    <value>Líneas de pedido · órdenes de trabajo / de envío vinculadas</value>
+  </data>
+  <data name="RPT.OnTime.Detail.Wo" xml:space="preserve">
+    <value>Orden de trabajo</value>
+  </data>
+  <data name="RPT.OnTime.Detail.ShipOrder" xml:space="preserve">
+    <value>Orden de envío</value>
+  </data>
+  <data name="RPT.OnTime.Detail.ShipOrderTip" xml:space="preserve">
+    <value>Abrir órdenes de envío</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>
