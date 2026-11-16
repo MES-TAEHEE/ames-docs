@@ -1,0 +1,19 @@
+<article class="compact-qr-label" lang="en" style="@SheetStyle">
+    <div class="compact-qr-code"><RadzenQRCode Value="@Label.Barcode" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" /></div>
+    <strong class="compact-qr-number" style="@FontStyle(Label.Barcode,2.8m)">@Label.Barcode</strong>
+    <div class="compact-qr-kind">@Label.Kind</div>
+    <div class="compact-qr-fields">
+        @foreach(var field in CompactQrLabelLayout.Fields(Label))
+        {
+            <div class="compact-qr-field"><span>@field.Caption</span><strong style="@FontStyle(field.Value)">@field.Value</strong></div>
+        }
+    </div>
+</article>
+@code {
+    [Parameter, EditorRequired] public ShippingLabel Label {get;set;}=default!;
+    [Parameter] public int Dpi {get;set;}=203;
+    CompactQrLabelLayout Layout=>new(Dpi);
+    static string Number(decimal value)=>value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    string SheetStyle=>$"--qr-side:{Number(Layout.QrSideMm(Label.Barcode))}mm;--qr-left:{Number(Layout.QrLeftMm(Label.Barcode))}mm;--qr-top:{Number(Layout.QrTopMm(Label.Barcode))}mm";
+    string FontStyle(string value,decimal maximum=2.6m)=>$"font-size:{Number(Layout.FontMm(value,maximum))}mm;line-height:{Number(Layout.FontMm(value,maximum))}mm";
+}
