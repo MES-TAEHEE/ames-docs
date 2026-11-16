@@ -57,6 +57,24 @@ public class EosPoMapperTests
     }
 
     [Fact]
+    public void Georgia_cursor_root_and_decimal_line_numbers_are_read()
+    {
+        // 11-16 Georgia 실제 응답 모양 — 루트가 OUT_CURSOR, 항번·수량이 소수
+        const string geo = """
+            {"OUT_CURSOR":[
+              {"PO_NO":"4100182945","PO_SEQ":10.0,"VENDOR_CODE":"309224","PART_NO":"83335-P8000DNN","PO_QTY":66.0,"DELIVERY_DATE":"2026-11-09","PO_DATE":"2026-11-02"},
+              {"PO_NO":"4100165977","PO_SEQ":40.0,"VENDOR_CODE":"309215","PART_NO":"83915-P8000RBQ","PO_QTY":2400.0,"DELIVERY_DATE":"2026-11-09","PO_DATE":"2026-07-21"}
+            ]}
+            """;
+        var rows = EosPoMapper.ToSrmRows(EosPoMapper.ParseRows(geo), "309224");
+        Assert.Single(rows);
+        Assert.Equal("4100182945-10", rows[0].PONO);
+        var a = SrmPoMapper.Map(rows).Rows.Single();
+        Assert.Equal(10, a.SoLineNo);
+        Assert.Equal(66m, a.OrderQty);
+    }
+
+    [Fact]
     public void Window_is_split_into_week_chunks_covering_every_day_once()
     {
         var c = EosPoMapper.Chunks(new(2026, 11, 2), new(2027, 1, 8), 7).ToList();

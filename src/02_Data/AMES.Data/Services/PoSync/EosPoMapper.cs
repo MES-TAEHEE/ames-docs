@@ -3,10 +3,10 @@ using System.Text.Json;
 
 namespace AMES.Data.Services.PoSync;
 
-/// <summary>Savannah EOS 조회 API(SIS.EOS_GET_PO) 응답 한 행. 프로퍼티명은 응답 컬럼명 그대로.</summary>
+/// <summary>EOS 조회 API(SIS.EOS_GET_PO — Savannah·Georgia) 응답 한 행. 프로퍼티명은 응답 컬럼명 그대로. 항번은 Georgia 가 <c>10.0</c> 처럼 소수로 보낸다.</summary>
 public sealed record EosPoRow(
     string?  PO_NO,
-    int?     PO_SEQ,
+    decimal? PO_SEQ,
     string?  VENDOR_CODE,
     string?  PART_NO,
     decimal? PO_QTY,
@@ -14,7 +14,7 @@ public sealed record EosPoRow(
     string?  PO_DATE);
 
 /// <summary>
-/// EOS 조회 API 요청 본문·응답 해석(소스 TYPE=EOS). 응답은 <c>{"value":[…],"count":n}</c> 이고 모든 협력사의 발주가 섞여 오므로
+/// EOS 조회 API 요청 본문·응답 해석(소스 TYPE=EOS). 응답은 Savannah <c>{"value":[…],"count":n}</c>, Georgia <c>{"OUT_CURSOR":[…]}</c> 이고 모든 협력사의 발주가 섞여 오므로
 /// 우리 협력사 코드(VENDCD)의 행만 남겨 SRM 행 모양(<see cref="SrmPoRow"/>)으로 바꾼다 — 그 뒤 매핑·업서트는 SRM 과 같다.
 /// 날짜 창은 납기일(DELIVERY_DATE) 기준이다(SRM 은 발주일). 원격은 한 번에 31일까지만 받아 <see cref="ChunkDays"/> 일씩 나눠 부른다. 납품수량이 없어 DELI_QTY 는 null(기존 납품수량 유지).
 /// </summary>
@@ -90,7 +90,7 @@ public static class EosPoMapper
         return rows
             .Where(r => string.Equals(r.VENDOR_CODE?.Trim(), vend, StringComparison.OrdinalIgnoreCase))
             .Select(r => new SrmPoRow(
-                PONO: r.PO_SEQ is { } seq ? $"{r.PO_NO?.Trim()}-{seq}" : r.PO_NO?.Trim(),
+                PONO: r.PO_SEQ is { } seq ? $"{r.PO_NO?.Trim()}-{SeqText(seq)}" : r.PO_NO?.Trim(),
                 PO_DATE: r.PO_DATE,
                 PO_DELI_DATE: r.DELIVERY_DATE,
                 PARTNO: r.PART_NO,
@@ -100,4 +100,8 @@ public static class EosPoMapper
                 DELI_QTY: null))
             .ToList();
     }
+
+    // 정수 항번(10.0)은 "10" 으로 — SrmPoMapper 가 '-' 뒤 정수만 SoLineNo 로 읽는다. 소수 항번은 그대로 둔다.
+    static string SeqText(decimal seq)
+        => seq == decimal.Truncate(seq) ? decimal.Truncate(seq).ToString(CultureInfo.InvariantCulture) : seq.ToString(CultureInfo.InvariantCulture);
 }
