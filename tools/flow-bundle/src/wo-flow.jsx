@@ -81,7 +81,7 @@ function Flow({ elementId, graph, labels }) {
     const on = () => {
       const host = document.getElementById(elementId);
       setFs(!!host && document.fullscreenElement === host);
-      setTimeout(() => fitView({ padding: 0.3, duration: 300 }), 120);
+      setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 120);
     };
     document.addEventListener('fullscreenchange', on);
     return () => document.removeEventListener('fullscreenchange', on);
@@ -92,7 +92,7 @@ function Flow({ elementId, graph, labels }) {
     const host = document.getElementById(elementId);
     if (!host || typeof ResizeObserver === 'undefined') return;
     let t;
-    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => fitView({ padding: 0.3, duration: 200 }), 150); });
+    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => fitView({ padding: 0.15, duration: 200 }), 150); });
     ro.observe(host);
     return () => { clearTimeout(t); ro.disconnect(); };
   }, [elementId, fitView]);
@@ -110,7 +110,7 @@ function Flow({ elementId, graph, labels }) {
 
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.3 }} colorMode={theme()}
+               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.45 }} colorMode={theme()}
                nodesDraggable={true} panOnDrag={true} zoomOnScroll={true} zoomOnPinch={true} zoomOnDoubleClick={true}
                nodesConnectable={false} elementsSelectable={true} minZoom={0.2} maxZoom={1.8}
                proOptions={{ hideAttribution: false }}>
@@ -118,7 +118,7 @@ function Flow({ elementId, graph, labels }) {
       <Controls showInteractive={false} />
       <MiniMap pannable zoomable nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} />
       <Panel position="top-left" className="ames-flow-panel">
-        <button type="button" className="ames-flow-btn" onClick={() => fitView({ padding: 0.3, duration: 400 })}>{labels.fit}</button>
+        <button type="button" className="ames-flow-btn" onClick={() => fitView({ padding: 0.45, duration: 400 })}>{labels.fit}</button>
         <button type="button" className="ames-flow-btn ames-flow-btn-cur" onClick={focusRunning}>● {labels.running}</button>
         <button type="button" className="ames-flow-btn" onClick={toggleFullscreen}>{fs ? ('⤢ ' + labels.exitFullscreen) : ('⛶ ' + labels.fullscreen)}</button>
         <span className="ames-flow-hint">{labels.hint}</span>

@@ -5913,7 +5913,7 @@ input[data-ames-x] {
 
 /* 작업지시 흐름 보기(React Flow) — wwwroot/js/wo-flow */
 .ames-flow-host { border: 1px solid var(--ames-bd-white-a12); border-radius: 6px; overflow: hidden; }
-.ames-flow-node { width: 310px; box-sizing: border-box; overflow-wrap: anywhere; padding: 8px 12px; border: 2px solid; border-radius: 8px; background: var(--ames-surface); color: var(--ames-text); font-size: 14px; line-height: 1.45; transition: box-shadow .2s; }
+.ames-flow-node { width: 310px; box-sizing: border-box; overflow-wrap: anywhere; padding: 14px 18px; border: 2px solid; border-radius: 8px; background: var(--ames-surface); color: var(--ames-text); font-size: 14px; line-height: 1.45; transition: box-shadow .2s; }
 .ames-flow-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ames-flow-kind { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .ames-flow-title { font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
