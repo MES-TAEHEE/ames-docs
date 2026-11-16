@@ -2802,6 +2802,8 @@ select.ames-rz-input {
 }
 
 .location-label-preview {
+    max-height: 65vh;
+    overflow: auto;
     padding: 18px;
     border: 1px solid rgba(148, 163, 184, .18);
     border-radius: 6px;
@@ -2810,6 +2812,9 @@ select.ames-rz-input {
 
 .location-label-print-area {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     justify-content: center;
 }
 
@@ -2862,7 +2867,9 @@ select.ames-rz-input {
         visibility: visible !important;
     }
 
+    .location-label-preview { max-height: none; overflow: visible; }
     .location-label-print-area {
+        display: block;
         position: absolute;
         inset: 0 auto auto 0;
         width: 100mm;
@@ -2872,6 +2879,8 @@ select.ames-rz-input {
     }
 
     .location-label-paper {
+        break-after: page;
+        break-inside: avoid;
         width: 100mm;
         min-height: 60mm;
         border: 0;

@@ -1,4 +1,4 @@
-﻿@page "/md/fd/location"
+@page "/md/fd/location"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -124,7 +124,7 @@
 
 @if (_barcodeLocation is not null)
 {
-    <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationID" OnClose="CloseBarcode" />
+    <LocationBarcodeDialog LocationCodes="@_barcodeCodes" OnClose="CloseBarcode" />
 }
 
 
@@ -341,7 +341,13 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenBarcode(MasterDataRepository.LocationRow location) => _barcodeLocation = location;
+    IReadOnlyList<string> _barcodeCodes = [];
+    async Task OpenBarcode(MasterDataRepository.LocationRow location)
+    {
+        _barcodeCodes = LocationBarcodeSelection.Codes(location, _allRows);
+        if (_barcodeCodes.Count == 0) { await Dialog.Alert(L["MD.Location.NoChildLabels"], L["WH.LocBarcode.Title"]); return; }
+        _barcodeLocation = location;
+    }
     void CloseBarcode() => _barcodeLocation = null;
 
     List<WarehouseRepository.LocationPartRow> PartsFor(string location) => _locationParts.GetValueOrDefault(location) ?? [];

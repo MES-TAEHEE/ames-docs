@@ -1,11 +1,11 @@
 // 라벨만 담은 숨은 인쇄 프레임에서 브라우저 인쇄 창을 연다 — 본 창에서 인쇄하면 다른 화면의 @page 규칙(Letter·100×50mm 등)이
 // 용지 크기를 덮는다. 프레임에는 app.css(라벨 모양)와 이 라벨의 용지 규칙만 둔다. 프린터·용지는 이 PC 의 인쇄 설정을 따른다
 // (Zebra Browser Print 가 없는 PC 용 — MD-034 출력 창에서 고른다).
-window.amesPrintLabels = function (selector, pageSize) {
+window.amesPrintLabels = function (selector, pageSize, includeComponentStyles = false) {
     const src = document.querySelector(selector);
     if (!src) return false;
     const css = [...document.querySelectorAll('link[rel="stylesheet"]')]
-        .map(l => l.href).filter(h => /\/app(\.[\w-]+)?\.css/.test(h));
+        .map(l => l.href).filter(h => includeComponentStyles || /\/app(\.[\w-]+)?\.css/.test(h));
     const old = document.getElementById('ames-label-print-frame');
     if (old) old.remove();
     const f = document.createElement('iframe');
@@ -14,14 +14,17 @@ window.amesPrintLabels = function (selector, pageSize) {
     document.body.appendChild(f);
     const d = f.contentDocument;
     d.open();
-    d.write('<!doctype html><html><head><meta charset="utf-8">' +
+    d.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AMES Print</title>' +
         css.map(h => `<link rel="stylesheet" href="${h}">`).join('') +
         `<style>@page { size: ${pageSize}; margin: 0; }
 html, body { margin: 0; padding: 0; background: #fff; }
 body * { visibility: visible !important; }
 .pallet-print-sheet { display: block !important; }
 .pallet-label-paper { break-after: page; }
-.pallet-label-paper:last-child { break-after: auto; }</style></head><body>` +
+.pallet-label-paper:last-child { break-after: auto; }
+.location-label-print-area { position: static !important; display: block; }
+.location-label-paper { box-sizing: border-box; break-after: page; break-inside: avoid; }
+.location-label-paper:last-child { break-after: auto; }</style></head><body>` +
         src.outerHTML + '</body></html>');
     d.close();
     const go = () => { f.contentWindow.focus(); f.contentWindow.print(); };

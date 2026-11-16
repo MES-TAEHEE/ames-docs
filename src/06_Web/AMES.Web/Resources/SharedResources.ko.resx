@@ -13571,4 +13571,6 @@
   <data name="WH.Picking.Releases" xml:space="preserve"><value>불출 내역</value></data>
   <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>불출 일시</value></data>
   <data name="WH.Picking.Operator" xml:space="preserve"><value>작업자</value></data>
+  <data name="MD.Location.NoChildLabels" xml:space="preserve"><value>연결된 활성 하위 위치가 없습니다.</value></data>
+  <data name="WH.LocMap.PrintArea" xml:space="preserve"><value>Area 전체 출력</value></data>
 </root>

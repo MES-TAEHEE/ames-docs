@@ -168,6 +168,7 @@
                                 <RadzenButton Text="@L["WH.LocMap.ChangeFloor"]" Icon="layers" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                                 @if (CanEdit && _warehouse!="LINE" && LocationMapNaming.FloorNumber(_floor) > 0) { <RadzenButton Text="@L["WH.LocMap.Btn.EditGrid"].Value" Icon="grid_on" Click='() => OpenDialog("Grid")' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /> }
                             }
+                            <RadzenButton Text='@L["WH.LocMap.PrintArea"]' Icon="print" Click="OpenAreaBarcodes" Disabled="@(AreaLocationCodes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
                         </RadzenStack>
                     </div>
                     <div class="location-map-statusbar">
@@ -284,9 +285,9 @@
         <InventoryDefectDialog @key="defectLot" Lot="defectLot" OnClose="CloseDefect" OnCompleted="DefectCompleted" />
     }
 
-    @if (_barcodeLocation is not null)
+    @if (_barcodeLocation is not null || _areaBarcodeCodes is not null)
     {
-        <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationNo" OnClose="CloseLocationBarcode" />
+        <LocationBarcodeDialog LocationCode="@(_barcodeLocation?.LocationNo ?? "")" LocationCodes="_areaBarcodeCodes" OnClose="CloseLocationBarcode" />
     }
 
     @if (_dialog is not null)
@@ -354,6 +355,10 @@
     private HashSet<string> _eligibleLots = new(StringComparer.OrdinalIgnoreCase);
     private LocationMapStock? _defectLot;
     private LocationMapCell? _barcodeLocation;
+    private IReadOnlyList<string>? _areaBarcodeCodes;
+    private IReadOnlyList<string> AreaLocationCodes => ActiveLocations.Where(x=>Same(x.WarehouseCode,_warehouse) && Same(x.AreaCode,_area))
+        .Select(x=>x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+    private void OpenAreaBarcodes() { _barcodeLocation=null; _areaBarcodeCodes=AreaLocationCodes; }
     private string? _dialog, _actionError;
     private string _code = "", _name = "", _dialogError = "";
     private string _originalName = "";
@@ -796,10 +801,11 @@
 
     private void OpenLocationBarcode()
     {
+        _areaBarcodeCodes=null;
         _barcodeLocation = MapLocations.FirstOrDefault(x => Same(x.LocationNo, _highlightedLocation));
     }
 
-    private void CloseLocationBarcode() => _barcodeLocation = null;
+    private void CloseLocationBarcode() { _barcodeLocation=null; _areaBarcodeCodes=null; }
 
     private void CloseLocationDetail()
     {

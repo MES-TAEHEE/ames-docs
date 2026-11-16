@@ -13571,4 +13571,6 @@
   <data name="WH.Picking.Releases" xml:space="preserve"><value>Released items</value></data>
   <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Released at</value></data>
   <data name="WH.Picking.Operator" xml:space="preserve"><value>Operator</value></data>
+  <data name="MD.Location.NoChildLabels" xml:space="preserve"><value>No active detail locations are linked to this location.</value></data>
+  <data name="WH.LocMap.PrintArea" xml:space="preserve"><value>Print area barcodes</value></data>
 </root>

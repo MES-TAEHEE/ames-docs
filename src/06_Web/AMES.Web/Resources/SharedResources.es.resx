@@ -13571,4 +13571,6 @@
   <data name="WH.Picking.Releases" xml:space="preserve"><value>Materiales entregados</value></data>
   <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Fecha de entrega</value></data>
   <data name="WH.Picking.Operator" xml:space="preserve"><value>Operador</value></data>
+  <data name="MD.Location.NoChildLabels" xml:space="preserve"><value>No hay ubicaciones de detalle activas vinculadas.</value></data>
+  <data name="WH.LocMap.PrintArea" xml:space="preserve"><value>Imprimir códigos del área</value></data>
 </root>
