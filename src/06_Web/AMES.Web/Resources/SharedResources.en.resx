@@ -2652,6 +2652,12 @@
   <data name="RPT.OnTime.Detail.ShipOrderTip" xml:space="preserve">
     <value>Open shipping orders</value>
   </data>
+  <data name="SoLink.Tip" xml:space="preserve">
+    <value>View work orders and progress of this order</value>
+  </data>
+  <data name="SoLink.None" xml:space="preserve">
+    <value>No work orders are linked to this order.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>

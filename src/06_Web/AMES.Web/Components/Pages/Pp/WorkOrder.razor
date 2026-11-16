@@ -113,7 +113,7 @@ else
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="140px" Property="SoNumber" Title="SAP SO" Width="140px">
-                <Template Context="w"><span class="dim">@(w.SoNumber ?? "—")</span></Template>
+                <Template Context="w"><SoLink SoNumber="@w.SoNumber" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="170px" Property="SourceType" Title="@L["PP.WorkOrder.Col.Source"].Value" Width="170px">
                 <Template Context="w"><span class="pill info" title="@SourceTitle(w)">@SourceText(w)</span></Template>
@@ -171,7 +171,7 @@ else
                     <div class="dim" style="font-size:.8em;margin-bottom:6px;">@L["PP.WorkOrder.Trace.Title"]</div>
                     <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
                         <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.So"]</div>
-                            <div>@(tr.SoNumber is null ? "—" : $"{tr.SoNumber}{(tr.SoLineNo is int ln ? "-" + ln : "")}")</div>
+                            <div><SoLink SoNumber="@tr.SoNumber" SoLineNo="@tr.SoLineNo" ShowLine="true" /></div>
                             <div class="dim" style="font-size:.8em;">@(tr.CustomerId ?? "—") · @(tr.SoQty is decimal sq ? sq.ToString("#,0") + " EA" : "—") · @(tr.SoDue?.ToString(DateFmt.Date) ?? "—")</div></div>
                         <span class="dim" style="align-self:center;">→</span>
                         <div class="pill info" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Plan"]</div>
@@ -202,7 +202,7 @@ else
                 <div style="display:flex;gap:32px;flex-wrap:wrap;">
                     <div><div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["Col.Progress"]</div>
                          <div>@w.OrderQty.ToString("#,0") EA · @((int)w.ProgressPct)%</div></div>
-                    <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(w.SoNumber ?? "—")</div></div>
+                    <div><div class="dim" style="font-size:.8em;">SAP SO</div><div><SoLink SoNumber="@w.SoNumber" /></div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div>
                          <div>@(w.DueDate?.ToString(DateFmt.Date) ?? "—")</div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.ProdDeadline"]</div>

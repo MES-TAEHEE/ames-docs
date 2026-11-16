@@ -7,7 +7,9 @@
     <RadzenDataGrid TItem="ShippingOrderLineDto" Data="Lines" AllowPaging="false" AllowSorting="true"
                     Density="Density.Compact" EmptyText='@L["Grid.Empty"]' class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" MinWidth="140px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" MinWidth="140px">
+                <Template Context="line"><SoLink SoId="@line.SoId" SoNumber="@line.SoNumber" /></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["PP.WorkOrder.Trace.Wo"]" Width="210px" MinWidth="210px" Sortable="false">
                 <Template Context="line">
                     @if (_wos.TryGetValue(line.SoId, out var ws) && ws.Count > 0)

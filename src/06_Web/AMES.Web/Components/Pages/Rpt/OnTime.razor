@@ -144,7 +144,7 @@
                     {
                         var links = _links.TryGetValue(o.SoId, out var ls) ? ls : new();
                         <tr>
-                            <td><span class="code">@o.SoNumber@(o.SoLineNo is int ln ? "-" + ln : "")</span></td>
+                            <td><SoLink SoId="@o.SoId" SoNumber="@o.SoNumber" SoLineNo="@o.SoLineNo" ShowLine="true" /></td>
                             <td>@(o.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</td>
                             <td style="text-align:right;">@o.OrderQty.ToString("#,0") / @o.ShippedQty.ToString("#,0")</td>
                             <td>@foreach (var w in links.Where(x => x.Kind == "WO")) { <span style="margin-right:10px;white-space:nowrap;"><WoLink WoNumber="@w.Number" /> <span class="pill info">@w.Status</span></span> }

@@ -90,7 +90,7 @@ else
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="150px" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="150px">
                 <Template Context="r">
-                    <span class="code">@r.SoNumber</span>@if (r.SoLineNo is int ln) { <span class="dim">-@ln</span> }
+                    <SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" />
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="120px" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />

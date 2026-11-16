@@ -1,0 +1,35 @@
+@* 수주 라인에 연결된 작업지시 목록 — SoLink 가 작업지시가 0개이거나 여럿일 때 연다. 번호를 누르면 작업지시 팝업(상세·흐름). *@
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="min-width:560px;">
+    @if (Rows.Count == 0)
+    {
+        <div class="dim" style="padding:12px;">@L["SoLink.None"]</div>
+    }
+    else
+    {
+        <div class="ipk-tree" style="margin:4px 0 12px;">
+            <div class="ipk-row ipk-head" style="grid-template-columns: 170px 110px minmax(0,1fr) 120px 140px;">
+                <span>@L["PP.WorkOrder.Trace.Wo"]</span><span>@L["Col.Line"]</span><span>@L["Col.PartNo"]</span><span>@L["Col.Status"]</span><span class="r">@L["PP.WoDetail.Done"]</span>
+            </div>
+            @foreach (var w in Rows)
+            {
+                <div class="ipk-row" style="grid-template-columns: 170px 110px minmax(0,1fr) 120px 140px;">
+                    <span><WoLink WoNumber="@w.WoNumber" /></span>
+                    <span>@(w.SoLineNo is int ln ? ln.ToString() : "—")</span>
+                    <span class="code">@w.ItemNo</span>
+                    <span><span class="pill info">@w.Status</span></span>
+                    <span class="r">@w.CompletedQty.ToString("#,0") / @w.OrderQty.ToString("#,0")</span>
+                </div>
+            }
+        </div>
+    }
+    <div style="display:flex;justify-content:flex-end;">
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<AMES.Data.Repositories.PpRepository.SoWorkOrderRow> Rows { get; set; } = new();
+}

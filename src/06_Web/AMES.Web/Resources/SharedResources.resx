@@ -2652,6 +2652,12 @@
   <data name="RPT.OnTime.Detail.ShipOrderTip" xml:space="preserve">
     <value>출하 오더 화면으로 이동</value>
   </data>
+  <data name="SoLink.Tip" xml:space="preserve">
+    <value>이 수주의 작업지시·작업 현황 보기</value>
+  </data>
+  <data name="SoLink.None" xml:space="preserve">
+    <value>이 수주에 연결된 작업지시가 없습니다.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

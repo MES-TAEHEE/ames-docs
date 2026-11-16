@@ -1,0 +1,37 @@
+@* 수주 번호 링크 — 누르면 그 수주 라인에 연결된 작업지시와 작업 현황을 본다.
+   작업지시가 하나면 바로 작업지시 팝업(Pp/WoDetailDialog), 여럿이면 목록 팝업(Pp/SoWorkOrdersDialog)에서 골라 연다.
+   사용: <SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" /> — SoId 가 없으면 수주 번호(+라인)로 찾는다. *@
+@inject DialogService Dialog
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
+
+@if (string.IsNullOrWhiteSpace(SoNumber))
+{
+    <span class="dim">—</span>
+}
+else
+{
+    <a href="javascript:void(0)" class="code wo-link @Class" title="@L["SoLink.Tip"]" @onclick="Open" @onclick:stopPropagation="true">@SoNumber</a>@if (SoLineNo is int ln && ShowLine) { <span class="dim">-@ln</span> }
+}
+
+@code {
+    [Parameter] public string? SoNumber { get; set; }
+    [Parameter] public int? SoLineNo { get; set; }
+    [Parameter] public int? SoId { get; set; }
+    /// <summary>수주 번호 뒤에 -라인 번호를 붙여 보일지.</summary>
+    [Parameter] public bool ShowLine { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    async Task Open()
+    {
+        List<AMES.Data.Repositories.PpRepository.SoWorkOrderRow> rows;
+        try { rows = Pp.ListWorkOrdersBySo(SoId, SoNumber!, SoLineNo); }
+        catch { rows = new(); }
+        var opts = new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true };
+        if (rows.Count == 1)
+            await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.WoDetailDialog>(rows[0].WoNumber, new Dictionary<string, object?> { ["WoNumber"] = rows[0].WoNumber }, opts);
+        else
+            await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.SoWorkOrdersDialog>(SoNumber + (SoLineNo is int l ? "-" + l : ""),
+                new Dictionary<string, object?> { ["Rows"] = rows }, new DialogOptions { Width = "720px", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
+    }
+}

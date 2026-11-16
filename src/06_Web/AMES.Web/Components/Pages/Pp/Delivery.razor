@@ -108,7 +108,7 @@
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="130px" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
-                <Template Context="r"><span class="code">@(r.SoNumber ?? "—")</span>@(r.SoLineNo is { } ln ? $"-{ln}" : "")</Template>
+                <Template Context="r"><SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="220px" Property="CustomerId" Title="@L["Col.Customer"]">
                 <Template Context="r">

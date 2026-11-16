@@ -2115,6 +2115,33 @@ public sealed partial class PpRepository
     /// <summary>수주 라인에 연결된 작업지시(Kind WO)·출하 오더(Kind SHIP) 한 건 — 납기 보고서에서 수주 ↔ WO ↔ 출하를 함께 보는 용도.</summary>
     public sealed record OrderLinkRow(int SoId, string Kind, string Number, string? Status, DateTime? Date);
 
+    /// <summary>수주 라인에 연결된 작업지시 한 건 — 수주 번호 링크(SoLink)가 작업 현황을 보여 주는 용도.</summary>
+    public sealed record SoWorkOrderRow(int WoId, string WoNumber, string? Status, string? ItemNo, decimal OrderQty, decimal CompletedQty, int? SoLineNo);
+
+    /// <summary>수주 라인(SoID)이 있으면 그 라인, 없으면 수주 번호(+라인)에 연결된 WO(취소 제외) — 작업 현황 팝업용.</summary>
+    public List<SoWorkOrderRow> ListWorkOrdersBySo(int? soId, string soNumber, int? soLineNo)
+    {
+        var sql = """
+            SELECT w.WoID, w.WoNumber, w.Status, COALESCE(w.ItemNo, o.ItemNo) AS ItemNo, ISNULL(w.OrderQty,0) AS OrderQty, ISNULL(w.CompletedQty,0) AS CompletedQty, o.SoLineNo
+            FROM   dbo.PP_WorkOrder w
+            JOIN   dbo.PP_CustomerOrder o ON o.SoID = w.SoID
+            WHERE  ISNULL(w.Status,'') <> 'Cancelled'
+              AND  ( (@SoId IS NOT NULL AND o.SoID = @SoId)
+                  OR (@SoId IS NULL AND o.SoNumber = @So AND (@Line IS NULL OR o.SoLineNo = @Line)) )
+            ORDER  BY o.SoLineNo, w.WoID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@SoId", SqlDbType.Int).Value = (object?)soId ?? DBNull.Value;
+        cmd.Parameters.Add("@Line", SqlDbType.Int).Value = (object?)soLineNo ?? DBNull.Value;
+        ColumnParams.AddFilter(cmd, "@So", "PP_CustomerOrder.SoNumber", soNumber ?? "");
+        using var r = cmd.ExecuteReader();
+        var list = new List<SoWorkOrderRow>();
+        while (r.Read())
+            list.Add(new(r.GetInt32(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.GetDecimal(4), r.GetDecimal(5), r.IsDBNull(6) ? null : r.GetInt32(6)));
+        return list;
+    }
+
     /// <summary>수주 라인(SoID)별 연결된 WO(취소 제외, PP_WorkOrder.SoID)와 출하 오더(FG_ShippingOrderLine.SoID).</summary>
     public List<OrderLinkRow> ListOrderLinks(IEnumerable<int> soIds)
     {
