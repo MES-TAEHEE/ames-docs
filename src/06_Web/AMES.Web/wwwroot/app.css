@@ -5906,6 +5906,9 @@ input[data-ames-x] {
 .ipk-chip b { font-variant-numeric: tabular-nums; margin-left: 4px; }
 .ipk-ver { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .ipk-ver .ipk-sub { margin: 0; }
+/* 작업지시 팝업(Pp/WoDetailDialog) — BOM 미리보기와 같은 카드·표 모양 */
+.wod-row { grid-template-columns: 110px 140px 150px 110px minmax(0, 1fr) 90px; }
+.wod-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 720px) {
     .ipk-top { grid-template-columns: 1fr; }
     .ipk-info { grid-template-columns: auto minmax(0, 1fr); }

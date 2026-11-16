@@ -17,7 +17,6 @@
 else
 {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-        <b style="font-size:1.1em;">@_wo.WoNumber</b>
         <span class="pill @StatusClass(_wo.Status)">@_wo.Status</span>
         <span class="pill info">@SourceText()</span>
         @if (_wo.TerminalLock is { Length: > 0 }) { <span class="pill warn" title="@L["PP.WoDetail.Lock"]">🔒 @_wo.TerminalLock</span> }
@@ -42,60 +41,72 @@ else
     }
     else
     {
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 24px;margin-bottom:12px;">
-        <div><div class="dim" style="font-size:.8em;">@L["Col.PartNo"]</div><div>@_wo.ItemNo</div><div class="dim" style="font-size:.85em;">@_wo.ItemName</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["PP.WoDetail.Done"] / @L["PP.WoDetail.Open"]</div>
-             <div>@_wo.OrderQty.ToString("#,0") / @_wo.CompletedQty.ToString("#,0") / @_wo.OpenQty.ToString("#,0") EA</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["Col.Progress"]</div>
-             <div style="display:flex;align-items:center;gap:6px;"><RadzenProgressBar Value="@Math.Min(100d, (double)_wo.ProgressPct)" ShowValue="false" Style="width:90px;height:8px;" /> @((int)_wo.ProgressPct)%</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div><div>@(_wo.DueDate?.ToString(DateFmt.Date) ?? "—")</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.ProdDeadline"]</div><div>@(_wo.ProdDeadline?.ToString(DateFmt.Date) ?? "—")</div></div>
-        <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(_wo.SoNumber ?? "—")</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["Col.Routing"]</div><div>@(_wo.RoutingType ?? "INJ") · @(_wo.RouteLines ?? "—")</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["PP.WoDetail.Mold"]</div><div>@(_wo.MoldId ?? "—")</div></div>
-        <div><div class="dim" style="font-size:.8em;">@L["PP.WoDetail.Priority"]</div><div>@_wo.Priority</div></div>
+    <div class="ipk-top" style="margin-bottom:12px;">
+        <div class="ipk-stock">
+            <div class="ipk-tl">@L["Col.Progress"]</div>
+            <div class="ipk-big">@((int)_wo.ProgressPct)<span class="ipk-unit">%</span></div>
+            <RadzenProgressBar Value="@Math.Min(100d, (double)_wo.ProgressPct)" ShowValue="false" Style="height:8px;" />
+            <div class="ipk-stock-sub">@L["Col.Order"] @_wo.OrderQty.ToString("#,0")
+                <span class="ipk-sep">·</span> @L["PP.WoDetail.Done"] @_wo.CompletedQty.ToString("#,0")
+                <span class="ipk-sep">·</span> @L["PP.WoDetail.Open"] @_wo.OpenQty.ToString("#,0")</div>
+        </div>
+        <div class="ipk-info">
+            <div class="ipk-k">@L["Col.PartNo"]</div><div class="ipk-v code" data-item="@_wo.ItemNo">@_wo.ItemNo</div>
+            <div class="ipk-k">@L["PP.PlanConfirm.Col.Due"]</div><div class="ipk-v">@(_wo.DueDate?.ToString(DateFmt.Date) ?? "—")</div>
+            <div class="ipk-k"></div><div class="ipk-v dim" style="font-weight:400;">@_wo.ItemName</div>
+            <div class="ipk-k">@L["PP.WorkOrder.Detail.ProdDeadline"]</div><div class="ipk-v">@(_wo.ProdDeadline?.ToString(DateFmt.Date) ?? "—")</div>
+            <div class="ipk-k">SAP SO</div><div class="ipk-v">@(_wo.SoNumber ?? "—")</div>
+            <div class="ipk-k">@L["PP.WoDetail.Priority"]</div><div class="ipk-v">@_wo.Priority</div>
+            <div class="ipk-k">@L["Col.Routing"]</div><div class="ipk-v">@(_wo.RoutingType ?? "INJ") · @(_wo.RouteLines ?? "—")</div>
+            <div class="ipk-k">@L["PP.WoDetail.Mold"]</div><div class="ipk-v">@(_wo.MoldId ?? "—")</div>
+        </div>
     </div>
 
-    <div class="dim" style="font-size:.8em;margin-bottom:4px;">@L["PP.WoDetail.Steps"]</div>
+    <div class="ipk-sub">@L["PP.WoDetail.Steps"] · @_steps.Count</div>
     @if (_steps.Count == 0)
     {
-        <div class="dim" style="margin-bottom:12px;">—</div>
+        <div class="dim" style="margin:4px 0 12px;">—</div>
     }
     else
     {
-        <table class="ames-table" style="width:100%;margin-bottom:12px;">
-            <thead><tr><th>@L["PP.WoDetail.Step"]</th><th>@L["Col.Line"]</th><th>@L["Col.PartNo"]</th><th>@L["Col.Status"]</th><th>@L["PP.WoDetail.Operator"]</th><th style="text-align:right;">@L["PP.WoDetail.Done"]</th></tr></thead>
-            <tbody>
+        <div class="ipk-tree wod-tree" style="margin:4px 0 12px;">
+            <div class="ipk-row wod-row ipk-head">
+                <span>@L["PP.WoDetail.Step"]</span><span>@L["Col.Line"]</span><span>@L["Col.PartNo"]</span><span>@L["Col.Status"]</span><span>@L["PP.WoDetail.Operator"]</span><span class="r">@L["PP.WoDetail.Done"]</span>
+            </div>
             @foreach (var s in _steps)
             {
-                <tr>
-                    <td>@s.StepSeq · @s.ProcessCode</td>
-                    <td>@(s.LineId ?? "—")</td>
-                    <td>@s.ItemNo</td>
-                    <td><span class="pill @StatusClass(s.Status)">@s.Status</span></td>
-                    <td>@OperatorCell(s.LineId)</td>
-                    <td style="text-align:right;">@s.CompletedQty.ToString("#,0") / @_wo.OrderQty.ToString("#,0")</td>
-                </tr>
+                <div class="ipk-row wod-row">
+                    <span>@s.StepSeq · @s.ProcessCode</span>
+                    <span>@(s.LineId ?? "—")</span>
+                    <span class="code">@s.ItemNo</span>
+                    <span><span class="pill @StatusClass(s.Status)">@s.Status</span></span>
+                    <span>@OperatorCell(s.LineId)</span>
+                    <span class="r">@s.CompletedQty.ToString("#,0") / @_wo.OrderQty.ToString("#,0")</span>
+                </div>
             }
-            </tbody>
-        </table>
+        </div>
     }
 
     @if (_trace is { } t)
     {
-        <div class="dim" style="font-size:.8em;margin-bottom:4px;">@L["PP.WorkOrder.Trace.Title"]</div>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px;margin-bottom:12px;">
-            <div><span class="dim">@L["PP.WorkOrder.Trace.Plan"]:</span>
+        <div class="ipk-sub">@L["PP.WorkOrder.Trace.Title"]</div>
+        <div class="ipk-info wod-trace" style="margin-top:4px;">
+            <div class="ipk-k">@L["PP.WorkOrder.Trace.Plan"]</div>
+            <div class="ipk-v" style="white-space:normal;">
                 @if (t.SourceType == "APS" && int.TryParse(t.SourceRef, out var runId))
                 {
                     <a href="/pp/aps-plan?run=@runId" @onclick="Dialog.Close">APS @L["PP.WorkOrder.Trace.Run"] #@runId</a>
                     <span class="dim"> · @(t.ApsStatus ?? "—")</span>
                 }
-                else { <span>@SourceText() @(t.SourceRef is { Length: > 0 } ? "· " + t.SourceRef : "")</span> }</div>
-            <div><span class="dim">@L["PP.WorkOrder.Trace.Slots"]:</span> @t.SlotCount @L["PP.WorkOrder.Trace.SlotUnit"] · @t.SlotQty.ToString("#,0") EA
+                else { <span>@SourceText() @(t.SourceRef is { Length: > 0 } ? "· " + t.SourceRef : "")</span> }
+            </div>
+            <div class="ipk-k">@L["PP.WorkOrder.Trace.Slots"]</div>
+            <div class="ipk-v" style="white-space:normal;">@t.SlotCount @L["PP.WorkOrder.Trace.SlotUnit"] · @t.SlotQty.ToString("#,0") EA
                 @if (t.SlotFrom is not null) { <span class="dim"> · @t.SlotFrom.Value.ToString(DateFmt.Date)@(t.SlotTo != t.SlotFrom ? " ~ " + t.SlotTo?.ToString(DateFmt.Date) : "")</span> }</div>
-            <div><span class="dim">@L["PP.WorkOrder.Trace.Result"]:</span> @L["PP.WorkOrder.Trace.Good"] @t.GoodQty.ToString("#,0") · @L["PP.WorkOrder.Trace.Defect"] @t.DefectCount · LOT @t.LotCount</div>
+            <div class="ipk-k">@L["PP.WorkOrder.Trace.Result"]</div>
+            <div class="ipk-v" style="white-space:normal;grid-column: span 3;">@L["PP.WorkOrder.Trace.Good"] @t.GoodQty.ToString("#,0") · @L["PP.WorkOrder.Trace.Defect"] @t.DefectCount · LOT @t.LotCount</div>
         </div>
+    }
     }
     }
 }
