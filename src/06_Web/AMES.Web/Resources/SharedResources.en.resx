@@ -2622,6 +2622,9 @@
   <data name="PP.WoDetail.Operator.Logout" xml:space="preserve">
     <value>Logout</value>
   </data>
+  <data name="PP.WoDetail.Operator.Done" xml:space="preserve">
+    <value>Operated by</value>
+  </data>
   <data name="PP.WoDetail.Operator.Last" xml:space="preserve">
     <value>Last result</value>
   </data>

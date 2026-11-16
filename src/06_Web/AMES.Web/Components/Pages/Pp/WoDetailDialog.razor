@@ -207,7 +207,17 @@ else
         var map = new Dictionary<string, (string, bool)>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in _ops)
         {
-            if (o.Sessions.Count > 0)
+            // 끝난 공정은 지금 로그인한 사람이 아니라 당시 실적을 올린 사람(들)을 보인다 — 완료 뒤에도 바뀌지 않는다
+            var ended = _steps.Any(st => string.Equals(st.LineId, o.LineId, StringComparison.OrdinalIgnoreCase) && WoStatusRules.IsFinished(st.Status));
+            if (ended)
+            {
+                var ws = o.Workers ?? [];
+                map[o.LineId] = ws.Count == 0
+                    ? ("—", false)
+                    : ($"{L["PP.WoDetail.Operator.Done"].Value}: " + string.Join(", ", ws.Take(3).Select(w => $"{Actors.Display(w.Operator)} {w.GoodQty:#,0}"))
+                        + (ws.Count > 3 ? $" +{ws.Count - 3}" : "") + $" · {ws.Min(w => w.FirstAt):MM-dd HH:mm}~{ws.Max(w => w.LastAt):MM-dd HH:mm}", false);
+            }
+            else if (o.Sessions.Count > 0)
                 map[o.LineId] = ($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})"))), true);
             else if (o.LastOperator is not null)
                 map[o.LineId] = ($"{L["PP.WoDetail.Operator.Logout"].Value} · {L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);

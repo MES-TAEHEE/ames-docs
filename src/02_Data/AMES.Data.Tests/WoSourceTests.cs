@@ -54,4 +54,15 @@ public class WoSourceTests
         }
         finally { Exec(f!, "DELETE dbo.PR_PopSession WHERE OperatorID = 'ITEST-OP'"); }
     }
+
+    [SkippableFact]
+    public void Step_operators_lists_who_posted_results_so_ended_steps_keep_their_operator()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, WriteSkip);
+        var f = TryFactory(); Skip.If(f is null, WriteSkip);
+        var row = Scalar(f!, "SELECT TOP 1 r.WoID FROM dbo.PP_WorkOrderRouting r WHERE r.LineID IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.PR_ProductionResult p WHERE p.WoID = r.WoID AND p.LineID = r.LineID AND p.OperatorID IS NOT NULL) ORDER BY r.WoID DESC") as int?;
+        Skip.If(row is null, "no work order with posted results");
+        var ops = new WorkOrderRepository(f!).ListStepOperators(row!.Value);
+        Assert.Contains(ops, o => o.Workers is { Count: > 0 });
+    }
 }

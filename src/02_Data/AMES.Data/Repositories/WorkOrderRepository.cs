@@ -280,7 +280,11 @@ public sealed class WorkOrderRepository
     /// 공정 단계(라인)별 작업자 — Sessions = 그 라인의 열린 POP 세션(로그아웃·만료 전), LastOperator = 이 작업지시 실적을 마지막으로 올린 사번.
     /// 현재 작업자의 정본은 열린 세션이고, 세션이 없으면 마지막 실적자가 「최근」으로 보인다.
     /// </summary>
-    public sealed record StepOperators(string LineId, IReadOnlyList<OperatorSession> Sessions, string? LastOperator, DateTime? LastAt);
+    public sealed record StepOperators(string LineId, IReadOnlyList<OperatorSession> Sessions, string? LastOperator, DateTime? LastAt,
+        IReadOnlyList<ResultOperator>? Workers = null);
+
+    /// <summary>이 작업지시의 그 라인 실적을 올린 사람 — 양품 수량(역분개 제외)과 첫·마지막 실적 시각. 끝난 공정의 「당시 담당자」 기준.</summary>
+    public sealed record ResultOperator(string Operator, decimal GoodQty, DateTime FirstAt, DateTime LastAt);
 
     public List<StepOperators> ListStepOperators(int woId)
     {
@@ -298,6 +302,11 @@ public sealed class WorkOrderRepository
                        ROW_NUMBER() OVER (PARTITION BY p.LineID ORDER BY p.EntryAt DESC, p.ResultID DESC) AS rn
                 FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL) x
             WHERE x.rn = 1;
+
+            SELECT p.LineID, p.OperatorID, SUM(CASE WHEN p.GoodQty > 0 THEN p.GoodQty ELSE 0 END) AS GoodQty, MIN(p.EntryAt) AS FirstAt, MAX(p.EntryAt) AS LastAt
+            FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL
+            GROUP  BY p.LineID, p.OperatorID
+            ORDER  BY MIN(p.EntryAt);
             """;
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
@@ -316,10 +325,19 @@ public sealed class WorkOrderRepository
         var last = new Dictionary<string, (string Op, DateTime At)>(StringComparer.OrdinalIgnoreCase);
         r.NextResult();
         while (r.Read()) last[(string)r["LineID"]] = ((string)r["OperatorID"], (DateTime)r["EntryAt"]);
+        var workers = new Dictionary<string, List<ResultOperator>>(StringComparer.OrdinalIgnoreCase);
+        r.NextResult();
+        while (r.Read())
+        {
+            var line = r["LineID"] as string ?? "";
+            if (!workers.TryGetValue(line, out var wl)) workers[line] = wl = new();
+            wl.Add(new ResultOperator((string)r["OperatorID"], Convert.ToDecimal(r["GoodQty"]), (DateTime)r["FirstAt"], (DateTime)r["LastAt"]));
+        }
         return lines.Select(line => new StepOperators(line,
             sessions.TryGetValue(line, out var ss) ? ss : [],
             last.TryGetValue(line, out var lt) ? lt.Op : null,
-            last.TryGetValue(line, out var lt2) ? lt2.At : null)).ToList();
+            last.TryGetValue(line, out var lt2) ? lt2.At : null,
+            workers.TryGetValue(line, out var ws) ? ws : [])).ToList();
     }
 
     /// <summary>작업지시 하나의 계획 → 실행 연결(수주 · 생성 경로 · 슬롯 · 실적). 화면 상세와 재무 자료의 기준.</summary>
