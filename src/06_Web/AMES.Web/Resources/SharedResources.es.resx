@@ -13568,4 +13568,7 @@
   <data name="SCM.Import.Title" xml:space="preserve"><value>Importar partidas del pedido</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>Plantilla Excel</value></data>
   <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Configurar cantidad por unidad</value></data>
+  <data name="WH.Picking.Releases" xml:space="preserve"><value>Materiales entregados</value></data>
+  <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Fecha de entrega</value></data>
+  <data name="WH.Picking.Operator" xml:space="preserve"><value>Operador</value></data>
 </root>

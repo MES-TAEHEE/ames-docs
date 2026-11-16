@@ -13568,4 +13568,7 @@
   <data name="SCM.Import.Title" xml:space="preserve"><value>Import order items</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>Excel template</value></data>
   <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Set packing quantity</value></data>
+  <data name="WH.Picking.Releases" xml:space="preserve"><value>Released items</value></data>
+  <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Released at</value></data>
+  <data name="WH.Picking.Operator" xml:space="preserve"><value>Operator</value></data>
 </root>

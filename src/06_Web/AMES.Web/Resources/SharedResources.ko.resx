@@ -13568,4 +13568,7 @@
   <data name="SCM.Import.Title" xml:space="preserve"><value>발주 품목 불러오기</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>엑셀 양식</value></data>
   <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>적입량 설정</value></data>
+  <data name="WH.Picking.Releases" xml:space="preserve"><value>불출 내역</value></data>
+  <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>불출 일시</value></data>
+  <data name="WH.Picking.Operator" xml:space="preserve"><value>작업자</value></data>
 </root>

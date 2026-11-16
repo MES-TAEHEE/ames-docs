@@ -73,6 +73,34 @@
     </section>
     </AmesTab>
     <AmesTab Title="@L["WH.Picking.Tab.LineStock"].Value">
+    <AmesTab Title='@L["WH.Picking.Releases"]'>
+    <section class="ames-card">
+        <div class="ames-card-h master-list-toolbar">
+            <span>@L["WH.Picking.Releases"] · @_releases.Count</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
+                <RadzenTextBox @bind-Value="_releaseSearch" MaxLength="120" Placeholder='@L["WH.Picking.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+                <span>~</span>
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+                <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="LoadReleases" Disabled="_releaseBusy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+        @if (_releaseError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_releaseError</RadzenAlert> }
+        <RadzenDataGrid @ref="_releaseGrid" TItem="PickingReleaseRow" Data="_releases" IsLoading="_releaseBusy" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" AllowSorting="true" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center">
+            <Columns>
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="ReleasedAt" Title='@L["WH.Picking.ReleasedAt"]' Width="180px"><Template Context="r">@r.ReleasedAt.ToString(DateFmt.DateTimeSec)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PickSlipNo" Title='@L["WH.Picking.Col.OrderNo"]' Width="180px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="LotNo" Title="LOT" Width="220px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PartNo" Title='@L["Col.ItemNo"]' Width="180px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PartName" Title='@L["Col.ItemName"]' MinWidth="180px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="Quantity" Title='@L["Col.Quantity"]' Width="120px"><Template Context="r">@UomFmt.QtyUnit(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="FromLocation" Title='@L["WH.Picking.Col.PickFrom"]' Width="150px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="ToLocation" Title='@L["Col.Destination"]' Width="150px" />
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="OperatorID" Title='@L["WH.Picking.Operator"]' Width="120px" />
+            </Columns>
+        </RadzenDataGrid>
+    </section>
+    </AmesTab>
         <section class="ames-card wh-pick-list">
             <div class="ames-card-h master-list-toolbar">
                 <span>@L["WH.Picking.Lbl.LineStockSafety"]</span>
@@ -134,6 +162,21 @@
     List<LineStockRow> _stock = [];
     List<PickingSlipHeaderRow> _orders = [];
     List<PickingSlipLineRow> _details = [];
+    List<PickingReleaseRow> _releases = [];
+    RadzenDataGrid<PickingReleaseRow>? _releaseGrid;
+    DateTime _releaseFrom = DbClock.Today.AddMonths(-1), _releaseTo = DbClock.Today.AddMonths(1);
+    string _releaseSearch = "", _releaseError = "";
+    bool _releaseBusy;
+    async Task LoadReleases()
+    {
+        if (!_allowed || _releaseBusy) return;
+        _releaseBusy = true;
+        _releaseError = "";
+        try { _releases = await Task.Run(()=>WH.ListPickingReleases(_releaseFrom, _releaseTo, _releaseSearch)); }
+        catch (Exception ex) { Log.LogError(ex,"Picking releases load failed"); _releases = []; _releaseError = L["WH.Picking.Err.Load"]; }
+        finally { _releaseBusy = false; }
+        if (_releaseGrid is not null) await _releaseGrid.FirstPage();
+    }
     List<PickingSlipFifoLotRow> _sources = [];
     PickingSlipHeaderRow? _selected;
     string _search = "", _error = "", _message = "", _cancelError = "";
@@ -199,6 +242,7 @@
                 _error = L["WH.Picking.Err.NoPermission"].Value;
                 return;
             }
+        await LoadReleases();
             await Task.Run(() => WH.GenerateLinePickingOrders());
             Load();
         }
@@ -244,6 +288,7 @@
         _cancelError = "";
         _selected = null;
         try
+            await LoadReleases();
         {
             _details = WH.ListPickingSlipLines(row.PickSlipNo);
             _sources = WH.ListPickingSlipFifoLots(row.PickSlipNo);
