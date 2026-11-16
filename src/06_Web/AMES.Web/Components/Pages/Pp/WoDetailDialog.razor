@@ -35,8 +35,8 @@ else
     @if (_mode == "flow")
     {
         <link rel="stylesheet" href="@(Nav.BaseUri)js/wo-flow/wo-flow.css" />
-        @* <div id="@_flowId" class="ames-flow-host" style="flex:1 1 0;min-height:420px;width:100%;"></div> *@
-        <div id="@_flowId" class="ames-flow-host" style="flex:1 1 0;min-height:420px;width:100%;"></div>
+        @* <div id="@_flowId" class="ames-flow-host" style="flex:1 1 0;min-height:440px;width:100%;"></div> *@
+        <div id="@_flowId" class="ames-flow-host" style="flex:1 1 0;min-height:440px;width:100%;"></div>
         <div class="dim" style="font-size:.8em;margin-top:4px;">@(_live ? "● " : "")@string.Format(L["PP.WoDetail.Flow.Live"].Value, RefreshSec, _updatedAt.ToString("HH:mm:ss"))</div>
         @if (!string.IsNullOrEmpty(_flowError)) { <div style="color:var(--ames-tx-red-400);">@_flowError</div> }
     }
