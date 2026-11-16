@@ -1,0 +1,56 @@
+@page "/portal/delivery-print/{Number}"
+@layout EmptyLayout
+@rendermode InteractiveServer
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider Authentication
+@inject IStringLocalizer<SharedResources> L
+@inject ILogger<DeliveryPrint> Logger
+@inject IJSRuntime JS
+<PageTitle>Delivery Note · @Number</PageTitle>
+<div class="delivery-packet-tools">
+    <ShippingLabelPrint Text='@L["SCM.Print.All"]' LoadLabels="ReloadLabels" BrowserPrint="PrintAll" Disabled="@(_bundle is null)" />
+</div>
+@if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
+@if(_bundle is {} bundle)
+{
+    <div class="portal-delivery-packet">
+        <DeliveryNoteDocument Note="bundle.Note" ShippingUnits="bundle.ShippingUnits" />
+        @if(bundle.UnitLabels.Count>0){<section class="delivery-label-group"><h2>SHIPPING UNIT LABELS</h2><ShippingLabelSheet Labels="bundle.UnitLabels" A4Sheet="true" /></section>}
+        @if(bundle.UnitItems.Count>0){<BoxLabelSheet Boxes="bundle.UnitItems" QuantityText="@((decimal q,string u)=>EnglishPrint.Number(q))" />}
+    </div>
+}
+@code {
+    [Parameter] public string Number {get;set;}="";
+    [SupplyParameterFromQuery(Name="autoPrint")] public bool AutoPrint {get;set;}
+    DeliveryPrintBundle? _bundle;
+    string _error="";
+    bool _printed, _printRequested;
+    protected override async Task OnParametersSetAsync()
+    {
+        _bundle=null;_error="";_printed=false;
+        try { await ReloadLabels(); }
+        catch(Exception ex){Logger.LogError(ex,"Delivery print packet load failed");_error=L["Portal.Note.Unavailable"];}
+    }
+    async Task<IReadOnlyList<ShippingLabel>> ReloadLabels()
+    {
+        var user=(await Authentication.GetAuthenticationStateAsync()).User;
+        var id=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if(!PortalAuth.IsPortalUser(user)||string.IsNullOrWhiteSpace(id)) throw new InvalidOperationException(L["Portal.Note.AccessDenied"]);
+        _bundle=await Task.Run(()=>DeliveryPrintBundle.Load(Scm,Number,id));
+        return _bundle.AllLabels;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(_bundle is not null && (_printRequested || AutoPrint && !_printed))
+        {
+            _printed=true;_printRequested=false;
+            await JS.InvokeVoidAsync("amesPrintLabels",".portal-delivery-packet","A4 portrait",true);
+        }
+    }
+    async Task PrintAll()
+    {
+        _error="";
+        try { await ReloadLabels(); _printRequested=true; }
+        catch(Exception ex){Logger.LogError(ex,"Delivery print packet refresh failed");_bundle=null;_error=L["Portal.Note.Unavailable"];}
+    }
+}

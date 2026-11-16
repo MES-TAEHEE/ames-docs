@@ -1,0 +1,8 @@
+.delivery-packet-tools { display:flex; gap:12px; align-items:center; justify-content:flex-end; margin:20px; }
+.portal-delivery-packet { color:#111; }
+.delivery-label-group { box-sizing:border-box; width:200mm; max-width:100%; margin:20px auto; background:#fff; color:#111; }
+.delivery-label-group h2 { padding:3mm; margin:0; font:bold 12pt Arial,sans-serif; }
+@media print {
+    .delivery-packet-tools { display:none; }
+    .delivery-label-group { page:shipping-label-a4; break-before:page; width:200mm; max-width:none; margin:0; }
+}

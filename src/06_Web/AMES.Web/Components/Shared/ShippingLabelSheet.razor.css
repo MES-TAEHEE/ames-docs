@@ -1,0 +1,34 @@
+.shipping-label-sheet { width:100mm; margin:20px auto; color:#000; font-family:Arial,sans-serif; }
+.shipping-label-paper { position:relative; box-sizing:border-box; width:100mm; height:50mm; background:#fff; margin-bottom:12px; overflow:hidden; border:1px solid #777; }
+.shipping-label-paper > * { position:absolute; left:3mm; width:94mm; box-sizing:border-box; overflow:hidden; overflow-wrap:anywhere; font-weight:normal; }
+.shipping-label-kind { top:1mm; height:2.25mm; font-size:2.25mm; line-height:2.25mm; }
+.shipping-label-vendor { top:3.75mm; height:2.5mm; font-size:2.5mm; line-height:2.5mm; }
+.shipping-label-barcode { top:7.25mm; height:8mm; }
+.shipping-label-barcode ::deep svg,.shipping-label-part ::deep svg { width:100%; height:100%; fill:#000; }
+.shipping-label-number { top:15.75mm; height:2.25mm; font-size:2.25mm; line-height:2.25mm; text-align:center; }
+.shipping-label-divider { top:19mm; border-top:1px solid #111; }
+.shipping-label-product { top:20.5mm; height:3mm; font-size:3mm; line-height:3mm; }
+.shipping-label-name { top:20.5mm; height:5.5mm; font-size:2.75mm; line-height:2.75mm; }
+.shipping-label-has-part .shipping-label-name { top:24.25mm; }
+.shipping-label-qty { top:30.25mm; height:3.5mm; font-size:3.5mm; line-height:3.5mm; }
+.shipping-label-reference { top:35mm; height:4.5mm; font-size:2.25mm; line-height:2.25mm; }
+.shipping-label-has-details .shipping-label-qty { width:45mm; font-size:3mm; line-height:3mm; }
+.shipping-label-destination,.shipping-label-fifo,.shipping-label-order,.shipping-label-lot,.shipping-label-sequence { height:2mm; font-size:2mm; line-height:2mm; }
+.shipping-label-destination { top:34.25mm; width:45mm; }
+.shipping-label-fifo { top:37.5mm; width:45mm; }
+.shipping-label-order,.shipping-label-lot,.shipping-label-sequence { left:50mm; width:47mm; }
+.shipping-label-order { top:30.25mm; }.shipping-label-lot { top:34.25mm; }.shipping-label-sequence { top:37.5mm; }
+.shipping-label-paper > .shipping-label-part { top:41mm; height:4.5mm; overflow:visible; }
+.shipping-label-part strong { position:absolute; top:5.5mm; left:0; width:100%; font-size:2.25mm; line-height:2.25mm; font-weight:normal; text-align:center; white-space:nowrap; }
+.shipping-label-a4 { width:200mm; display:grid; grid-template-columns:repeat(2,100mm); gap:0; margin:0 auto; }
+.shipping-label-a4 .shipping-label-paper { margin:0; }
+@media print {
+    @page shipping-thermal { size:100mm 50mm; margin:0; }
+    .shipping-label-sheet { page:shipping-thermal; visibility:visible!important; margin:0!important; }
+    .shipping-label-sheet ::deep * { visibility:visible!important; }
+    .shipping-label-paper { break-after:page; break-inside:avoid; margin:0; border:0; }
+    .shipping-label-paper:last-child { break-after:auto; }
+    @page shipping-label-a4 { size:A4 portrait; margin:5mm; }
+    .shipping-label-a4 { page:shipping-label-a4; width:200mm; }
+    .shipping-label-a4 .shipping-label-paper { break-after:auto; break-inside:avoid; border:0.25mm dashed #999; }
+}

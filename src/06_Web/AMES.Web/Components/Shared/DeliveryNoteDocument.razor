@@ -1,0 +1,20 @@
+<article class="delivery-note-document" lang="en">
+    <header class="delivery-document-header"><div><div class="delivery-document-brand">EOS · A-MES</div><h1>DELIVERY NOTE</h1><strong>@Note.Number</strong></div><div class="delivery-document-barcode"><Code128Barcode Value="@Note.Number" Height="52" /><span>@Note.Number</span></div></header>
+    <section class="delivery-document-parties"><div><small>SUPPLIER</small><strong>@Note.VendorName</strong><span>@Note.Vendor</span></div><div><small>DELIVER TO</small><strong>@Note.Buyer</strong><span>@Note.Destination</span></div></section>
+    <dl class="delivery-document-meta"><div><dt>Purchase order</dt><dd>@Note.OrderNumber</dd></div><div><dt>Delivery date</dt><dd>@string.Join(", ",Note.Lines.Select(l=>EnglishPrint.Date(l.ShipDate ?? Note.ShipDate)).Distinct())</dd></div><div><dt>Issued at</dt><dd>@EnglishPrint.DateTime(Note.IssuedAt)</dd></div></dl>
+    <table><colgroup><col style="width:6%" /><col style="width:24%" /><col style="width:34%" /><col style="width:20%" /><col style="width:16%" /></colgroup>
+        <thead><tr><th>No.</th><th>Part No.</th><th>Description</th><th>PO No.</th><th class="quantity">Quantity</th></tr></thead>
+        <tbody>@foreach(var line in Note.Lines){<tr><td>@line.Line</td><td class="part-number">@line.Item</td><td>@line.Name</td><td>@line.OrderNumber</td><td class="quantity">@EnglishPrint.Quantity(line.Quantity,line.Unit)</td></tr>}</tbody>
+    </table>
+    <p class="delivery-document-total">Total: @string.Join(" / ",Note.Lines.GroupBy(l=>l.Unit).Select(g=>EnglishPrint.Quantity(g.Sum(l=>l.Quantity),g.Key)))</p>
+    @if(ShippingUnits.Count>0)
+    {
+        <h2>SHIPPING UNITS</h2><table><thead><tr><th>Shipping Unit No.</th><th class="quantity">Unit Items</th><th class="quantity">Quantity</th></tr></thead>
+        <tbody>@foreach(var unit in ShippingUnits){<tr><td>@unit.Number</td><td class="quantity">@unit.Boxes.Count</td><td class="quantity">@string.Join(" / ",unit.Boxes.GroupBy(b=>b.Unit).Select(g=>EnglishPrint.Quantity(g.Sum(b=>b.Quantity),g.Key)))</td></tr>}</tbody></table>
+    }
+    <footer>@Note.Number · Issued by @Note.IssuedBy</footer>
+</article>
+@code {
+    [Parameter, EditorRequired] public ScmRepository.DeliveryNote Note {get;set;}=default!;
+    [Parameter] public IReadOnlyList<ScmRepository.DeliveryCase> ShippingUnits {get;set;}=[];
+}

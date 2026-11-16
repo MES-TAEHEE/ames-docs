@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Include="..\..\06_Web\AMES.Web\Services\ShippingLabel.cs" Link="Web\ShippingLabel.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\EnglishPrint.cs" Link="Web\EnglishPrint.cs" />
+    <Compile Include="..\..\06_Web\AMES.Web\Services\DeliveryPrintBundle.cs" Link="Web\DeliveryPrintBundle.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\LocationBarcodeSelection.cs" Link="Web\LocationBarcodeSelection.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Components\Pages\Wh\LogHistory.razor.cs" Link="Web\LogHistory.razor.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Components\Shared\LocationMapData.cs" Link="Web\LocationMapData.cs" />

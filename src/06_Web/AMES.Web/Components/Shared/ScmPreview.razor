@@ -200,6 +200,14 @@
                     <RadzenButton Icon="close" aria-label='@L["Btn.Close"]' data-portal-close Click="@(()=>{_printingDelivery=null;_printingNote=null;})" />
                 </div>
                 <div class="ames-modal-body scm-print-body" style="overflow:auto;min-height:0;">
+                    @if(PrintDocumentNumber is {} documentNumber)
+                    {
+                        <section class="scm-print-section">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="width:100%">
+                                <ShippingLabelPrint @key="documentNumber" Text='@L["SCM.Print.All"]' LoadLabels="ReloadPrintingLabels" BrowserPrint="()=>OpenPrintPacket(documentNumber)" />
+                            </RadzenStack>
+                        </section>
+                    }
                     <section class="scm-print-section">
                         <h3>@L["SCM.Preview.Print.Note"]</h3>
                         <table class="ames-table scm-print-table"><thead><tr><th>@L["Scm.Text.DeliveryNote"]</th><th>@L["SCM.Preview.Col.Action"]</th></tr></thead><tbody>
@@ -626,6 +634,18 @@
             if(_printingNote==note)_printingCases=cases;
         }
         catch(Exception ex) { Logger.LogWarning(ex,"Print case list failed"); if(_printingNote==note)_printingError=L["SCM.Preview.Err.LoadCases"]; }
+    }
+    string? PrintDocumentNumber => _printingNote is {} n && _printingDelivery is {} d && n.Number!=d.Number ? n.Number
+        : _printingDelivery is {} current && _noteDeliveries.TryGetValue(current.Number,out var choice) ? choice.NoteNumber : null;
+    void OpenPrintPacket(string number)=>OpenPreview("/portal/delivery-print/"+Uri.EscapeDataString(number)+"?autoPrint=true");
+    async Task<IReadOnlyList<ShippingLabel>> ReloadPrintingLabels()
+    {
+        var user=(await Authentication.GetAuthenticationStateAsync()).User;
+        var id=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var number=PrintDocumentNumber;
+        if(!PortalAuth.IsPortalUser(user)||string.IsNullOrWhiteSpace(id)||string.IsNullOrWhiteSpace(number))throw new InvalidOperationException(L["Portal.Note.AccessDenied"]);
+        try{return (await Task.Run(()=>DeliveryPrintBundle.Load(Scm,number,id))).AllLabels;}
+        catch(Exception ex){Logger.LogError(ex,"Delivery label packet load failed");throw new InvalidOperationException(L["Portal.Note.Unavailable"]);}
     }
     void OpenPreview(string url) => _previewUrl=url;
     void OpenCasePreview(string number) => OpenPreview("/portal/case-label/"+Uri.EscapeDataString(number));
