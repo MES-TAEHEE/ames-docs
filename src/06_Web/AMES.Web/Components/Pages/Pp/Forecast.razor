@@ -319,8 +319,6 @@
 
     // 업로드 이력 조회 필터 (업로드 일시 기준, null = 무제한)
     string    _hCustomer = "";
-    DateTime? _hFrom;
-    DateTime? _hTo;
 
     // 피벗 표시 모델. CustomerId는 전체 고객 조회에서만 표시.
     record ItemVm(string? CustomerId, string ItemNo, string Name, decimal? BaseInv, bool ItemExists,

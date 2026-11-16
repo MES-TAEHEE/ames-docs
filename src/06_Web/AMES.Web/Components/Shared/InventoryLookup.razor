@@ -207,8 +207,8 @@
         ? []
         : FilteredInventory.Where(x => x.PartNo == _selectedPart && !string.IsNullOrWhiteSpace(x.LotNo)).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
     private SummaryRow? SelectedSummary => SummaryRows.FirstOrDefault(x => x.PartNo == _selectedPart);
-    private string DetailWarehouses => ScopeNames(DetailRows.Select(x => (x.WarehouseCode, x.WarehouseName)));
-    private string DetailAreas => ScopeNames(DetailRows.Select(x => (x.AreaCode, x.AreaName)));
+    private string DetailWarehouses => ScopeNames(DetailRows.Select(x => ((string?)x.WarehouseCode, (string?)x.WarehouseName)));
+    private string DetailAreas => ScopeNames(DetailRows.Select(x => ((string?)x.AreaCode, (string?)x.AreaName)));
 
     protected override void OnParametersSet()
     {

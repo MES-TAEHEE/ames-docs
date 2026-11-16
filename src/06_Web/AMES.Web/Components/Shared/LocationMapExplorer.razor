@@ -116,7 +116,7 @@
                     </div>
                     @if (_hierView == "table")
                     {
-                        <RadzenDataGrid TItem="StageCard" Data="SelectionRows" RowClick="@(args => { if (args.Data is not null) OpenStageRowAsync(args.Data, SelectionScope); })" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                        <RadzenDataGrid TItem="StageCard" Data="SelectionRows" RowClick="@(async args => { if (args.Data is not null) await OpenStageRowAsync(args.Data, SelectionScope); })" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
                             <Columns>
                                 <RadzenDataGridColumn TItem="StageCard" Property="Key" Title="@L["Col.Code"]" />
                                 <RadzenDataGridColumn TItem="StageCard" Property="Name" Title="@L["Col.Name"]" />
