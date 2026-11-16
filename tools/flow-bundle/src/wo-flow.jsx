@@ -13,12 +13,14 @@ import '@xyflow/react/dist/style.css';
 // ───── 쉽게 바꾸는 값 ─────────────────────────────────────────────────────────────
 // 바꾼 뒤: cd tools/flow-bundle && npm run build  → Web 재시작 · Ctrl+F5
 const FIT = {
-  padding: 0.15,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
+  // padding: 0.15,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
+  padding: 2,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
   durationMs: 300,        // 맞춤 애니메이션 시간
 };
 const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
 const ZOOM = { min: 0.2, max: 1.8 };                                         // 사용자가 휠로 줄이고 늘릴 수 있는 한계
-const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
+//const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
+const GRID = { show: true, variant: 'lines', gap: 18, color: '#1e293b', size: undefined };  // 격자를 선으로 바꾸고 색으로
 const EDGE = {                                                               // 선(간선)
   width: undefined,       // 일반 선 굵기(예 2) — 없으면 기본(1)
   color: undefined,       // 일반 선 색(예 '#64748b') — 없으면 기본
