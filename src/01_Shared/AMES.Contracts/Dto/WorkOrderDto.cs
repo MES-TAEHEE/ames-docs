@@ -28,6 +28,10 @@ public sealed class WorkOrderDto
     public string?           SapRef        { get; init; }
     /// <summary>Source sales order number (via PP_CustomerOrder.SoID), when WO was created from a plan.</summary>
     public string?           SoNumber      { get; init; }
+    /// <summary>생성 경로: PLAN003(PP-003 일괄) · APS · MANUAL(수동 발행) · null(기록 없음).</summary>
+    public string?           SourceType    { get; init; }
+    /// <summary>생성 근거 번호 — PLAN003 은 일괄 생성 묶음 번호, APS 는 실행 번호(PP_ApsRun.RunID).</summary>
+    public string?           SourceRef     { get; init; }
 
     // ── 공정 단계 (PP_WorkOrderRouting) ──────────────────────────────
     // 필드 의미 규칙:

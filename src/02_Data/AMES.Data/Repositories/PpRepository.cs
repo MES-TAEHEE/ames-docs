@@ -970,10 +970,10 @@ public sealed partial class PpRepository
 
     const string InsertWoForOrderSql = """
         INSERT INTO dbo.PP_WorkOrder
-               (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, CreatedBy, CreatedTS)
+               (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, SourceType, SourceRef, CreatedBy, CreatedTS)
         OUTPUT INSERTED.WoID, INSERTED.OrderQty
         SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, @Deadline, i.RoutingType,
-               'Draft', @Actor, SYSDATETIME()
+               'Draft', 'PLAN003', @Ref, @Actor, SYSDATETIME()
         FROM   dbo.PP_CustomerOrder s
         JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
         OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.WH_Inventory f
@@ -999,6 +999,8 @@ public sealed partial class PpRepository
         ins.Parameters.Add("@Deadline", SqlDbType.Date);
         ins.Parameters.Add("@Actor",    SqlDbType.VarChar,   20).Value = actor;
         ins.Parameters.Add("@UseNet",   SqlDbType.Bit).Value = useNetReq;
+        // 한 번의 일괄 생성으로 만든 WO 는 같은 묶음 번호를 갖는다(계획 → WO 연결)
+        ins.Parameters.Add("@Ref",      SqlDbType.VarChar,   30).Value = "PC-" + DbClock.Now.ToString("yyyyMMdd-HHmmss");
         var qtyP = ins.Parameters.Add("@Qty", SqlDbType.Decimal); qtyP.Precision = 18; qtyP.Scale = 3; qtyP.Value = DBNull.Value;
         return ins;
     }

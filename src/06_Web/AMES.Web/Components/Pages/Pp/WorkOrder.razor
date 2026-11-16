@@ -115,6 +115,9 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="140px" Property="SoNumber" Title="SAP SO" Width="140px">
                 <Template Context="w"><span class="dim">@(w.SoNumber ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="170px" Property="SourceType" Title="@L["PP.WorkOrder.Col.Source"].Value" Width="170px">
+                <Template Context="w"><span class="pill info" title="@SourceTitle(w)">@SourceText(w)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="180px" Title="@L["PP.WorkOrder.Col.Action"].Value"
                                   Sortable="false" Filterable="false" Width="180px">
                 <Template Context="w">
@@ -163,6 +166,39 @@ else
                         }
                     }
                 </div>
+                @if (_trace.TryGetValue(w.WoId, out var tr) && tr is not null)
+                {
+                    <div class="dim" style="font-size:.8em;margin-bottom:6px;">@L["PP.WorkOrder.Trace.Title"]</div>
+                    <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                        <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.So"]</div>
+                            <div>@(tr.SoNumber is null ? "—" : $"{tr.SoNumber}{(tr.SoLineNo is int ln ? "-" + ln : "")}")</div>
+                            <div class="dim" style="font-size:.8em;">@(tr.CustomerId ?? "—") · @(tr.SoQty is decimal sq ? sq.ToString("#,0") + " EA" : "—") · @(tr.SoDue?.ToString(DateFmt.Date) ?? "—")</div></div>
+                        <span class="dim" style="align-self:center;">→</span>
+                        <div class="pill info" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Plan"]</div>
+                            @if (tr.SourceType == "APS" && int.TryParse(tr.SourceRef, out var runId))
+                            {
+                                <div><a href="/pp/aps-plan?run=@runId">APS @L["PP.WorkOrder.Trace.Run"] #@runId</a></div>
+                                <div class="dim" style="font-size:.8em;">@(tr.ApsStatus ?? "—") · @(tr.ApsAt?.ToString(DateFmt.DateTime) ?? "—")</div>
+                            }
+                            else
+                            {
+                                <div>@SourceText(w)</div>
+                                <div class="dim" style="font-size:.8em;">@SourceTitle(w)</div>
+                            }</div>
+                        <span class="dim" style="align-self:center;">→</span>
+                        <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Wo"]</div>
+                            <div>@tr.WoNumber</div>
+                            <div class="dim" style="font-size:.8em;">@w.OrderQty.ToString("#,0") EA · @w.Status</div></div>
+                        <span class="dim" style="align-self:center;">→</span>
+                        <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Slots"]</div>
+                            <div><a href="/pp/line-schedule">@tr.SlotCount @L["PP.WorkOrder.Trace.SlotUnit"]</a> · @tr.SlotQty.ToString("#,0") EA</div>
+                            <div class="dim" style="font-size:.8em;">@(tr.SlotFrom is null ? "—" : tr.SlotFrom.Value.ToString(DateFmt.Date) + (tr.SlotTo != tr.SlotFrom ? " ~ " + tr.SlotTo?.ToString(DateFmt.Date) : ""))</div></div>
+                        <span class="dim" style="align-self:center;">→</span>
+                        <div class="pill" style="padding:6px 10px;"><div class="dim" style="font-size:.75em;">@L["PP.WorkOrder.Trace.Result"]</div>
+                            <div>@L["PP.WorkOrder.Trace.Good"] @tr.GoodQty.ToString("#,0") · @L["PP.WorkOrder.Trace.Defect"] @tr.DefectCount</div>
+                            <div class="dim" style="font-size:.8em;">LOT @tr.LotCount</div></div>
+                    </div>
+                }
                 <div style="display:flex;gap:32px;flex-wrap:wrap;">
                     <div><div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["Col.Progress"]</div>
                          <div>@w.OrderQty.ToString("#,0") EA · @((int)w.ProgressPct)%</div></div>
@@ -188,12 +224,34 @@ else
 
     readonly Dictionary<int, List<AMES.Data.Repositories.WorkOrderRepository.StepRow>> _steps = new();
 
+    readonly Dictionary<int, AMES.Data.Repositories.WorkOrderRepository.WoTraceRow?> _trace = new();
+
     void LoadSteps(WorkOrderDto w)
     {
+        if (!_trace.ContainsKey(w.WoId))
+        {
+            try { _trace[w.WoId] = Wos.GetTrace(w.WoId); }
+            catch { _trace[w.WoId] = null; }
+        }
         if (_steps.ContainsKey(w.WoId)) return;
         try { _steps[w.WoId] = Wos.ListSteps(w.WoId); }
         catch { _steps[w.WoId] = new(); }
     }
+
+    // 생성 경로 — PP-003 일괄 · APS 실행 · 수동 발행 · 기록 없음(옛 WO)
+    string SourceText(WorkOrderDto w) => w.SourceType switch
+    {
+        "APS"     => $"APS {L["PP.WorkOrder.Trace.Run"].Value} #{w.SourceRef}",
+        "PLAN003" => L["PP.WorkOrder.Src.Plan003"].Value,
+        "MANUAL"  => L["PP.WorkOrder.Src.Manual"].Value,
+        _         => L["PP.WorkOrder.Src.None"].Value,
+    };
+    string SourceTitle(WorkOrderDto w) => w.SourceType switch
+    {
+        "PLAN003" => w.SourceRef ?? "",
+        "APS"     => $"PP_ApsRun {w.SourceRef}",
+        _         => "",
+    };
 
     static string StepTitle(AMES.Data.Repositories.WorkOrderRepository.StepRow s, WorkOrderDto w) =>
         $"{s.LineId ?? "—"} · {s.ItemNo} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";

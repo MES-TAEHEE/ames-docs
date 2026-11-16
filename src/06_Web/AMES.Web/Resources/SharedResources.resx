@@ -2508,6 +2508,126 @@
   <data name="PP.WorkOrder.Detail.ProdDeadline" xml:space="preserve">
     <value>생산 마감일</value>
   </data>
+  <data name="PP.WorkOrder.Col.Source" xml:space="preserve">
+    <value>생성 경로</value>
+  </data>
+  <data name="PP.WorkOrder.Src.Plan003" xml:space="preserve">
+    <value>PP-003 일괄 생성</value>
+  </data>
+  <data name="PP.WorkOrder.Src.Manual" xml:space="preserve">
+    <value>수동 발행</value>
+  </data>
+  <data name="PP.WorkOrder.Src.None" xml:space="preserve">
+    <value>기록 없음</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Title" xml:space="preserve">
+    <value>계획 → 실행 연결</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.So" xml:space="preserve">
+    <value>수주</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Plan" xml:space="preserve">
+    <value>계획</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Run" xml:space="preserve">
+    <value>실행</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Wo" xml:space="preserve">
+    <value>작업지시</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Slots" xml:space="preserve">
+    <value>라인 슬롯</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.SlotUnit" xml:space="preserve">
+    <value>건</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Result" xml:space="preserve">
+    <value>실적</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Good" xml:space="preserve">
+    <value>양품</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Defect" xml:space="preserve">
+    <value>불량</value>
+  </data>
+  <data name="PP.WoDetail.NotFound" xml:space="preserve">
+    <value>작업지시를 찾을 수 없습니다.</value>
+  </data>
+  <data name="PP.WoDetail.ClickTip" xml:space="preserve">
+    <value>작업지시 내용 보기</value>
+  </data>
+  <data name="PP.WoDetail.Lock" xml:space="preserve">
+    <value>터미널 점유</value>
+  </data>
+  <data name="PP.WoDetail.Done" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="PP.WoDetail.Open" xml:space="preserve">
+    <value>잔량</value>
+  </data>
+  <data name="PP.WoDetail.Mold" xml:space="preserve">
+    <value>금형</value>
+  </data>
+  <data name="PP.WoDetail.Priority" xml:space="preserve">
+    <value>우선순위</value>
+  </data>
+  <data name="PP.WoDetail.Steps" xml:space="preserve">
+    <value>공정 단계 · 현재 상태</value>
+  </data>
+  <data name="PP.WoDetail.Step" xml:space="preserve">
+    <value>단계</value>
+  </data>
+  <data name="PP.WoDetail.OpenWo" xml:space="preserve">
+    <value>작업지시 화면으로</value>
+  </data>
+  <data name="PP.WoDetail.Mode.Detail" xml:space="preserve">
+    <value>상세</value>
+  </data>
+  <data name="PP.WoDetail.Mode.Flow" xml:space="preserve">
+    <value>흐름</value>
+  </data>
+  <data name="PP.WoDetail.OpenLink" xml:space="preserve">
+    <value>열기</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Live" xml:space="preserve">
+    <value>{0}초마다 자동 갱신 · 마지막 {1}</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Done" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Running" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Waiting" xml:space="preserve">
+    <value>대기</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Cancelled" xml:space="preserve">
+    <value>취소</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Fit" xml:space="preserve">
+    <value>전체 보기</value>
+  </data>
+  <data name="PP.WoDetail.Flow.ShowRunning" xml:space="preserve">
+    <value>진행 중 보기</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Hint" xml:space="preserve">
+    <value>끌어서 이동 · 휠로 확대/축소 · 노드를 옮길 수 있음</value>
+  </data>
+  <data name="PP.WoDetail.Operator" xml:space="preserve">
+    <value>작업자</value>
+  </data>
+  <data name="PP.WoDetail.Operator.Now" xml:space="preserve">
+    <value>현재 작업자</value>
+  </data>
+  <data name="PP.WoDetail.Operator.Last" xml:space="preserve">
+    <value>최근 실적</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Fullscreen" xml:space="preserve">
+    <value>전체화면</value>
+  </data>
+  <data name="PP.WoDetail.Flow.ExitFullscreen" xml:space="preserve">
+    <value>전체화면 종료</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

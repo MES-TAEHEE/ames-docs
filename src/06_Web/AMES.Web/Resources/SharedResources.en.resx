@@ -2508,6 +2508,126 @@
   <data name="PP.WorkOrder.Detail.ProdDeadline" xml:space="preserve">
     <value>Prod. deadline</value>
   </data>
+  <data name="PP.WorkOrder.Col.Source" xml:space="preserve">
+    <value>Created from</value>
+  </data>
+  <data name="PP.WorkOrder.Src.Plan003" xml:space="preserve">
+    <value>PP-003 batch</value>
+  </data>
+  <data name="PP.WorkOrder.Src.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="PP.WorkOrder.Src.None" xml:space="preserve">
+    <value>Not recorded</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Title" xml:space="preserve">
+    <value>Plan → execution trace</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.So" xml:space="preserve">
+    <value>Sales order</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Run" xml:space="preserve">
+    <value>run</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Wo" xml:space="preserve">
+    <value>Work order</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Slots" xml:space="preserve">
+    <value>Line slots</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.SlotUnit" xml:space="preserve">
+    <value>slots</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="PP.WorkOrder.Trace.Defect" xml:space="preserve">
+    <value>Defects</value>
+  </data>
+  <data name="PP.WoDetail.NotFound" xml:space="preserve">
+    <value>Work order not found.</value>
+  </data>
+  <data name="PP.WoDetail.ClickTip" xml:space="preserve">
+    <value>View work order</value>
+  </data>
+  <data name="PP.WoDetail.Lock" xml:space="preserve">
+    <value>Terminal lock</value>
+  </data>
+  <data name="PP.WoDetail.Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="PP.WoDetail.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="PP.WoDetail.Mold" xml:space="preserve">
+    <value>Mold</value>
+  </data>
+  <data name="PP.WoDetail.Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="PP.WoDetail.Steps" xml:space="preserve">
+    <value>Process steps · current status</value>
+  </data>
+  <data name="PP.WoDetail.Step" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="PP.WoDetail.OpenWo" xml:space="preserve">
+    <value>Open work orders</value>
+  </data>
+  <data name="PP.WoDetail.Mode.Detail" xml:space="preserve">
+    <value>Detail</value>
+  </data>
+  <data name="PP.WoDetail.Mode.Flow" xml:space="preserve">
+    <value>Flow</value>
+  </data>
+  <data name="PP.WoDetail.OpenLink" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Live" xml:space="preserve">
+    <value>Auto-refresh every {0}s · last {1}</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Running" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Waiting" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Fit" xml:space="preserve">
+    <value>Fit all</value>
+  </data>
+  <data name="PP.WoDetail.Flow.ShowRunning" xml:space="preserve">
+    <value>Go to running</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Hint" xml:space="preserve">
+    <value>Drag to pan · wheel to zoom · nodes can be moved</value>
+  </data>
+  <data name="PP.WoDetail.Operator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="PP.WoDetail.Operator.Now" xml:space="preserve">
+    <value>Now</value>
+  </data>
+  <data name="PP.WoDetail.Operator.Last" xml:space="preserve">
+    <value>Last result</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Fullscreen" xml:space="preserve">
+    <value>Full screen</value>
+  </data>
+  <data name="PP.WoDetail.Flow.ExitFullscreen" xml:space="preserve">
+    <value>Exit full screen</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>

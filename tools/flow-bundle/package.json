@@ -1,0 +1,17 @@
+{
+  "name": "ames-flow-bundle",
+  "private": true,
+  "version": "1.0.0",
+  "description": "React Flow(@xyflow/react) 를 AMES.Web 이 쓰는 한 개 ESM 파일로 묶는다 — CDN 없이 공장망에서도 동작",
+  "scripts": {
+    "build": "esbuild src/wo-flow.jsx --bundle --minify --format=esm --define:process.env.NODE_ENV=\\\"production\\\" --outfile=../../src/06_Web/AMES.Web/wwwroot/js/wo-flow/wo-flow.js"
+  },
+  "dependencies": {
+    "@xyflow/react": "^13.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

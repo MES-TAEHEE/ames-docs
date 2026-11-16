@@ -205,6 +205,7 @@ FILES=(
   migrate_mnt_failure_type_widen.sql # MNT_FailureRegister.FailureType varchar(20) — 안돈 원인 코드(10-28)
   migrate_md_reason_type_code.sql    # 공통코드 REASON_TYPE — MD-025 사유 유형 콤보(11-13), 순서 무관
   migrate_md_bop_insp_std.sql        # MD_Bop.InspStdID — BOP 단계 QC 검사 기준 연결(MD-017 삭제 사용처), 감사 컬럼 정렬 앞
+  migrate_pp_wo_source.sql           # PP_WorkOrder.SourceType/SourceRef — WO 생성 경로(PP-003·APS·수동) 기록(11-16), 감사 컬럼 정렬 앞
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
   migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
   migrate_pop_confirm_perf_index.sql # POP 확정 경로 인덱스 — 실적 LotID·사출 LOT 설비×캐비티×LotID(10-27), 순서 무관

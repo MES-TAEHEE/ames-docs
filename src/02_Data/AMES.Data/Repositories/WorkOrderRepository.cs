@@ -189,6 +189,7 @@ public sealed class WorkOrderRepository
                    AS BIT) AS Phase0Complete,
                    NULL AS SapRef,
                    so.SoNumber AS SoNumber,
+                   w.SourceType, w.SourceRef,
                    (SELECT STRING_AGG(CAST(COALESCE(r.LineID, r.ProcessCode + N'(—)') AS nvarchar(40)), N' → ')
                                WITHIN GROUP (ORDER BY r.StepSeq)
                     FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID) AS RouteLines
@@ -244,6 +245,122 @@ public sealed class WorkOrderRepository
 
         return Query(sql, cmd => cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId)
                .FirstOrDefault();
+    }
+
+    /// <summary>WO 번호로 한 건 — 상태와 관계없이(목록 조회는 끝난 WO 를 일정 기간만 준다). 팝업·연결 화면용.</summary>
+    public WorkOrderDto? GetByNumber(string woNumber)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
+                   w.MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, w.Status, w.TerminalLock,
+                   ISNULL(w.Priority,5) AS Priority,
+                   w.RoutingType,
+                   CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_BOM bm WHERE bm.ParentItemNo = w.ItemNo)
+                              AND EXISTS(SELECT 1 FROM dbo.MD_BOP bp WHERE bp.ItemNo        = w.ItemNo)
+                             THEN 1 ELSE 0 END AS BIT) AS Phase0Complete,
+                   NULL AS SapRef,
+                   so.SoNumber AS SoNumber,
+                   w.SourceType, w.SourceRef,
+                   (SELECT STRING_AGG(CAST(COALESCE(r.LineID, r.ProcessCode + N'(—)') AS nvarchar(40)), N' → ')
+                               WITHIN GROUP (ORDER BY r.StepSeq)
+                    FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID) AS RouteLines
+            FROM   dbo.PP_WorkOrder w
+            JOIN   dbo.MD_Item      i  ON i.ItemNo = w.ItemNo
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+            WHERE  w.WoNumber = @N;
+            """;
+        return Query(sql, cmd => cmd.Parameters.Add("@N", SqlDbType.VarChar, 20).Value = woNumber).FirstOrDefault();
+    }
+
+    /// <summary>그 라인에서 지금 로그인해 있는 POP 단말(열린 세션).</summary>
+    public sealed record OperatorSession(string Operator, string? Terminal, DateTime StartedAt);
+
+    /// <summary>
+    /// 공정 단계(라인)별 작업자 — Sessions = 그 라인의 열린 POP 세션(로그아웃·만료 전), LastOperator = 이 작업지시 실적을 마지막으로 올린 사번.
+    /// 현재 작업자의 정본은 열린 세션이고, 세션이 없으면 마지막 실적자가 「최근」으로 보인다.
+    /// </summary>
+    public sealed record StepOperators(string LineId, IReadOnlyList<OperatorSession> Sessions, string? LastOperator, DateTime? LastAt);
+
+    public List<StepOperators> ListStepOperators(int woId)
+    {
+        const string sql = """
+            SELECT DISTINCT r.LineID FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = @Wo AND r.LineID IS NOT NULL;
+
+            SELECT s.LineID, s.OperatorID, s.TerminalID, s.StartedAt
+            FROM   dbo.PR_PopSession s
+            WHERE  s.LoggedOutAt IS NULL AND s.ExpiresAt > SYSDATETIME() AND s.LineID IN
+                   (SELECT r.LineID FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = @Wo)
+            ORDER  BY s.StartedAt DESC;
+
+            SELECT x.LineID, x.OperatorID, x.EntryAt FROM (
+                SELECT p.LineID, p.OperatorID, p.EntryAt,
+                       ROW_NUMBER() OVER (PARTITION BY p.LineID ORDER BY p.EntryAt DESC, p.ResultID DESC) AS rn
+                FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL) x
+            WHERE x.rn = 1;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        var lines = new List<string>();
+        while (r.Read()) lines.Add((string)r["LineID"]);
+        var sessions = new Dictionary<string, List<OperatorSession>>(StringComparer.OrdinalIgnoreCase);
+        r.NextResult();
+        while (r.Read())
+        {
+            var line = (string)r["LineID"];
+            if (!sessions.TryGetValue(line, out var l)) sessions[line] = l = new();
+            l.Add(new OperatorSession((string)r["OperatorID"], r["TerminalID"] as string, (DateTime)r["StartedAt"]));
+        }
+        var last = new Dictionary<string, (string Op, DateTime At)>(StringComparer.OrdinalIgnoreCase);
+        r.NextResult();
+        while (r.Read()) last[(string)r["LineID"]] = ((string)r["OperatorID"], (DateTime)r["EntryAt"]);
+        return lines.Select(line => new StepOperators(line,
+            sessions.TryGetValue(line, out var ss) ? ss : [],
+            last.TryGetValue(line, out var lt) ? lt.Op : null,
+            last.TryGetValue(line, out var lt2) ? lt2.At : null)).ToList();
+    }
+
+    /// <summary>작업지시 하나의 계획 → 실행 연결(수주 · 생성 경로 · 슬롯 · 실적). 화면 상세와 재무 자료의 기준.</summary>
+    public sealed record WoTraceRow(
+        string WoNumber, string? SourceType, string? SourceRef,
+        string? SoNumber, int? SoLineNo, string? CustomerId, decimal? SoQty, DateTime? SoDue,
+        int SlotCount, DateTime? SlotFrom, DateTime? SlotTo, decimal SlotQty,
+        decimal GoodQty, int DefectCount, int LotCount,
+        string? ApsStatus, DateTime? ApsAt);
+
+    public WoTraceRow? GetTrace(int woId)
+    {
+        const string sql = """
+            SELECT w.WoNumber, w.SourceType, w.SourceRef,
+                   so.SoNumber, so.SoLineNo, so.CustomerID, so.OrderQty AS SoQty, so.RequestedDeliveryDate AS SoDue,
+                   (SELECT COUNT(*)                FROM dbo.PP_LineSchedule s WHERE s.WoID = w.WoID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotCount,
+                   (SELECT MIN(s.ScheduleDate)     FROM dbo.PP_LineSchedule s WHERE s.WoID = w.WoID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotFrom,
+                   (SELECT MAX(s.ScheduleDate)     FROM dbo.PP_LineSchedule s WHERE s.WoID = w.WoID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotTo,
+                   (SELECT ISNULL(SUM(s.PlannedQty), 0) FROM dbo.PP_LineSchedule s WHERE s.WoID = w.WoID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotQty,
+                   (SELECT ISNULL(SUM(r.GoodQty), 0) FROM dbo.PR_ProductionResult r WHERE r.WoID = w.WoID) AS GoodQty,
+                   (SELECT COUNT(*)                FROM dbo.PR_DefectDetail d WHERE d.WoID = w.WoID) AS DefectCount,
+                   (SELECT COUNT(DISTINCT r.LotID) FROM dbo.PR_ProductionResult r WHERE r.WoID = w.WoID AND r.LotID IS NOT NULL) AS LotCount,
+                   ar.Status AS ApsStatus, ar.CreatedTS AS ApsAt
+            FROM   dbo.PP_WorkOrder w
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+            LEFT JOIN dbo.PP_ApsRun ar ON w.SourceType = 'APS' AND ar.RunID = TRY_CONVERT(int, w.SourceRef)
+            WHERE  w.WoID = @Wo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+        string? S(string c) => r[c] as string;
+        DateTime? D(string c) => r[c] as DateTime?;
+        return new WoTraceRow(
+            S("WoNumber") ?? "", S("SourceType"), S("SourceRef"),
+            S("SoNumber"), r["SoLineNo"] is int ln ? ln : null, S("CustomerID"), r["SoQty"] as decimal?, D("SoDue"),
+            Convert.ToInt32(r["SlotCount"]), D("SlotFrom"), D("SlotTo"), Convert.ToDecimal(r["SlotQty"]),
+            Convert.ToDecimal(r["GoodQty"]), Convert.ToInt32(r["DefectCount"]), Convert.ToInt32(r["LotCount"]),
+            S("ApsStatus"), D("ApsAt"));
     }
 
     /// <summary>이 터미널이 진행 중인 단계의 WO. LineId·Status·CompletedQty 는 단계 값.</summary>
@@ -749,8 +866,8 @@ public sealed class WorkOrderRepository
         var prefix = $"WO-{DbClock.Today:yyyyMMdd}-";
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
-                   (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, i.RoutingType, 'Draft', @Actor, SYSDATETIME()
+                   (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, SourceType, CreatedBy, CreatedTS)
+            SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, i.RoutingType, 'Draft', 'MANUAL', @Actor, SYSDATETIME()
             FROM   dbo.MD_Item i
             WHERE  i.ItemNo = @ItemNo
               AND  i.RoutingType IS NOT NULL;
@@ -821,6 +938,8 @@ public sealed class WorkOrderRepository
                 Phase0Complete = HasColumn(rdr, "Phase0Complete") && rdr["Phase0Complete"] is true,
                 SapRef        = HasColumn(rdr, "SapRef")        ? rdr["SapRef"]        as string  : null,
                 SoNumber      = HasColumn(rdr, "SoNumber")      ? rdr["SoNumber"]      as string  : null,
+                SourceType    = HasColumn(rdr, "SourceType")    ? rdr["SourceType"]    as string  : null,
+                SourceRef     = HasColumn(rdr, "SourceRef")     ? rdr["SourceRef"]     as string  : null,
                 RoutingLineId = HasColumn(rdr, "RoutingLineID") ? rdr["RoutingLineID"] as int?    : null,
                 StepSeq       = HasColumn(rdr, "StepSeq") && rdr["StepSeq"] is not DBNull ? (int?)Convert.ToInt32(rdr["StepSeq"]) : null,
                 ProcessCode   = HasColumn(rdr, "ProcessCode")   ? rdr["ProcessCode"]   as string  : null,

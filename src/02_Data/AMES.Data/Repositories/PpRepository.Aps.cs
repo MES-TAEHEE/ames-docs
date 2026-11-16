@@ -99,9 +99,9 @@ public sealed partial class PpRepository
 
     /// <summary>CreateManualWo 의 INSERT 형태 + SoID(NULL 허용)·ProdDeadline·OUTPUT. 라우팅 없는 품목은 0행.</summary>
     internal const string InsertApsWoSql = """
-        INSERT INTO dbo.PP_WorkOrder (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, CreatedBy, CreatedTS)
+        INSERT INTO dbo.PP_WorkOrder (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, SourceType, SourceRef, CreatedBy, CreatedTS)
         OUTPUT INSERTED.WoID
-        SELECT @Wo, @SoID, i.ItemNo, @Qty, @Qty, @Due, @Deadline, i.RoutingType, 'Draft', @Actor, SYSDATETIME()
+        SELECT @Wo, @SoID, i.ItemNo, @Qty, @Qty, @Due, @Deadline, i.RoutingType, 'Draft', 'APS', @Ref, @Actor, SYSDATETIME()
         FROM   dbo.MD_Item i WHERE i.ItemNo = @ItemNo AND i.RoutingType IS NOT NULL;
         """;
 
@@ -353,7 +353,7 @@ public sealed partial class PpRepository
 
             // 2단계: WO INSERT + Release — 부모·날짜 순. MC 의 RefID 로 대표 첫 WO 가 필요해 슬롯보다 먼저 전부 만든다
             var seq = NextWoSeq(conn, tx, prefix);
-            using var ins = BuildInsertApsWo(conn, tx, actor);
+            using var ins = BuildInsertApsWo(conn, tx, actor, runId);
             foreach (var plan in plans.Values.OrderBy(p => p.PlanDate).ThenBy(p => p.ItemNo, StringComparer.Ordinal))
             {
                 var firstLine = plan.FirstLeg.Line;
@@ -1044,7 +1044,7 @@ public sealed partial class PpRepository
         return Convert.ToDecimal(cmd.ExecuteScalar());
     }
 
-    static SqlCommand BuildInsertApsWo(SqlConnection conn, SqlTransaction tx, string actor)
+    static SqlCommand BuildInsertApsWo(SqlConnection conn, SqlTransaction tx, string actor, int runId)
     {
         var ins = new SqlCommand(InsertApsWoSql, conn, tx);
         ins.Parameters.Add("@Wo",       SqlDbType.VarChar, 20);
@@ -1054,6 +1054,7 @@ public sealed partial class PpRepository
         ins.Parameters.Add("@Due",      SqlDbType.Date);
         ins.Parameters.Add("@Deadline", SqlDbType.Date);
         ins.Parameters.Add("@Actor",    SqlDbType.VarChar,  20).Value = actor;
+        ins.Parameters.Add("@Ref",      SqlDbType.VarChar,  30).Value = runId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return ins;
     }
 

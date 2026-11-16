@@ -5551,6 +5551,8 @@ CREATE TABLE [dbo].[PP_WorkOrder](
 	[ReleasedAt] [datetime2](7) NULL,
 	[ReleasedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[ProdDeadline] [date] NULL,
+	[SourceType] [varchar](10) COLLATE DATABASE_DEFAULT NULL,
+	[SourceRef] [varchar](30) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,

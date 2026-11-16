@@ -1,0 +1,263 @@
+@using AMES.Contracts.Dto
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject DialogService Dialog
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JS
+@inject AMES.Web.Services.ActorNames Actors
+@implements IAsyncDisposable
+@using AMES.Data.Services
+
+@* 작업지시 한 건의 내용·현재 상태·계획 → 실행 연결을 보여 주는 팝업. 수주(PP-002)·APS 등 WO 번호가 보이는 화면에서 연다. *@
+<div style="min-width:640px;">
+@if (_wo is null)
+{
+    <div class="dim" style="padding:12px;">@L["PP.WoDetail.NotFound"]</div>
+}
+else
+{
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <b style="font-size:1.1em;">@_wo.WoNumber</b>
+        <span class="pill @StatusClass(_wo.Status)">@_wo.Status</span>
+        <span class="pill info">@SourceText()</span>
+        @if (_wo.TerminalLock is { Length: > 0 }) { <span class="pill warn" title="@L["PP.WoDetail.Lock"]">🔒 @_wo.TerminalLock</span> }
+    </div>
+
+    <div style="margin-bottom:10px;">
+        <RadzenSelectBar TValue="string" Value="@_mode" ValueChanged="@OnModeChanged" Size="ButtonSize.Small">
+            <Items>
+                <RadzenSelectBarItem Text="@L["PP.WoDetail.Mode.Detail"].Value" Value="@("detail")" />
+                <RadzenSelectBarItem Text="@L["PP.WoDetail.Mode.Flow"].Value" Value="@("flow")" />
+            </Items>
+        </RadzenSelectBar>
+    </div>
+
+    @if (_mode == "flow")
+    {
+        <link rel="stylesheet" href="@(Nav.BaseUri)js/wo-flow/wo-flow.css" />
+        <div id="@_flowId" class="ames-flow-host" style="height:clamp(420px,62vh,820px);width:100%;"></div>
+        <div class="dim" style="font-size:.8em;margin-top:4px;">@(_live ? "● " : "")@string.Format(L["PP.WoDetail.Flow.Live"].Value, RefreshSec, _updatedAt.ToString("HH:mm:ss"))</div>
+        @if (!string.IsNullOrEmpty(_flowError)) { <div style="color:var(--ames-tx-red-400);">@_flowError</div> }
+    }
+    else
+    {
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 24px;margin-bottom:12px;">
+        <div><div class="dim" style="font-size:.8em;">@L["Col.PartNo"]</div><div>@_wo.ItemNo</div><div class="dim" style="font-size:.85em;">@_wo.ItemName</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["PP.WoDetail.Done"] / @L["PP.WoDetail.Open"]</div>
+             <div>@_wo.OrderQty.ToString("#,0") / @_wo.CompletedQty.ToString("#,0") / @_wo.OpenQty.ToString("#,0") EA</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["Col.Progress"]</div>
+             <div style="display:flex;align-items:center;gap:6px;"><RadzenProgressBar Value="@Math.Min(100d, (double)_wo.ProgressPct)" ShowValue="false" Style="width:90px;height:8px;" /> @((int)_wo.ProgressPct)%</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div><div>@(_wo.DueDate?.ToString(DateFmt.Date) ?? "—")</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.ProdDeadline"]</div><div>@(_wo.ProdDeadline?.ToString(DateFmt.Date) ?? "—")</div></div>
+        <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(_wo.SoNumber ?? "—")</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["Col.Routing"]</div><div>@(_wo.RoutingType ?? "INJ") · @(_wo.RouteLines ?? "—")</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["PP.WoDetail.Mold"]</div><div>@(_wo.MoldId ?? "—")</div></div>
+        <div><div class="dim" style="font-size:.8em;">@L["PP.WoDetail.Priority"]</div><div>@_wo.Priority</div></div>
+    </div>
+
+    <div class="dim" style="font-size:.8em;margin-bottom:4px;">@L["PP.WoDetail.Steps"]</div>
+    @if (_steps.Count == 0)
+    {
+        <div class="dim" style="margin-bottom:12px;">—</div>
+    }
+    else
+    {
+        <table class="ames-table" style="width:100%;margin-bottom:12px;">
+            <thead><tr><th>@L["PP.WoDetail.Step"]</th><th>@L["Col.Line"]</th><th>@L["Col.PartNo"]</th><th>@L["Col.Status"]</th><th>@L["PP.WoDetail.Operator"]</th><th style="text-align:right;">@L["PP.WoDetail.Done"]</th></tr></thead>
+            <tbody>
+            @foreach (var s in _steps)
+            {
+                <tr>
+                    <td>@s.StepSeq · @s.ProcessCode</td>
+                    <td>@(s.LineId ?? "—")</td>
+                    <td>@s.ItemNo</td>
+                    <td><span class="pill @StatusClass(s.Status)">@s.Status</span></td>
+                    <td>@OperatorCell(s.LineId)</td>
+                    <td style="text-align:right;">@s.CompletedQty.ToString("#,0") / @_wo.OrderQty.ToString("#,0")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    @if (_trace is { } t)
+    {
+        <div class="dim" style="font-size:.8em;margin-bottom:4px;">@L["PP.WorkOrder.Trace.Title"]</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px;margin-bottom:12px;">
+            <div><span class="dim">@L["PP.WorkOrder.Trace.Plan"]:</span>
+                @if (t.SourceType == "APS" && int.TryParse(t.SourceRef, out var runId))
+                {
+                    <a href="/pp/aps-plan?run=@runId" @onclick="Dialog.Close">APS @L["PP.WorkOrder.Trace.Run"] #@runId</a>
+                    <span class="dim"> · @(t.ApsStatus ?? "—")</span>
+                }
+                else { <span>@SourceText() @(t.SourceRef is { Length: > 0 } ? "· " + t.SourceRef : "")</span> }</div>
+            <div><span class="dim">@L["PP.WorkOrder.Trace.Slots"]:</span> @t.SlotCount @L["PP.WorkOrder.Trace.SlotUnit"] · @t.SlotQty.ToString("#,0") EA
+                @if (t.SlotFrom is not null) { <span class="dim"> · @t.SlotFrom.Value.ToString(DateFmt.Date)@(t.SlotTo != t.SlotFrom ? " ~ " + t.SlotTo?.ToString(DateFmt.Date) : "")</span> }</div>
+            <div><span class="dim">@L["PP.WorkOrder.Trace.Result"]:</span> @L["PP.WorkOrder.Trace.Good"] @t.GoodQty.ToString("#,0") · @L["PP.WorkOrder.Trace.Defect"] @t.DefectCount · LOT @t.LotCount</div>
+        </div>
+    }
+    }
+}
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+        @if (_wo is not null)
+        {
+            <RadzenButton Text="@L["PP.WoDetail.OpenWo"]" Icon="open_in_new" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="OpenWorkOrder" class="ames-rz-btn" />
+        }
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string WoNumber { get; set; } = "";
+
+    string _mode = "detail";
+    readonly string _flowId = "wo-flow-" + Guid.NewGuid().ToString("N")[..8];
+    IJSObjectReference? _mod;
+    bool _flowPending;
+
+    async Task OnModeChanged(string mode)
+    {
+        _mode = mode;
+        _flowPending = mode == "flow";
+        await Task.CompletedTask;
+    }
+
+    // 「흐름」 보기 — React Flow(번들 js/wo-flow/wo-flow.js)에 그래프를 넘겨 그린다. 요소가 그려진 뒤에 부른다.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_flowPending || _wo is null) return;
+        _flowPending = false;
+        try
+        {
+            _mod ??= await JS.InvokeAsync<IJSObjectReference>("import", $"{Nav.BaseUri}js/wo-flow/wo-flow.js");
+            var graph = BuildGraph();
+            await _mod.InvokeVoidAsync("render", _flowId, graph, new { fit = L["PP.WoDetail.Flow.Fit"].Value, running = L["PP.WoDetail.Flow.ShowRunning"].Value, hint = L["PP.WoDetail.Flow.Hint"].Value, fullscreen = L["PP.WoDetail.Flow.Fullscreen"].Value, exitFullscreen = L["PP.WoDetail.Flow.ExitFullscreen"].Value });
+            StartLive();
+        }
+        catch (Exception ex) { _flowError = ex.Message; StateHasChanged(); }
+    }
+    string? _flowError;
+
+    // 실시간 — 팝업이 열려 있는 동안 RefreshSec 마다 DB 에서 다시 읽어 상태·수량을 갱신한다(POP 화면의 5초 갱신과 같은 주기).
+    // 진행 중 단계가 바뀌면 그 노드가 바로 강조된다. 사용자가 옮긴 노드 위치·화면은 그대로 둔다.
+    const int RefreshSec = 5;
+    DateTime _updatedAt = DateTime.Now;
+    bool _live;
+    CancellationTokenSource? _cts;
+
+    void StartLive()
+    {
+        if (_cts is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _ = Task.Run(async () =>
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshSec));
+            try
+            {
+                while (await timer.WaitForNextTickAsync(token))
+                    await InvokeAsync(async () => await RefreshAsync());
+            }
+            catch (OperationCanceledException) { }
+        }, token);
+    }
+
+    async Task RefreshAsync()
+    {
+        if (_wo is null) return;
+        try
+        {
+            var wo = Wos.GetByNumber(WoNumber);
+            if (wo is null) return;
+            _wo = wo;
+            _steps = Wos.ListSteps(wo.WoId);
+            _trace = Wos.GetTrace(wo.WoId);
+            _ops = Wos.ListStepOperators(wo.WoId);
+            _updatedAt = DateTime.Now;
+            _live = _steps.Any(s => s.Status == "In Progress") || wo.Status == "In Progress";
+            if (_mode == "flow" && _mod is not null)
+                await _mod.InvokeVoidAsync("update", _flowId, BuildGraph());
+            StateHasChanged();
+        }
+        catch { /* 일시 오류는 다음 주기에 다시 읽는다 */ }
+    }
+
+    WoFlowGraph.Graph BuildGraph() => WoFlowGraph.Build(_wo!, _steps, _trace, new WoFlowGraph.Texts(
+        L["PP.WorkOrder.Trace.So"].Value, L["PP.WorkOrder.Trace.Plan"].Value, L["PP.WorkOrder.Trace.Wo"].Value, L["PP.WoDetail.Step"].Value,
+        L["PP.WorkOrder.Trace.Slots"].Value, L["PP.WorkOrder.Trace.Result"].Value, L["PP.WorkOrder.Trace.Good"].Value,
+        L["PP.WorkOrder.Trace.Defect"].Value, L["PP.WorkOrder.Trace.SlotUnit"].Value, L["PP.WorkOrder.Trace.Run"].Value,
+        L["PP.WoDetail.OpenLink"].Value, L["PP.WorkOrder.Src.Plan003"].Value, L["PP.WorkOrder.Src.Manual"].Value, L["PP.WorkOrder.Src.None"].Value,
+        L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value),
+        OperatorTexts());
+
+    // 라인별 작업자 문구 — 열린 POP 세션이 있으면 「현재」, 없으면 이 작업지시의 마지막 실적자를 「최근」으로
+    Dictionary<string, (string Text, bool Live)> OperatorTexts()
+    {
+        var map = new Dictionary<string, (string, bool)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in _ops)
+        {
+            if (o.Sessions.Count > 0)
+                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})"))), true);
+            else if (o.LastOperator is not null)
+                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
+        }
+        return map;
+    }
+
+    MarkupString OperatorCell(string? lineId)
+    {
+        var map = OperatorTexts();
+        if (lineId is null || !map.TryGetValue(lineId, out var op)) return new MarkupString("<span class=\"dim\">—</span>");
+        var text = System.Net.WebUtility.HtmlEncode(op.Text);
+        return new MarkupString(op.Live ? $"<b style=\"color:var(--ames-tx-green-400,#22c55e);\">● {text}</b>" : $"<span class=\"dim\">{text}</span>");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        if (_mod is null) return;
+        try { await _mod.InvokeVoidAsync("dispose", _flowId); await _mod.DisposeAsync(); } catch { /* 회로가 이미 끊김 */ }
+    }
+
+    WorkOrderDto? _wo;
+    List<AMES.Data.Repositories.WorkOrderRepository.StepRow> _steps = new();
+    AMES.Data.Repositories.WorkOrderRepository.WoTraceRow? _trace;
+    List<AMES.Data.Repositories.WorkOrderRepository.StepOperators> _ops = new();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _wo = Wos.GetByNumber(WoNumber);
+            if (_wo is null) return;
+            _steps = Wos.ListSteps(_wo.WoId);
+            _trace = Wos.GetTrace(_wo.WoId);
+            _ops = Wos.ListStepOperators(_wo.WoId);
+            _live = _steps.Any(s => s.Status == "In Progress") || _wo.Status == "In Progress";
+        }
+        catch { _wo = null; }
+    }
+
+    static string StatusClass(string? status) => status switch
+    {
+        "Closed" or "Completed" => "ok",
+        "In Progress" => "info",
+        "Cancelled" => "bad",
+        _ => "warn",
+    };
+
+    string SourceText() => _wo?.SourceType switch
+    {
+        "APS"     => $"APS {L["PP.WorkOrder.Trace.Run"].Value} #{_wo.SourceRef}",
+        "PLAN003" => L["PP.WorkOrder.Src.Plan003"].Value,
+        "MANUAL"  => L["PP.WorkOrder.Src.Manual"].Value,
+        _         => L["PP.WorkOrder.Src.None"].Value,
+    };
+
+    void OpenWorkOrder()
+    {
+        Dialog.Close();
+        Nav.NavigateTo("/pp/work-order");
+    }
+}
