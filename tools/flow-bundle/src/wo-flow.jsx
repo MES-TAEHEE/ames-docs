@@ -10,8 +10,29 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+// ───── 쉽게 바꾸는 값 ─────────────────────────────────────────────────────────────
+// 바꾼 뒤: cd tools/flow-bundle && npm run build  → Web 재시작 · Ctrl+F5
+const FIT = {
+  padding: 0.15,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
+  durationMs: 300,        // 맞춤 애니메이션 시간
+};
+const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
+const ZOOM = { min: 0.2, max: 1.8 };                                         // 사용자가 휠로 줄이고 늘릴 수 있는 한계
+const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
+const EDGE = {                                                               // 선(간선)
+  width: undefined,       // 일반 선 굵기(예 2) — 없으면 기본(1)
+  color: undefined,       // 일반 선 색(예 '#64748b') — 없으면 기본
+  animatedWidth: 3,       // 진행 중으로 가는 점선 굵기
+  animatedColor: '#3b82f6',
+  arrowSize: undefined,   // 화살표 크기(예 20) — 없으면 기본
+};
+const MINIMAP = { show: true };                                              // 오른쪽 아래 미니맵
+const INITIAL_FIT_DELAYS_MS = [200, 700];                                    // 팝업이 열리며 크기가 잡힌 뒤 처음 맞추는 시각(두 번)
+// ───────────────────────────────────────────────────────────────────────────────
+
 const KIND_COLOR = { so: '#38bdf8', plan: '#a78bfa', wo: '#34d399', step: '#fbbf24', slot: '#60a5fa', result: '#f472b6' };
 const STATUS_COLOR = { done: '#22c55e', cur: '#3b82f6', todo: '#94a3b8', bad: '#ef4444' };
+const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ...extra });
 
 function WoNode({ data }) {
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
@@ -52,8 +73,9 @@ const toNode = (n, prev) => ({
 const toEdge = e => ({
   id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined,
   animated: !!e.animated, label: e.label || undefined,
-  markerEnd: { type: MarkerType.ArrowClosed },
-  style: e.animated ? { strokeWidth: 3, stroke: STATUS_COLOR.cur } : undefined,
+  markerEnd: { type: MarkerType.ArrowClosed, width: EDGE.arrowSize, height: EDGE.arrowSize },
+  style: e.animated ? { strokeWidth: EDGE.animatedWidth, stroke: EDGE.animatedColor }
+       : (EDGE.width || EDGE.color ? { strokeWidth: EDGE.width, stroke: EDGE.color } : undefined),
 });
 
 const handles = new Map();   // elementId -> { setGraph }
@@ -81,7 +103,7 @@ function Flow({ elementId, graph, labels }) {
     const on = () => {
       const host = document.getElementById(elementId);
       setFs(!!host && document.fullscreenElement === host);
-      setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 120);
+      setTimeout(() => fitView(fitOpts()), 120);
     };
     document.addEventListener('fullscreenchange', on);
     return () => document.removeEventListener('fullscreenchange', on);
@@ -92,16 +114,15 @@ function Flow({ elementId, graph, labels }) {
     const host = document.getElementById(elementId);
     if (!host || typeof ResizeObserver === 'undefined') return;
     let t;
-    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => fitView({ padding: 0.15, duration: 200 }), 150); });
+    const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => fitView(fitOpts({ duration: 200 })), 150); });
     ro.observe(host);
     return () => { clearTimeout(t); ro.disconnect(); };
   }, [elementId, fitView]);
 
   // 처음 열 때도 「전체 보기」 버튼과 같은 크기로 맞춘다 — 팝업이 열리며 크기가 잡히는 동안을 기다려 두 번 맞춘다
   useEffect(() => {
-    const t1 = setTimeout(() => fitView({ padding: 0.08, duration: 0 }), 200);
-    const t2 = setTimeout(() => fitView({ padding: 0.08, duration: 200 }), 700);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const ts = INITIAL_FIT_DELAYS_MS.map((d, i) => setTimeout(() => fitView(fitOpts({ duration: i === 0 ? 0 : 200 })), d));
+    return () => ts.forEach(clearTimeout);
   }, [fitView]);
 
   const toggleFullscreen = useCallback(() => {
@@ -112,20 +133,22 @@ function Flow({ elementId, graph, labels }) {
   }, [elementId]);
 
   const focusRunning = useCallback(() => {
-    fitView(curIds.current.length ? { nodes: curIds.current, padding: 0.9, duration: 500, maxZoom: 0.9 } : { padding: 0.5, duration: 500 });
+    fitView(curIds.current.length
+      ? { nodes: curIds.current, padding: FIT_RUNNING.padding, duration: 500, maxZoom: FIT_RUNNING.maxZoom }
+      : { padding: FIT_RUNNING.fallbackPadding, duration: 500 });
   }, [fitView]);
 
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08 }} colorMode={theme()}
+               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: FIT.padding }} colorMode={theme()}
                nodesDraggable={true} panOnDrag={true} zoomOnScroll={true} zoomOnPinch={true} zoomOnDoubleClick={true}
-               nodesConnectable={false} elementsSelectable={true} minZoom={0.2} maxZoom={1.8}
+               nodesConnectable={false} elementsSelectable={true} minZoom={ZOOM.min} maxZoom={ZOOM.max}
                proOptions={{ hideAttribution: false }}>
-      <Background gap={18} />
+      {GRID.show ? <Background variant={GRID.variant} gap={GRID.gap} color={GRID.color} size={GRID.size} /> : null}
       <Controls showInteractive={false} />
-      <MiniMap pannable zoomable nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} />
+      {MINIMAP.show ? <MiniMap pannable zoomable nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} /> : null}
       <Panel position="top-left" className="ames-flow-panel">
-        <button type="button" className="ames-flow-btn" onClick={() => fitView({ padding: 0.08, duration: 400 })}>{labels.fit}</button>
+        <button type="button" className="ames-flow-btn" onClick={() => fitView(fitOpts({ duration: 400 }))}>{labels.fit}</button>
         <button type="button" className="ames-flow-btn ames-flow-btn-cur" onClick={focusRunning}>● {labels.running}</button>
         <button type="button" className="ames-flow-btn" onClick={toggleFullscreen}>{fs ? ('⤢ ' + labels.exitFullscreen) : ('⛶ ' + labels.fullscreen)}</button>
         <span className="ames-flow-hint">{labels.hint}</span>
