@@ -14,7 +14,7 @@ import '@xyflow/react/dist/style.css';
 // 바꾼 뒤: cd tools/flow-bundle && npm run build  → Web 재시작 · Ctrl+F5
 const FIT = {
   // padding: 0.15,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
-  padding: 0.2,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
+  padding: '80px',          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
   durationMs: 300,        // 맞춤 애니메이션 시간
 };
 const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
