@@ -1,12 +1,22 @@
 @using AMES.Contracts.Dto
 @inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Data.Repositories.PpRepository Pp
 
 <div class="shipment-order-lines">
     <RadzenDataGrid TItem="ShippingOrderLineDto" Data="Lines" AllowPaging="false" AllowSorting="true"
                     Density="Density.Compact" EmptyText='@L["Grid.Empty"]' class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" MinWidth="140px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["PP.WorkOrder.Trace.Wo"]" Width="210px" MinWidth="210px" Sortable="false">
+                <Template Context="line">
+                    @if (_wos.TryGetValue(line.SoId, out var ws) && ws.Count > 0)
+                    {
+                        @foreach (var w in ws) { <span style="margin-right:8px;white-space:nowrap;"><WoLink WoNumber="@w.Number" /> <span class="pill info">@w.Status</span></span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" MinWidth="160px" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="@L["Col.ItemName"]" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="@(CompactPallets ? "180px" : "310px")" MinWidth="@(CompactPallets ? "180px" : "310px")" Sortable="false">
@@ -37,4 +47,19 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ShippingOrderLineDto> Lines { get; set; } = [];
     [Parameter] public bool CompactPallets { get; set; }
+
+    // 수주 라인에 연결된 작업지시(SoID 기준, 취소 제외) — 번호를 누르면 작업지시 팝업이 열린다
+    readonly Dictionary<int, List<AMES.Data.Repositories.PpRepository.OrderLinkRow>> _wos = new();
+
+    protected override void OnParametersSet()
+    {
+        var need = Lines.Select(l => l.SoId).Where(id => id > 0 && !_wos.ContainsKey(id)).Distinct().ToList();
+        if (need.Count == 0) return;
+        try
+        {
+            var found = Pp.ListOrderLinks(need).Where(x => x.Kind == "WO").GroupBy(x => x.SoId).ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var id in need) _wos[id] = found.TryGetValue(id, out var l) ? l : new();
+        }
+        catch { /* 연결 표시는 보조 정보 — 조회가 실패해도 출하 오더 표는 그대로 보인다 */ }
+    }
 }
