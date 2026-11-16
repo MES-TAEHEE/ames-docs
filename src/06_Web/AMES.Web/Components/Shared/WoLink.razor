@@ -24,5 +24,5 @@ else
 
     async Task Open()
         => await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.WoDetailDialog>(WoNumber!, new Dictionary<string, object?> { ["WoNumber"] = WoNumber },
-               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = false });
+               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
 }
