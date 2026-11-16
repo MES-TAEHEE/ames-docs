@@ -42,10 +42,10 @@ public sealed class ScmFailFixes1029Tests
     }
 
     [Fact]
-    public void Shipping_unit_order_table_shows_confirmed_like_the_order_list()
+    public void Shipping_unit_order_table_shows_published_without_supplier_confirmation()
     {
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Portal/DeliveryCases.razor");
-        Assert.Contains("<span class=\"case-confirmed\">@L[\"Scm.Text.Confirmed\"]</span>", page);
+        Assert.Contains("<span class=\"case-confirmed\">@L[\"Scm.Text.Published\"]</span>", page);
         Assert.DoesNotContain("Scm.Text.Confirmed.538025", page);
     }
 }

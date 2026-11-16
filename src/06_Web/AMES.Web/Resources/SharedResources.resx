@@ -9179,7 +9179,7 @@
     <value>조회 결과가 없습니다.</value>
   </data>
   <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
-    <value>발주 조회·수주 확인</value>
+    <value>Orders</value>
   </data>
   <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
     <value>구매발주 관리</value>
@@ -11526,7 +11526,7 @@
     <value>박스 {0}개 · 부품 {1}개</value>
   </data>
   <data name="Portal.Create.AddHeadFmt" xml:space="preserve">
-    <value>{0} 추가 · 수주 확인된 발주</value>
+    <value>Add {0} · Purchase Orders</value>
   </data>
   <data name="Portal.Create.ExpandFmt" xml:space="preserve">
     <value>{0} 펼치기</value>
@@ -11604,7 +11604,7 @@
     <value>선택 {0} / {1} · 총 납품 수량 {2}</value>
   </data>
   <data name="Portal.Create.NoOrders" xml:space="preserve">
-    <value>보낼 수량이 남은 수주 확인 발주가 없습니다.</value>
+    <value>No issued purchase orders with quantities left to send.</value>
   </data>
   <data name="Portal.Create.SelectedForFmt" xml:space="preserve">
     <value>{0}에 담을 항목</value>

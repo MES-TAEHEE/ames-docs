@@ -48,10 +48,10 @@ public sealed partial class ScmRepository
                 JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID WHERE l.PoID=p.PoID AND d.Status<>'Cancelled') pending
             OUTER APPLY(SELECT COALESCE(SUM(b.Quantity),0) Qty FROM dbo.SCM_DeliveryBox b
                 WHERE b.PoID=p.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1) prepared
-            WHERE p.PoNumber=@N AND p.Status IN('Open','Partial') AND p.SupplierConfirmedAt IS NOT NULL
+            WHERE p.PoNumber=@N AND p.Status IN('Open','Partial')
               AND UPPER(LTRIM(RTRIM(COALESCE(p.UnitCode,'')))) NOT IN ('BOX','PLT','PALLET')
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
-                  AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN('Open','Partial','Complete','Received')))
+                  AND (d.Status IS NULL OR d.Status NOT IN('Open','Partial','Complete','Received')))
               AND EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser u JOIN dbo.MD_Vendor v ON v.VendorID=u.VendorID
                   WHERE u.UserID=@U AND u.VendorID=p.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
             ORDER BY p.PoID;

@@ -42,7 +42,7 @@ public sealed partial class ScmRepository
         if (items.Any(x => x.Received > 0)) return "PartiallyReceived";
         if (items.Any(x => x.Shipped > 0)) return "Shipped";
         if (items.Any(x => x.Registered > 0)) return "PreparingDelivery";
-        return confirmed ? "SupplierConfirmed" : "AwaitingConfirmation";
+        return "Published";
     }
 
     public record PurchaseOrderFilter(string Search = "", string Vendor = "", string Creator = "", DateTime? From = null, DateTime? To = null);
@@ -70,10 +70,9 @@ public sealed partial class ScmRepository
               AND (@Search='' OR CHARINDEX(@Search,p.PoNumber)>0 OR EXISTS (
                   SELECT 1 FROM dbo.WH_PurchaseOrder q LEFT JOIN dbo.MD_Item qi ON qi.ItemNo=q.ItemNo
                   WHERE q.PoNumber=p.PoNumber AND (CHARINDEX(@Search,q.ItemNo)>0 OR CHARINDEX(@Search,qi.ItemName)>0)))
-              AND (@ConfirmedOnly=0 OR (p.SupplierConfirmedAt IS NOT NULL
-                  AND p.Status IN ('Open','Partial','Complete','Received')
+              AND (@ConfirmedOnly=0 OR (p.Status IN ('Open','Partial','Complete','Received')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
-                      AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN ('Open','Partial','Complete','Received')))))
+                      AND (d.Status IS NULL OR d.Status NOT IN ('Open','Partial','Complete','Received')))))
               AND (@PackableOnly=0 OR EXISTS (
                   SELECT 1 FROM dbo.WH_PurchaseOrder q
                   JOIN dbo.MD_Item qi ON qi.ItemNo=q.ItemNo AND ISNULL(qi.ActiveFlag,1)=1
@@ -82,7 +81,7 @@ public sealed partial class ScmRepository
                       JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID WHERE l.PoID=q.PoID AND d.Status<>'Cancelled') pending
                   OUTER APPLY (SELECT COALESCE(SUM(b.Quantity),0) Qty FROM dbo.SCM_DeliveryBox b
                       WHERE b.PoID=q.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1) prepared
-                  WHERE q.PoNumber=p.PoNumber AND q.Status IN ('Open','Partial') AND q.SupplierConfirmedAt IS NOT NULL
+                  WHERE q.PoNumber=p.PoNumber AND q.Status IN ('Open','Partial')
                       AND ISNULL(qm.ActiveFlag,1)=1
                       AND COALESCE(q.OrderQty,0)-COALESCE(q.ReceivedQty,0)-pending.Qty-prepared.Qty>0))
               AND (@Portal=0 OR (

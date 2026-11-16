@@ -23,10 +23,9 @@
         </div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["Portal.Home.Kpi.Awaiting"]</div>
+        <div class="ames-kpi-l">@L["SCM.Preview.Col.QtyToDeliver"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_awaiting</div>
-            <div class="ames-kpi-s">@L["Portal.Home.Kpi.AwaitingSub"]</div>
         </div>
     </div>
     <div class="ames-kpi warn">
@@ -81,10 +80,10 @@
         try
         {
             var orders = Scm.ListPurchaseOrders(true, user.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            // 상태 구분은 포탈 발주 화면(ScmPreview)과 같다: Open=확인 대기, Partial=납품(입고) 진행
+
             static decimal Remaining(ScmRepository.PurchaseOrder o) => o.Lines.Sum(l => Math.Max(0, l.Quantity - l.Received));
             _orders     = orders.Count;
-            _awaiting   = orders.Count(o => o.Status == "Open");
+            _awaiting   = orders.Count(o => o.Status is "Open" or "Partial" && Remaining(o)>0);
             _inDelivery = orders.Count(o => o.Status == "Partial");
             _overdue    = orders.Count(o => o.Status is "Open" or "Partial" && o.Due.Date < DbClock.Today && Remaining(o) > 0);
         }

@@ -68,12 +68,12 @@ public sealed class ScmDeliveryCaseTests
                 CREATE TABLE MD_Item(ItemNo varchar(20) PRIMARY KEY,ItemName nvarchar(200),ItemType varchar(20),DefaultUOM varchar(20),ActiveFlag bit);
                 CREATE TABLE tbl_Lot(LotID int IDENTITY PRIMARY KEY,LotCode nvarchar(50),ItemNo varchar(20),
                     RemainingQty decimal(18,3),BatchSize decimal(18,3),ProducedAt datetime2,
-                    CurrentLocationID varchar(50),ModifiedBy varchar(20),ModifiedTS datetime2);
+                    CurrentLocationID varchar(50),ModifiedBy varchar(20),ModifiedTS datetime2,WoID int,ProcessCode varchar(20));
                 CREATE TABLE SCM_ItemVendor(ItemNo varchar(20),VendorID varchar(20),PackingQty decimal(18,3),ActiveFlag bit,
                     CreatedBy varchar(20),CreatedTS datetime2 DEFAULT SYSDATETIME(),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
                 CREATE TABLE SCM_PortalVendorUser(UserID nvarchar(450),VendorID varchar(20),ActiveFlag bit,LockedFlag bit);
                 CREATE TABLE WH_PurchaseOrder(PoID int PRIMARY KEY,PoNumber varchar(30),PoLineNo int,VendorID varchar(20),ItemNo varchar(20),UnitCode varchar(20),
-                    ReceivedQty decimal(18,3),OrderQty decimal(18,3),Status varchar(20),OrderDate date,DueDate date,SupplierConfirmedAt datetime2,
+                    ReceivedQty decimal(18,3),OrderQty decimal(18,3),Status varchar(20),OrderDate date,DueDate date,SupplierConfirmedAt datetime2,CreatedBy varchar(20),
                     SupplierConfirmedBy varchar(20),SupplierConfirmedUserID nvarchar(450),DeliveryDestination varchar(50),UnitPrice decimal(18,3),Currency varchar(3),
                     ModifiedBy varchar(20),ModifiedTS datetime2,ScmRowVersion rowversion);
                 CREATE TABLE SCM_Delivery(DeliveryID int IDENTITY PRIMARY KEY,DeliveryNumber varchar(30) UNIQUE,RequestID uniqueidentifier UNIQUE,
@@ -93,7 +93,8 @@ public sealed class ScmDeliveryCaseTests
                 CREATE UNIQUE INDEX UX_SCM_DeliveryBox_Number ON SCM_DeliveryBox(BoxNumber);
                 CREATE UNIQUE INDEX UX_SCM_DeliveryBox_ActiveSequence ON SCM_DeliveryBox(DeliveryLineID,BoxSeq) WHERE ActiveFlag=1;
                 CREATE TABLE SCM_BoxNumberSequence(VendorID varchar(20),NumberDate date,LastNumber int,PRIMARY KEY(VendorID,NumberDate));
-                CREATE TABLE MD_Location(LocationID varchar(50),ActiveFlag bit,LocationType varchar(20),Capacity decimal(18,3),AreaCode varchar(20));
+                CREATE TABLE MD_Location(LocationID varchar(50),ActiveFlag bit,LocationType varchar(20),Capacity decimal(18,3),AreaCode varchar(20),LocationLevel tinyint DEFAULT 2,LineID varchar(30));
+                CREATE TABLE MD_Line(LineID varchar(30),LotPrefix varchar(20));
                 CREATE TABLE MD_CodeItem(GroupCode varchar(30),CodeValue varchar(30),UseFlag bit);
                 INSERT MD_CodeItem VALUES('INV_ADJUST_REASON','COUNT_DIFF',1);
                 CREATE TABLE WH_Inventory(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),PalletNo varchar(50),PartNo varchar(50),PartName nvarchar(200),
@@ -122,8 +123,8 @@ public sealed class ScmDeliveryCaseTests
                 INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,VendorID,ItemNo,UnitCode,ReceivedQty,OrderQty,Status)
                 VALUES(99,'PO-CASE-1',2,'V1','PART-4','EA',0,10,'Open');
                 """);
-            Assert.DoesNotContain(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true),p=>p.Number=="PO-CASE-1");
-            Assert.Empty(repo.ListCaseParts("PO-CASE-1","case-user"));
+            Assert.Contains(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true),p=>p.Number=="PO-CASE-1" && p.SupplierConfirmedAt is null);
+            Assert.NotEmpty(repo.ListCaseParts("PO-CASE-1","case-user"));
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
@@ -267,7 +268,11 @@ public sealed class ScmDeliveryCaseTests
             Sql($"UPDATE WH_Inventory SET Qty=(SELECT Quantity FROM SCM_DeliveryBox WHERE BoxNumber='{box}') WHERE LotNo='{box}';");
             var originalBoxQty=Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'");
             Assert.True(originalBoxQty>1);
-            Sql($"UPDATE WH_Inventory SET Qty={originalBoxQty-1} WHERE LotNo='{box}';");
+            Sql($"""
+                UPDATE WH_Inventory SET Qty={originalBoxQty-1} WHERE LotNo='{box}';
+                INSERT WH_InventoryTransaction(TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode)
+                SELECT 'ADJ',PartNo,LotNo,{originalBoxQty},-1,{originalBoxQty-1},'COUNT_DIFF' FROM WH_Inventory WHERE LotNo='{box}';
+                """);
             using(var c=factory.OpenConnection())
             using(var cancel=new SqlCommand(PdaWarehouseSql.InboundCancel,c))
             {
@@ -300,10 +305,11 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(0,fullyAllocated.Available);Assert.Equal(0,fullyAllocated.Received);Assert.Equal(10,fullyAllocated.PendingDelivery);
             repo.IssueDeliveryNote([otherDelivery],"case-user","case-user");
             Sql("UPDATE SCM_DeliveryLine SET Quantity=6 WHERE PoID=2;");
+            var beforeFailedReceipt=Count("SELECT COUNT(*) FROM WH_InventoryTransaction");
             Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(rollbackCase,"LOCAL","case-user"));
             Assert.Equal(0,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=2"));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM WH_Inventory WHERE PartNo='PART-2'"));
-            Assert.Equal(3,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(beforeFailedReceipt,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             Sql("UPDATE SCM_DeliveryLine SET Quantity=10 WHERE PoID=2;");
             var results=await Task.WhenAll(Enumerable.Range(0,2).Select(_=>Task.Run(()=>
             {
@@ -312,7 +318,7 @@ public sealed class ScmDeliveryCaseTests
             })));
             Assert.Equal(2,results.Sum());
             Assert.Equal(10,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=2"));
-            Assert.Equal(5,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(beforeFailedReceipt+2,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             // Preserve the existing non-CASE registration path and its box labels.
             var legacy=repo.RegisterSupplierDelivery("PO-CASE-3",DateTime.Today,[new(3,4)],
                 Versions("PO-CASE-3"),Guid.NewGuid(),"other-user","other-user");
@@ -345,7 +351,7 @@ public sealed class ScmDeliveryCaseTests
             var cancelledNote=repo.IssueDeliveryNote([draftDelivery],"other-user","other-user");
             Assert.Equal(cancelledNote.Number,repo.IssueDeliveryNote([draftDelivery],"other-user","other-user").Number);
             repo.UpdateSupplierDelivery(draftDelivery,DateTime.Today,[new(3,5)],DeliveryVersion(draftDelivery),Versions("PO-CASE-3"),"other-user","other-user",cancel:true);
-            Assert.DoesNotContain(repo.ListNoteDeliveries("other-user"),n=>n.Number==draftDelivery);
+            Assert.Contains(repo.ListNoteDeliveries("other-user"),n=>n.Number==draftDelivery && n.NoteNumber==cancelledNote.Number);
             Assert.Throws<InvalidOperationException>(()=>repo.IssueDeliveryNote([draftDelivery],"other-user","other-user"));
             Assert.Throws<SqlException>(()=>repo.GetDeliveryNote(cancelledNote.Number,"other-user"));
             // Mixed-PO cases remain prepared across reloads and are assigned atomically to one note.
@@ -372,13 +378,15 @@ public sealed class ScmDeliveryCaseTests
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromCases([mixed],DateTime.Today,"other-user","other-user"));
             // A later PO failure must roll back all earlier delivery registrations.
             Sql("UPDATE WH_PurchaseOrder SET SupplierConfirmedAt=NULL WHERE PoID=5;");
+            Assert.NotEmpty(repo.ListCaseParts("PO-MIX-2","case-user"));
+            Sql("UPDATE WH_PurchaseOrder SET Status='Draft' WHERE PoID=5;");
             Assert.Empty(repo.ListCaseParts("PO-MIX-2","case-user"));
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-MIX-2",[new(5,5)],"case-user"));
             var beforeMixed=Count("SELECT COUNT(*) FROM SCM_Delivery");
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromCases([mixed],DateTime.Today,"case-user","case-user"));
             Assert.Equal(beforeMixed,Count("SELECT COUNT(*) FROM SCM_Delivery"));
             Assert.Equal("Prepared",repo.GetDeliveryCase(mixed,"case-user")!.Status);
-            Sql("UPDATE WH_PurchaseOrder SET SupplierConfirmedAt=SYSDATETIME() WHERE PoID=5;");
+            Sql("UPDATE WH_PurchaseOrder SET Status='Open' WHERE PoID=5;");
             var additional=repo.CreatePreparedCase("PO-MIX-1",[new(4,2)],"case-user");
             var mixedNote=repo.CreateDeliveryNoteFromCases([mixed,additional],DateTime.Today,"case-user","case-user");
             Assert.Equal(2,mixedNote.Lines.Select(l=>l.OrderNumber).Distinct().Count());
@@ -421,12 +429,13 @@ public sealed class ScmDeliveryCaseTests
                 cmd.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
                 cmd.ExecuteNonQuery();
             }
-            var discrepancy=Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user"));
+            List<ScmRepository.PortalDiscrepancy> AdjustedDiscrepancies()=>repo.ListPortalDeliveryDiscrepancies("case-user").Where(d=>d.Lot==adjustedBox).ToList();
+            var discrepancy=Assert.Single(AdjustedDiscrepancies());
             Assert.Equal(adjustedBox,discrepancy.Lot);Assert.Equal(mixedNote.Number,discrepancy.Note);
             Assert.Equal("PART-1",discrepancy.Item);Assert.Equal(2m,discrepancy.Before);Assert.Equal(-1m,discrepancy.Change);Assert.Equal(1m,discrepancy.After);
             Assert.Equal("COUNT_DIFF",discrepancy.Reason);Assert.Equal("One unit short",discrepancy.Comment);
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("other-user"));
-            Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user",delivery)); // same part, different delivery
+            Assert.DoesNotContain(repo.ListPortalDeliveryDiscrepancies("case-user",delivery),d=>d.Lot==adjustedBox); // same part, different delivery
             Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user",discrepancy.Delivery));
             void AdjustBox(bool fail)
             {
@@ -441,14 +450,14 @@ public sealed class ScmDeliveryCaseTests
                 cmd.ExecuteNonQuery();
             }
             Assert.Throws<SqlException>(()=>AdjustBox(true));
-            Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user"));
+            Assert.Single(AdjustedDiscrepancies());
             AdjustBox(false);
-            Assert.Equal(2,repo.ListPortalDeliveryDiscrepancies("case-user").Count);
+            Assert.Equal(2,AdjustedDiscrepancies().Count);
             Assert.Equal(receiptsBeforeAdjust,repo.ListPortalReceiptResults("case-user").Select(r=>(r.Id,r.Received,r.Remaining)).ToArray());
             Assert.Equal(2,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=4"));
             Assert.Equal(2,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=4"));
             Sql($"DELETE WH_Inventory WHERE LotNo='{adjustedBox}';");
-            Assert.Equal(2,repo.ListPortalDeliveryDiscrepancies("case-user").Count); // historical link survives stock removal
+            Assert.Equal(2,AdjustedDiscrepancies().Count); // historical link survives stock removal
             // The unified wizard persists no partial cases when any draft fails.
             var beforeDraftCases=Count("SELECT COUNT(*) FROM SCM_DeliveryCase");
             var beforeDraftBoxes=Count("SELECT COUNT(*) FROM SCM_DeliveryBox");
@@ -474,8 +483,8 @@ public sealed class ScmDeliveryCaseTests
                 """);
             var looseNote=repo.CreateDeliveryNoteFromDraftCases(
                 [new(["PO-LOOSE"],[new(7,2)])],DateTime.Today.AddDays(2),"case-user","case-user",
-                [new("PO-LOOSE",7,3,false),new("PO-LOOSE",7,1,true)]);
-            Assert.Equal(6m,looseNote.Lines.Sum(l=>l.Quantity));
+                [new("PO-LOOSE",7,2,false),new("PO-LOOSE",7,1,true)]);
+            Assert.Equal(5m,looseNote.Lines.Sum(l=>l.Quantity));
             var looseDeliveries=repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==looseNote.Number).ToArray();
             Assert.Equal(2,looseDeliveries.Length);
             var looseLabels=looseDeliveries.SelectMany(d=>repo.ListDeliveryBoxes(d.Number,"case-user")).ToArray();

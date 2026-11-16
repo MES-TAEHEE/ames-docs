@@ -9179,7 +9179,7 @@
     <value>Sin resultados.</value>
   </data>
   <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
-    <value>Pedidos y confirmación</value>
+    <value>Pedidos</value>
   </data>
   <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
     <value>Pedidos de compra</value>
@@ -11526,7 +11526,7 @@
     <value>{0} cajas · {1} piezas</value>
   </data>
   <data name="Portal.Create.AddHeadFmt" xml:space="preserve">
-    <value>Añadir {0} · Pedidos confirmados</value>
+    <value>Agregar {0} · Pedidos</value>
   </data>
   <data name="Portal.Create.ExpandFmt" xml:space="preserve">
     <value>Expandir {0}</value>
@@ -11604,7 +11604,7 @@
     <value>Seleccionados {0} / {1} · Cant. total de entrega {2}</value>
   </data>
   <data name="Portal.Create.NoOrders" xml:space="preserve">
-    <value>No hay pedidos confirmados con cantidades pendientes de enviar.</value>
+    <value>No hay pedidos emitidos con cantidades pendientes.</value>
   </data>
   <data name="Portal.Create.SelectedForFmt" xml:space="preserve">
     <value>Seleccionado para {0}</value>
