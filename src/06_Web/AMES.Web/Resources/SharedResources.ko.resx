@@ -13565,4 +13565,6 @@
   </data>
   <data name="SCM.Supplier.Code" xml:space="preserve"><value>업체 코드</value></data>
   <data name="SCM.Supplier.Name" xml:space="preserve"><value>업체명</value></data>
+  <data name="SCM.Import.Title" xml:space="preserve"><value>발주 품목 불러오기</value></data>
+  <data name="SCM.Import.Template" xml:space="preserve"><value>엑셀 양식</value></data>
 </root>

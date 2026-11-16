@@ -13565,4 +13565,6 @@
   </data>
   <data name="SCM.Supplier.Code" xml:space="preserve"><value>Supplier code</value></data>
   <data name="SCM.Supplier.Name" xml:space="preserve"><value>Supplier name</value></data>
+  <data name="SCM.Import.Title" xml:space="preserve"><value>Import order items</value></data>
+  <data name="SCM.Import.Template" xml:space="preserve"><value>Excel template</value></data>
 </root>

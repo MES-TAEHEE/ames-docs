@@ -1,4 +1,6 @@
 @inject PortalQuantityFormat QtyFormat
+@using AMES.Data.Services
+@inject IJSRuntime JS
 @inject ScmPreviewStore Store
 @inject PermissionService Permissions
 @inject AuthenticationStateProvider Authentication
@@ -479,6 +481,8 @@
                 <div class="scm-dsub scm-line-toolbar">
                     <span>@L["Scm.Text.OrderLines"] · @_edit.Lines.Count</span>
                     <RadzenButton Text='@L["Scm.Text.AddItem"]' Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="AddLine" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Excel.Upload"]' Icon="upload" Click="()=>_showImport=true" Disabled="@(_materials.Count==0 || _materialLoading || _orderBusy)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["SCM.Import.Template"]' Icon="download" Click="DownloadPurchaseTemplate" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
                 </div>
                 <div class="scm-scroll">
                     <table class="ames-table scm-lines">
@@ -522,7 +526,45 @@
         </div>
     }
 }
+@if (_showImport && _edit is not null)
+{
+    <ExcelImportModal Title='@L["SCM.Import.Title"]' Parse="ParsePurchaseLines" Apply="ApplyPurchaseLines" OnClose="changed=>_showImport=false" />
+}
 @code {
+    bool _showImport;
+    ScmPreviewStore.Order? _importEditor;
+    string _importVendor="";
+    IReadOnlyList<PurchaseOrderExcel.Line> _importLines=[];
+    ExcelImportPreview ParsePurchaseLines(List<string[]> rows)
+    {
+        _importEditor=_edit;
+        _importVendor=_edit?.Vendor ?? "";
+        var result=PurchaseOrderExcel.Parse(rows,_materials.Select(i=>i.ItemNo));
+        var existing=_edit?.Lines.Select(l=>l.Item).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        _importLines=result.Lines.Where(l=>!existing.Contains(l.PartNo)).ToArray();
+        return new(_importLines.Select(l=>$"{l.PartNo}: {l.Quantity}").ToArray(),result.Lines.Where(l=>existing.Contains(l.PartNo)).Select(l=>l.PartNo).ToArray(),result.Problems);
+    }
+    async Task<ExcelImportOutcome> ApplyPurchaseLines()
+    {
+        if(_edit is null || _edit!=_importEditor || _edit.Vendor!=_importVendor || !CanEdit || !await Permissions.RecheckEditAsync(Authentication,"scm/purchase-orders")) return new(0,0,[L["WH.Picking.Err.NoPermission"]]);
+        var editor=_edit;
+        var staged=new List<ScmPreviewStore.OrderLine>();
+        var next=editor.Lines.Select(l=>l.Id).DefaultIfEmpty().Max()+1;
+        foreach(var item in _importLines)
+        {
+            if(editor.Lines.Any(l=>string.Equals(l.Item,item.PartNo,StringComparison.OrdinalIgnoreCase)))continue;
+            var line=new ScmPreviewStore.OrderLine{Id=next++,Item=item.PartNo,Quantity=item.Quantity};
+            await SelectMaterial(line);
+            staged.Add(line);
+        }
+        if(_edit!=editor) return new(0,0,[L["Btn.Refresh"]]);
+        editor.Lines.RemoveAll(l=>string.IsNullOrWhiteSpace(l.Item));
+        editor.Lines.AddRange(staged);
+        return new(staged.Count,_importLines.Count-staged.Count,[]);
+    }
+    Task DownloadPurchaseTemplate() => JS.InvokeVoidAsync("amesDownload","PurchaseOrderTemplate.xlsx",
+        Convert.ToBase64String(XlsxWriter.Build("Purchase Order",new[]{"PartNo","Quantity"},Array.Empty<IReadOnlyList<object?>>())),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").AsTask();
     public sealed record OrderItemRow(ScmPreviewStore.Order Order, ScmPreviewStore.OrderLine Line)
     {
         public string Number => Order.Number;
