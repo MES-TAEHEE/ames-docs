@@ -520,7 +520,7 @@
                 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_error</RadzenAlert> }
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                     <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" Disabled="@(_orderBusy || _materialLoading || _priceLoading.Count>0)" class="ames-rz-btn" />
-                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" Disabled="@_orderBusy" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" Disabled="@_orderBusy" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
         </div>
