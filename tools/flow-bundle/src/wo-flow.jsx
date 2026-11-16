@@ -14,13 +14,13 @@ import '@xyflow/react/dist/style.css';
 // 바꾼 뒤: cd tools/flow-bundle && npm run build  → Web 재시작 · Ctrl+F5
 const FIT = {
   // padding: 0.15,          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
-  padding: '80px',          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
+  padding: '60px',          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
   durationMs: 300,        // 맞춤 애니메이션 시간
 };
 const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
 const ZOOM = { min: 0.2, max: 1.8 };                                         // 사용자가 휠로 줄이고 늘릴 수 있는 한계
-//const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
-const GRID = { show: true, variant: 'lines', gap: 18, color: '#1e293b', size: undefined };  // 격자를 선으로 바꾸고 색으로
+const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
+// const GRID = { show: true, variant: 'lines', gap: 18, color: '#1e293b', size: undefined };  // 격자를 선으로 바꾸고 색으로
 const EDGE = {                                                               // 선(간선)
   width: undefined,       // 일반 선 굵기(예 2) — 없으면 기본(1)
   color: undefined,       // 일반 선 색(예 '#64748b') — 없으면 기본
@@ -28,7 +28,8 @@ const EDGE = {                                                               // 
   animatedColor: '#3b82f6',
   arrowSize: undefined,   // 화살표 크기(예 20) — 없으면 기본
 };
-const MINIMAP = { show: true };                                              // 오른쪽 아래 미니맵
+// const MINIMAP = { show: true };                                              // 오른쪽 아래 미니맵
+const MINIMAP = { show: true, position: 'bottom-right', width: 100, height: 50, maskColor: 'rgba(0,0,0,0.5)' };
 const INITIAL_FIT_DELAYS_MS = [200, 700];                                    // 팝업이 열리며 크기가 잡힌 뒤 처음 맞추는 시각(두 번)
 // ───────────────────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ const STATUS_COLOR = { done: '#22c55e', cur: '#3b82f6', todo: '#94a3b8', bad: '#
 const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ...extra });
 
 function WoNode({ data }) {
+  const [moreOpen, setMoreOpen] = useState(false);
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
   const cur = data.status === 'cur';
   return (
@@ -50,7 +52,15 @@ function WoNode({ data }) {
       </div>
       <div className="ames-flow-title">{data.title}</div>
       {(data.lines || []).map((l, i) => <div key={i} className="ames-flow-line">{l}</div>)}
-      {data.operator ? <div className={'ames-flow-op' + (data.operatorLive ? ' ames-flow-op-live' : '')}>👤 {data.operator}</div> : null}
+      {data.operator ? (
+        <div className={'ames-flow-op' + (data.operatorLive ? ' ames-flow-op-live' : '')}>
+          👤 {data.operator}
+          {data.operatorMore && data.operatorMore.length ? (
+            <button type="button" className="ames-flow-more nodrag nopan" onClick={() => setMoreOpen(v => !v)}>{moreOpen ? '▲' : '+' + data.operatorMore.length}</button>
+          ) : null}
+          {moreOpen && data.operatorMore ? data.operatorMore.map((m, i) => <div key={i} className="ames-flow-op-more">{m}</div>) : null}
+        </div>
+      ) : null}
       {typeof data.progress === 'number' ? (
         <div className="ames-flow-bar" title={Math.round(data.progress) + '%'}>
           <div className="ames-flow-bar-fill" style={{ width: Math.max(0, Math.min(100, data.progress)) + '%', background: accent }} />
@@ -69,7 +79,7 @@ function theme() { return document.documentElement.getAttribute('data-theme') ==
 const toNode = (n, prev) => ({
   id: n.id, type: 'wo', position: prev ? prev.position : { x: n.x, y: n.y },   // 사용자가 옮긴 자리를 유지
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
-          progress: n.progress, operator: n.operator, operatorLive: n.operatorLive, href: n.href, linkText: n.linkText },
+          progress: n.progress, operator: n.operator, operatorLive: n.operatorLive, operatorMore: n.operatorMore, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
 });
 const toEdge = e => ({
@@ -148,7 +158,7 @@ function Flow({ elementId, graph, labels }) {
                proOptions={{ hideAttribution: false }}>
       {GRID.show ? <Background variant={GRID.variant} gap={GRID.gap} color={GRID.color} size={GRID.size} /> : null}
       <Controls showInteractive={false} />
-      {MINIMAP.show ? <MiniMap pannable zoomable nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} /> : null}
+      {MINIMAP.show ? <MiniMap pannable zoomable position={MINIMAP.position} style={{ width: MINIMAP.width, height: MINIMAP.height }} maskColor={MINIMAP.maskColor} nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} /> : null}
       <Panel position="top-left" className="ames-flow-panel">
         <button type="button" className="ames-flow-btn" onClick={() => fitView(fitOpts({ duration: 400 }))}>{labels.fit}</button>
         <button type="button" className="ames-flow-btn ames-flow-btn-cur" onClick={focusRunning}>● {labels.running}</button>

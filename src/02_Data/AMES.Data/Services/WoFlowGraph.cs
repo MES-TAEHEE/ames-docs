@@ -10,7 +10,9 @@ namespace AMES.Data.Services;
 public static class WoFlowGraph
 {
     public sealed record Node(string Id, string Kind, string KindLabel, string Title, IReadOnlyList<string> Lines,
-        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, string? Operator = null, bool OperatorLive = false);
+        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, string? Operator = null, bool OperatorLive = false, IReadOnlyList<string>? OperatorMore = null);
+    /// <summary>공정 작업자 표시 — Text 는 처음 몇 명, More 는 나머지(눌러서 펼친다).</summary>
+    public sealed record OperatorInfo(string Text, bool Live, IReadOnlyList<string>? More = null);
     public sealed record Edge(string Id, string Source, string Target, bool Animated, string? Label, string? SourceHandle = null, string? TargetHandle = null);
     public sealed record Graph(IReadOnlyList<Node> Nodes, IReadOnlyList<Edge> Edges);
 
@@ -20,13 +22,14 @@ public static class WoFlowGraph
         string Done = "", string Running = "", string Waiting = "", string Cancelled = "");
 
     // 노드 폭 260 + 진행 중 확대(1.12배) 여유 + 간격 — 공정 노드끼리 겹치지 않게 열 간격은 노드 폭보다 충분히 크게
-    const int ColW = 600, RowH = 400;
+    // const int ColW = 600, RowH = 400;
+    const int ColW = 420, RowH = 300;
 
     static string Label(string status, Texts x) => status switch { "done" => x.Done, "cur" => x.Running, "bad" => x.Cancelled, _ => x.Waiting };
     static double Pct(decimal done, decimal total) => total <= 0 ? 0 : (double)Math.Min(100m, done * 100m / total);
 
     public static Graph Build(WorkOrderDto wo, IReadOnlyList<WorkOrderRepository.StepRow> steps, WorkOrderRepository.WoTraceRow? t, Texts x,
-        IReadOnlyDictionary<string, (string Text, bool Live)>? operators = null)
+        IReadOnlyDictionary<string, OperatorInfo>? operators = null)
     {
         var nodes = new List<Node>();
         var edges = new List<Edge>();
@@ -56,12 +59,12 @@ public static class WoFlowGraph
             var s = steps[i];
             var id = "step" + i;
             var st = s.Status == "Closed" ? "done" : s.Status == "In Progress" ? "cur" : "todo";
-            (string Text, bool Live) op = default;
+            OperatorInfo? op = null;
             var hasOp = s.LineId is not null && operators is not null && operators.TryGetValue(s.LineId, out op);
             nodes.Add(new Node(id, "step", $"{x.Step} {s.StepSeq}", s.ProcessCode,
                 [s.LineId ?? "—", $"{s.CompletedQty:#,0} / {wo.OrderQty:#,0} EA", s.Status],
                 st, null, null, (3 + i) * ColW, 0, Label(st, x), Pct(s.CompletedQty, wo.OrderQty),
-                hasOp ? op.Text : null, hasOp && op.Live));
+                hasOp ? op!.Text : null, hasOp && op!.Live, hasOp ? op!.More : null));
             edges.Add(new Edge($"{prev}-{id}", prev, id, st == "cur", null));
             prev = id;
         }

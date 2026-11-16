@@ -5951,3 +5951,6 @@ input[data-ames-x] {
 /* WO 번호 링크(Shared/WoLink) — 그 위에 열리는 작업지시 팝업(Radzen 대화상자)이 ames-modal(1000) 위, BOM 미리보기(1100) 아래에 온다 */
 .wo-link { text-decoration: underline dotted; text-underline-offset: 3px; }
 .rz-dialog-mask, .rz-dialog-wrapper { z-index: 1050; }
+.ames-flow-more { margin-left: 6px; padding: 0 7px; border: 1px solid currentColor; border-radius: 999px; background: none; color: inherit; font-size: 11px; cursor: pointer; line-height: 1.5; }
+.ames-flow-op-more { margin-top: 2px; font-weight: 400; opacity: .9; }
+.wod-op-live { font-weight: 700; color: var(--ames-tx-green-400, #22c55e); }

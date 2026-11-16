@@ -201,39 +201,68 @@ else
         L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value),
         OperatorTexts());
 
-    // 라인별 작업자 문구 — 열린 POP 세션이 있으면 「현재」, 없으면 이 작업지시의 마지막 실적자를 「최근」으로
-    Dictionary<string, (string Text, bool Live)> OperatorTexts()
+    // 라인별 작업자 — 진행 중 공정은 열린 POP 세션(없으면 Logout), 끝난 공정은 당시 실적을 올린 사람(들). 3명을 넘으면 나머지는 눌러서 펼친다
+    const int OpShown = 3;
+    Dictionary<string, WoFlowGraph.OperatorInfo> OperatorTexts()
     {
-        var map = new Dictionary<string, (string, bool)>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, WoFlowGraph.OperatorInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in _ops)
         {
-            // 끝난 공정은 지금 로그인한 사람이 아니라 당시 실적을 올린 사람(들)을 보인다 — 완료 뒤에도 바뀌지 않는다
             var ended = _steps.Any(st => string.Equals(st.LineId, o.LineId, StringComparison.OrdinalIgnoreCase) && WoStatusRules.IsFinished(st.Status));
             if (ended)
             {
                 var ws = o.Workers ?? [];
-                map[o.LineId] = ws.Count == 0
-                    ? ("—", false)
-                    : ($"{L["PP.WoDetail.Operator.Done"].Value}: " + string.Join(", ", ws.Take(3).Select(w => $"{Actors.Display(w.Operator)} {w.GoodQty:#,0}"))
-                        + (ws.Count > 3 ? $" +{ws.Count - 3}" : "") + $" · {ws.Min(w => w.FirstAt):MM-dd HH:mm}~{ws.Max(w => w.LastAt):MM-dd HH:mm}", false);
+                if (ws.Count == 0) { map[o.LineId] = new("—", false); continue; }
+                var names = ws.Select(w => $"{Actors.Display(w.Operator)} {w.GoodQty:#,0}").ToList();
+                var span = $" · {ws.Min(w => w.FirstAt):MM-dd HH:mm}~{ws.Max(w => w.LastAt):MM-dd HH:mm}";
+                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Done"].Value}: " + string.Join(", ", names.Take(OpShown)) + (names.Count > OpShown ? "" : span), false,
+                    names.Count > OpShown ? names.Skip(OpShown).Append(span.TrimStart(' ', '·')).ToList() : null);
             }
             else if (o.Sessions.Count > 0)
-                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})"))), true);
+            {
+                var names = o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})")).ToList();
+                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", names.Take(OpShown)), true,
+                    names.Count > OpShown ? names.Skip(OpShown).ToList() : null);
+            }
             else if (o.LastOperator is not null)
-                map[o.LineId] = ($"{L["PP.WoDetail.Operator.Logout"].Value} · {L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
+                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Logout"].Value} · {L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
             else
-                map[o.LineId] = (L["PP.WoDetail.Operator.Logout"].Value, false);   // 열린 세션도 실적도 없으면 로그아웃
+                map[o.LineId] = new(L["PP.WoDetail.Operator.Logout"].Value, false);   // 열린 세션도 실적도 없으면 로그아웃
         }
         return map;
     }
 
-    MarkupString OperatorCell(string? lineId)
+    readonly HashSet<string> _opOpen = new(StringComparer.OrdinalIgnoreCase);
+
+    // 공정 표 작업자 칸 — 3명을 넘으면 「+n」을 눌러 나머지를 펼친다
+    RenderFragment OperatorCell(string? lineId) => builder =>
     {
         var map = OperatorTexts();
-        if (lineId is null || !map.TryGetValue(lineId, out var op)) return new MarkupString("<span class=\"dim\">—</span>");
-        var text = System.Net.WebUtility.HtmlEncode(op.Text);
-        return new MarkupString(op.Live ? $"<b style=\"color:var(--ames-tx-green-400,#22c55e);\">● {text}</b>" : $"<span class=\"dim\">{text}</span>");
-    }
+        if (lineId is null || !map.TryGetValue(lineId, out var op)) { builder.AddMarkupContent(0, "<span class=\"dim\">—</span>"); return; }
+        var open = _opOpen.Contains(lineId);
+        builder.OpenElement(1, "span");
+        builder.AddAttribute(2, "class", op.Live ? "wod-op-live" : "dim");
+        builder.AddContent(3, (op.Live ? "● " : "") + op.Text);
+        if (op.More is { Count: > 0 })
+        {
+            builder.OpenElement(4, "button");
+            builder.AddAttribute(5, "type", "button");
+            builder.AddAttribute(6, "class", "ipk-tool");
+            builder.AddAttribute(7, "style", "margin-left:6px;padding:0 8px;");
+            builder.AddAttribute(8, "onclick", EventCallback.Factory.Create(this, () => { if (!_opOpen.Add(lineId)) _opOpen.Remove(lineId); }));
+            builder.AddContent(9, open ? "▲" : "+" + op.More.Count);
+            builder.CloseElement();
+            if (open)
+                foreach (var m in op.More)
+                {
+                    builder.OpenElement(10, "div");
+                    builder.AddAttribute(11, "class", "dim");
+                    builder.AddContent(12, m);
+                    builder.CloseElement();
+                }
+        }
+        builder.CloseElement();
+    };
 
     public async ValueTask DisposeAsync()
     {
