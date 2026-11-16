@@ -1,0 +1,19 @@
+@* 출하 오더 번호 링크 — 누르면 출하 오더 팝업(Fg/ShippingOrderDialog)을 연다. 사용: <ShipOrderLink OrderNo="@o.OrderNo" /> *@
+@inject DialogService Dialog
+
+@if (string.IsNullOrWhiteSpace(OrderNo))
+{
+    <span class="dim">—</span>
+}
+else
+{
+    <a href="javascript:void(0)" class="code wo-link" @onclick="Open" @onclick:stopPropagation="true">@OrderNo</a>
+}
+
+@code {
+    [Parameter] public string? OrderNo { get; set; }
+
+    async Task Open()
+        => await Dialog.OpenAsync<AMES.Web.Components.Pages.Fg.ShippingOrderDialog>(OrderNo!, new Dictionary<string, object?> { ["OrderNo"] = OrderNo },
+               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
+}

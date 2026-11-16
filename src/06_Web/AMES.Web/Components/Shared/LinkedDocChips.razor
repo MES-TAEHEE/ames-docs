@@ -1,0 +1,40 @@
+@* 팝업 상단 — 같은 수주에 이어진 작업지시(WO)와 출하 오더 이름을 같이 보인다. 지금 보고 있는 문서는 강조만 하고,
+   WO 이름을 누르면 작업지시 팝업이, 출하 오더 이름을 누르면 출하 오더 팝업이 열린다.
+   사용: <LinkedDocChips WoNumber="@wo" />  또는  <LinkedDocChips OrderNo="@orderNo" /> *@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
+
+@if (_docs.Count > 0)
+{
+    <div class="ldc" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:10px;">
+        @foreach (var d in _docs)
+        {
+            var current = (d.Kind == "WO" && string.Equals(d.Number, WoNumber, StringComparison.OrdinalIgnoreCase))
+                       || (d.Kind == "SHIP" && string.Equals(d.Number, OrderNo, StringComparison.OrdinalIgnoreCase));
+            <span class="ipk-chip" style="@(current ? "border-color:var(--ames-tx-blue-300);font-weight:700;" : "")">
+                <span class="dim">@(d.Kind == "WO" ? L["PP.WorkOrder.Trace.Wo"] : L["RPT.OnTime.Detail.ShipOrder"])</span>
+                @if (current) { <span class="code">@d.Number</span> }
+                else if (d.Kind == "WO") { <WoLink WoNumber="@d.Number" /> }
+                else { <ShipOrderLink OrderNo="@d.Number" /> }
+                @if (!string.IsNullOrEmpty(d.Status)) { <span class="pill info">@d.Status</span> }
+            </span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? WoNumber { get; set; }
+    [Parameter] public string? OrderNo { get; set; }
+
+    List<AMES.Data.Repositories.PpRepository.OrderLinkRow> _docs = new();
+    string? _loadedFor;
+
+    protected override void OnParametersSet()
+    {
+        var key = $"{WoNumber}|{OrderNo}";
+        if (key == _loadedFor) return;
+        _loadedFor = key;
+        try { _docs = Pp.ListRelatedDocs(WoNumber, OrderNo); }
+        catch { _docs = new(); }   // 연결 표시는 보조 정보 — 실패해도 팝업 본문은 그대로
+    }
+}

@@ -149,7 +149,7 @@
                             <td style="text-align:right;">@o.OrderQty.ToString("#,0") / @o.ShippedQty.ToString("#,0")</td>
                             <td>@foreach (var w in links.Where(x => x.Kind == "WO")) { <span style="margin-right:10px;white-space:nowrap;"><WoLink WoNumber="@w.Number" /> <span class="pill info">@w.Status</span></span> }
                                 @if (!links.Any(x => x.Kind == "WO")) { <span class="dim">—</span> }</td>
-                            <td>@foreach (var s in links.Where(x => x.Kind == "SHIP")) { <a href="/fg/shipping-orders" class="code" style="margin-right:10px;white-space:nowrap;" title="@L["RPT.OnTime.Detail.ShipOrderTip"]">@s.Number</a><span class="pill info" style="margin-right:10px;">@s.Status</span> }
+                            <td>@foreach (var s in links.Where(x => x.Kind == "SHIP")) { <span style="margin-right:6px;white-space:nowrap;"><ShipOrderLink OrderNo="@s.Number" /></span><span class="pill info" style="margin-right:10px;">@s.Status</span> }
                                 @if (!links.Any(x => x.Kind == "SHIP")) { <span class="dim">—</span> }</td>
                         </tr>
                     }

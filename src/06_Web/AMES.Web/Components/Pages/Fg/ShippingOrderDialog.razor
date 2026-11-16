@@ -1,0 +1,38 @@
+@* 출하 오더 한 건의 내용 팝업 — 상단에 같은 수주로 이어진 작업지시·출하 오더 이름을 같이 보이고, 아래에 오더 정보와 수주 라인(연결된 작업지시 포함)을 보인다. *@
+@inject FinishedGoodsRepository Fg
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="min-width:640px;">
+    @if (_order is null)
+    {
+        <div class="dim" style="padding:12px;">@(_error ?? L["SoLink.None"].Value)</div>
+    }
+    else
+    {
+        <LinkedDocChips OrderNo="@OrderNo" />
+        <div class="ipk-info" style="margin-bottom:12px;">
+            <div class="ipk-k">@L["FG.ShipOrders.Col.OrderNo"]</div><div class="ipk-v code">@_order.OrderNo</div>
+            <div class="ipk-k">@L["Col.ShipDate"]</div><div class="ipk-v">@_order.ShipDate.ToString(DateFmt.Date)</div>
+            <div class="ipk-k">@L["Col.Customer"]</div><div class="ipk-v">@_order.CustomerId</div>
+            <div class="ipk-k">@L["Col.Status"]</div><div class="ipk-v"><span class="pill info">@_order.Status</span></div>
+            <div class="ipk-k">@L["FG.ShipOrders.Col.Dcr"]</div><div class="ipk-v">@(_order.DeliveryNo ?? L["FG.ShipOrders.Lbl.NotAssigned"].Value)</div>
+        </div>
+        <ShipmentOrderLines Lines="_order.Lines" />
+    }
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string OrderNo { get; set; } = "";
+    AMES.Contracts.Dto.ShippingOrderDto? _order;
+    string? _error;
+
+    protected override void OnInitialized()
+    {
+        try { _order = Fg.GetShippingOrder(OrderNo); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+}

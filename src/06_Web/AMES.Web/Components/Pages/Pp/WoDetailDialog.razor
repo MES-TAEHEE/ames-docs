@@ -22,6 +22,8 @@ else
         @if (_wo.TerminalLock is { Length: > 0 }) { <span class="pill warn" title="@L["PP.WoDetail.Lock"]">🔒 @_wo.TerminalLock</span> }
     </div>
 
+    <LinkedDocChips WoNumber="@_wo.WoNumber" />
+
     <div style="margin-bottom:10px;">
         <RadzenSelectBar TValue="string" Value="@_mode" ValueChanged="@OnModeChanged" Size="ButtonSize.Small">
             <Items>

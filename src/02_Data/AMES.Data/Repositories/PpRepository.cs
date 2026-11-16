@@ -2142,6 +2142,31 @@ public sealed partial class PpRepository
         return list;
     }
 
+    /// <summary>
+    /// 한 문서(작업지시 번호 또는 출하 오더 번호)와 같은 수주 라인을 공유하는 작업지시·출하 오더 전부 — 팝업 상단에
+    /// 「WO · 출하 오더」 이름을 같이 보이는 용도. 둘 다 비면 빈 목록.
+    /// </summary>
+    public List<OrderLinkRow> ListRelatedDocs(string? woNumber, string? orderNo)
+    {
+        const string sql = """
+            SELECT DISTINCT x.SoID FROM (
+                SELECT w.SoID FROM dbo.PP_WorkOrder w WHERE @Wo IS NOT NULL AND w.WoNumber = @Wo AND w.SoID IS NOT NULL
+                UNION
+                SELECT l.SoID FROM dbo.FG_ShippingOrderLine l JOIN dbo.FG_ShippingOrder o ON o.OrderID = l.OrderID
+                WHERE @Ord IS NOT NULL AND o.OrderNo = @Ord) x;
+            """;
+        var ids = new List<int>();
+        using (var conn = _f.OpenConnection())
+        using (var cmd = new SqlCommand(sql, conn))
+        {
+            cmd.Parameters.Add("@Wo", SqlDbType.VarChar, 30).Value = (object?)woNumber ?? DBNull.Value;
+            cmd.Parameters.Add("@Ord", SqlDbType.VarChar, 30).Value = (object?)orderNo ?? DBNull.Value;
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetInt32(0));
+        }
+        return ListOrderLinks(ids).GroupBy(x => (x.Kind, x.Number)).Select(g => g.First()).OrderBy(x => x.Kind).ThenBy(x => x.Number).ToList();
+    }
+
     /// <summary>수주 라인(SoID)별 연결된 WO(취소 제외, PP_WorkOrder.SoID)와 출하 오더(FG_ShippingOrderLine.SoID).</summary>
     public List<OrderLinkRow> ListOrderLinks(IEnumerable<int> soIds)
     {

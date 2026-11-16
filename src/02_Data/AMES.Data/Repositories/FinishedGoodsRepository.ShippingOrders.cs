@@ -9,7 +9,10 @@ public sealed partial class FinishedGoodsRepository
     public static decimal? EstimateShippingPallets(decimal quantity,int? perPallet,bool tote=false) =>
         quantity <= 0 ? 0 : !tote && perPallet is > 0 ? decimal.Ceiling(quantity/perPallet.Value) : null;
 
-    public List<ShippingOrderDto> ListShippingOrders(DateTime? from=null,DateTime? to=null,bool onlyOpen=false,bool byDeliveryDate=false)
+    /// <summary>출하 오더 한 건(번호로) — 작업지시 ↔ 출하 오더 연결 팝업용.</summary>
+    public ShippingOrderDto? GetShippingOrder(string orderNo) => ListShippingOrders(orderNo:orderNo).FirstOrDefault();
+
+    public List<ShippingOrderDto> ListShippingOrders(DateTime? from=null,DateTime? to=null,bool onlyOpen=false,bool byDeliveryDate=false,string? orderNo=null)
     {
         using var conn=_factory.OpenConnection();
         using var cmd=new SqlCommand("""
@@ -21,12 +24,14 @@ public sealed partial class FinishedGoodsRepository
             CROSS APPLY(VALUES(CASE WHEN @ByDeliveryDate=1 THEN COALESCE(D.ShipDate,O.ShipDate) ELSE O.ShipDate END)) P(ShipDate)
             WHERE (@From IS NULL OR P.ShipDate>=@From) AND (@To IS NULL OR P.ShipDate<=@To)
                 AND (@OnlyOpen=0 OR O.Status IN('Open','Loading'))
+                AND (@OrderNo IS NULL OR O.OrderNo=@OrderNo)
             ORDER BY P.ShipDate,O.OrderID,L.OrderLineID;
             """,conn);
         cmd.Parameters.Add("@From",SqlDbType.Date).Value=(object?)from?.Date??DBNull.Value;
         cmd.Parameters.Add("@To",SqlDbType.Date).Value=(object?)to?.Date??DBNull.Value;
         cmd.Parameters.Add("@OnlyOpen",SqlDbType.Bit).Value=onlyOpen;
         cmd.Parameters.Add("@ByDeliveryDate",SqlDbType.Bit).Value=byDeliveryDate;
+        cmd.Parameters.Add("@OrderNo",SqlDbType.VarChar,30).Value=(object?)orderNo??DBNull.Value;
         using var r=cmd.ExecuteReader();var rows=new List<ShippingOrderDto>();
         while(r.Read())
         {
