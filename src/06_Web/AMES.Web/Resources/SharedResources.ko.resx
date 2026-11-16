@@ -2581,7 +2581,7 @@
     <value>상세</value>
   </data>
   <data name="PP.WoDetail.Mode.Flow" xml:space="preserve">
-    <value>흐름</value>
+    <value>Flow</value>
   </data>
   <data name="PP.WoDetail.OpenLink" xml:space="preserve">
     <value>열기</value>

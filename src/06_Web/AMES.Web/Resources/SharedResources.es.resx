@@ -2581,7 +2581,7 @@
     <value>Detalle</value>
   </data>
   <data name="PP.WoDetail.Mode.Flow" xml:space="preserve">
-    <value>Flujo</value>
+    <value>Flow</value>
   </data>
   <data name="PP.WoDetail.OpenLink" xml:space="preserve">
     <value>Abrir</value>

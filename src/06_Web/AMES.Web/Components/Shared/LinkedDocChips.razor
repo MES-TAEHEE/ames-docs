@@ -11,7 +11,7 @@
         {
             var current = (d.Kind == "WO" && string.Equals(d.Number, WoNumber, StringComparison.OrdinalIgnoreCase))
                        || (d.Kind == "SHIP" && string.Equals(d.Number, OrderNo, StringComparison.OrdinalIgnoreCase));
-            <span class="ipk-chip" style="@(current ? "border-color:var(--ames-tx-blue-300);font-weight:700;" : "")">
+            <span class="ipk-chip" style="display:inline-flex;align-items:center;gap:8px;@(current ? "border-color:var(--ames-tx-blue-300);font-weight:700;" : "")">
                 <span class="dim">@(d.Kind == "WO" ? L["PP.WorkOrder.Trace.Wo"] : L["RPT.OnTime.Detail.ShipOrder"])</span>
                 @if (current) { <span class="code">@d.Number</span> }
                 else if (d.Kind == "WO") { <WoLink WoNumber="@d.Number" /> }
