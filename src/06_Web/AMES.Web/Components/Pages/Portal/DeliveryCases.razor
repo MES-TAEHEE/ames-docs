@@ -76,7 +76,7 @@
 @if(_allowed && _editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">@L["Portal.Create.AddHeadFmt", L["SCM.Preview.Lbl.Case"]]</div>
+        <div class="ames-card-h master-list-toolbar"><span>@L["Portal.Create.AddHeadFmt", L["SCM.Preview.Lbl.Case"]]</span><RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="RefreshPackingParts" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /></div>
         <div class="case-po-scroll"><table class="ames-table">
             <thead><tr><th></th><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["Scm.Text.OrderDate"] ↑</th><th>@L["Scm.Text.Supplier"]</th><th>@L["Scm.Text.Destination"]</th><th>@L["Scm.Text.DueDate"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>@foreach(var order in _orders.OrderBy(o=>o.Ordered).ThenBy(o=>o.Number))
@@ -122,14 +122,7 @@
                                         @if(PackSize(row)<=0 && Available(row)>0)
                                         {
                                             <strong>@L["Portal.Text.NotSet"]</strong>
-                                            @if(row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
-                                            {
-                                                <div class="case-packing-editor">
-                                                    <span class="case-packing-input"><input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" @bind:event="oninput" placeholder='@L["Portal.Create.Ph.QtyPerBox"]' aria-label='@(L["Portal.Create.Ph.QtyPerBox"] + " " + row.Part.Item)' disabled="@_busy" /><span class="case-unit">@UomFmt.Sym(row.Part.Unit)</span></span>
-                                                    <RadzenButton Text='@L["Portal.Create.Btn.SaveBoxSize"]' Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
-                                                </div>
-                                            }
-                                            else { <div class="case-input-message">@IssueText(row.Part.Issue). @L["Portal.Create.AskEos"]</div> }
+                                            <a href="/portal/packing-quantities" target="_blank" rel="noopener">@L["Portal.Create.OpenPacking"]</a>
                                         }
                                     </td></tr>
                             }</tbody>
@@ -197,7 +190,6 @@
         public decimal Quantity {get;set;}
         public string QuantityText {get;set;}="";
         public bool InputValid {get;set;}=true;
-        public decimal? NewPackingQty {get;set;}
     }
     sealed class DraftBox(PartEdit row,decimal quantity,int sequence)
     {
@@ -250,6 +242,7 @@
         if(!_allowed||_user.Length==0){_allowed=false;_error=L["Portal.Text.YouDoNotHavePermissionToViewThisPage"];return;}
         var order=InitialOrder??Order??OrderNumber??"";
         var key=$"{_user}|{order}";if(_loadedKey==key)return;_loadedKey=key;
+        _editingCase=true;
         _selectedOrders.Clear();_expandedOrders.Clear();
         if(order.Length>0){_selectedOrders.Add(order);_expandedOrders.Add(order);}
         await Reload();
@@ -284,6 +277,14 @@
         try{await LoadParts(true);}catch(Exception ex){_parts=[];_draft=[];Fail(ex,L["Portal.Create.Err.LoadItems"]);}
     }
     int _partsLoadId;
+    async Task RefreshPackingParts()
+    {
+        if(_busy)return;
+        _busy=true;
+        try{await LoadParts(true);}
+        catch(Exception ex){Fail(ex,L["Portal.Create.Err.LoadItems"]);}
+        finally{_busy=false;}
+    }
     async Task LoadParts(bool preserve=false)
     {
         var request=++_partsLoadId;
@@ -296,9 +297,7 @@
             {
                 Quantity=preserve&&previous.TryGetValue(p.Part.PoID,out var old)?old.Quantity:0,
                 QuantityText=preserve&&previous.TryGetValue(p.Part.PoID,out var text)?text.QuantityText:"",
-                InputValid=!preserve||!previous.TryGetValue(p.Part.PoID,out var valid)||valid.InputValid,
-                // 다른 행에 입력해 두고 아직 저장하지 않은 Unit Item당 수량은 다시 읽어도 남긴다(그 행이 이미 등록됐으면 버림)
-                NewPackingQty=preserve&&p.Part.PackingQty<=0&&previous.TryGetValue(p.Part.PoID,out var pending)?pending.NewPackingQty:null
+                InputValid=!preserve||!previous.TryGetValue(p.Part.PoID,out var valid)||valid.InputValid
             }).ToList();
         RebuildBoxes();
     }
@@ -307,26 +306,6 @@
         row.QuantityText=text??"";
         var valid=decimal.TryParse(row.QuantityText,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out var qty);
         row.Quantity=valid?qty:0;row.InputValid=row.QuantityText.Length==0||valid;RebuildBoxes();
-    }
-    async Task SavePacking(PartEdit row)
-    {
-        if(_busy||!_allowed||row.Part.Unit=="BOX")return;
-        _error="";_message="";
-        if(row.NewPackingQty is null or <=0 || decimal.Truncate(row.NewPackingQty.Value)!=row.NewPackingQty.Value)
-        {_error=L["Portal.Create.Err.BoxQty"];return;}
-        var order=_orders.FirstOrDefault(o=>o.Number==row.Order);
-        if(order is null)return;
-        _busy=true;
-        try
-        {
-            if(!await Task.Run(()=>Scm.CreatePortalPackingQuantity(_user,row.Part.Item,order.Vendor,row.NewPackingQty.Value)))
-            {_error=L["Portal.Create.Err.PackingChanged"];return;}
-            Audit.Updated("PORTAL-004", "SCM_ItemVendor", $"{order.Vendor}/{row.Part.Item}",
-                new { PackingQty=row.Part.PackingQty }, new { PackingQty=row.NewPackingQty });
-            await LoadParts(true);_message=L["Portal.Create.Ok.BoxQtyFmt", row.Part.Item];
-        }
-        catch(Exception ex){Fail(ex,L["Portal.Create.Err.SaveBoxQty"]);}
-        finally{_busy=false;}
     }
     void RebuildBoxes()
     {

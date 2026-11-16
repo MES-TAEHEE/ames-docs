@@ -13567,4 +13567,5 @@
   <data name="SCM.Supplier.Name" xml:space="preserve"><value>Supplier name</value></data>
   <data name="SCM.Import.Title" xml:space="preserve"><value>Import order items</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>Excel template</value></data>
+  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Set packing quantity</value></data>
 </root>
