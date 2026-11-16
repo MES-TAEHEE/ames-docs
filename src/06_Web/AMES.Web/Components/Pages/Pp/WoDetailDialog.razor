@@ -9,7 +9,7 @@
 @using AMES.Data.Services
 
 @* 작업지시 한 건의 내용·현재 상태·계획 → 실행 연결을 보여 주는 팝업. 수주(PP-002)·APS 등 WO 번호가 보이는 화면에서 연다. *@
-<div style="min-width:640px;">
+<div style="min-width:640px;font-size:1.05em;">
 @if (_wo is null)
 {
     <div class="dim" style="padding:12px;">@L["PP.WoDetail.NotFound"]</div>
@@ -35,7 +35,7 @@ else
     @if (_mode == "flow")
     {
         <link rel="stylesheet" href="@(Nav.BaseUri)js/wo-flow/wo-flow.css" />
-        <div id="@_flowId" class="ames-flow-host" style="height:clamp(420px,62vh,820px);width:100%;"></div>
+        <div id="@_flowId" class="ames-flow-host" style="height:clamp(520px,68vh,1000px);width:100%;"></div>
         <div class="dim" style="font-size:.8em;margin-top:4px;">@(_live ? "● " : "")@string.Format(L["PP.WoDetail.Flow.Live"].Value, RefreshSec, _updatedAt.ToString("HH:mm:ss"))</div>
         @if (!string.IsNullOrEmpty(_flowError)) { <div style="color:var(--ames-tx-red-400);">@_flowError</div> }
     }

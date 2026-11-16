@@ -388,7 +388,7 @@ else
     // WO 번호를 누르면 그 작업지시의 내용·현재 상태·계획 연결을 팝업으로 본다
     async Task OpenWo(string woNumber)
         => await Dialog.OpenAsync<WoDetailDialog>(woNumber, new Dictionary<string, object?> { ["WoNumber"] = woNumber },
-               new DialogOptions { Width = "1100px", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = false });
+               new DialogOptions { Width = "94vw", Height = "90vh", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = false });
 
     async Task OpenUpload()
     {
