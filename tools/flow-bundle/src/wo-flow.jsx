@@ -97,6 +97,13 @@ function Flow({ elementId, graph, labels }) {
     return () => { clearTimeout(t); ro.disconnect(); };
   }, [elementId, fitView]);
 
+  // 처음 열 때도 「전체 보기」 버튼과 같은 크기로 맞춘다 — 팝업이 열리며 크기가 잡히는 동안을 기다려 두 번 맞춘다
+  useEffect(() => {
+    const t1 = setTimeout(() => fitView({ padding: 0.25, duration: 0 }), 200);
+    const t2 = setTimeout(() => fitView({ padding: 0.25, duration: 200 }), 700);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [fitView]);
+
   const toggleFullscreen = useCallback(() => {
     const host = document.getElementById(elementId);
     if (!host) return;
@@ -110,7 +117,7 @@ function Flow({ elementId, graph, labels }) {
 
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.45 }} colorMode={theme()}
+               nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.25 }} colorMode={theme()}
                nodesDraggable={true} panOnDrag={true} zoomOnScroll={true} zoomOnPinch={true} zoomOnDoubleClick={true}
                nodesConnectable={false} elementsSelectable={true} minZoom={0.2} maxZoom={1.8}
                proOptions={{ hideAttribution: false }}>
@@ -118,7 +125,7 @@ function Flow({ elementId, graph, labels }) {
       <Controls showInteractive={false} />
       <MiniMap pannable zoomable nodeColor={n => STATUS_COLOR[n.data?.status] ?? KIND_COLOR[n.data?.kind] ?? '#64748b'} />
       <Panel position="top-left" className="ames-flow-panel">
-        <button type="button" className="ames-flow-btn" onClick={() => fitView({ padding: 0.45, duration: 400 })}>{labels.fit}</button>
+        <button type="button" className="ames-flow-btn" onClick={() => fitView({ padding: 0.25, duration: 400 })}>{labels.fit}</button>
         <button type="button" className="ames-flow-btn ames-flow-btn-cur" onClick={focusRunning}>● {labels.running}</button>
         <button type="button" className="ames-flow-btn" onClick={toggleFullscreen}>{fs ? ('⤢ ' + labels.exitFullscreen) : ('⛶ ' + labels.fullscreen)}</button>
         <span className="ames-flow-hint">{labels.hint}</span>
