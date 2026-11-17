@@ -2328,6 +2328,9 @@
   <data name="PP.SupplyPlanImport.Col.Action" xml:space="preserve">
     <value>작업</value>
   </data>
+  <data name="PP.SupplyPlanImport.WoLink.AwaitingTip" xml:space="preserve">
+    <value>PP-003 에서 이 수주의 WO 를 생성합니다</value>
+  </data>
   <data name="PP.SupplyPlanImport.WoLink.Awaiting" xml:space="preserve">
     <value>PP-03 검토 대기</value>
   </data>

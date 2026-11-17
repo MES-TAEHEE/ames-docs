@@ -2328,6 +2328,9 @@
   <data name="PP.SupplyPlanImport.Col.Action" xml:space="preserve">
     <value>Acción</value>
   </data>
+  <data name="PP.SupplyPlanImport.WoLink.AwaitingTip" xml:space="preserve">
+    <value>Crear la OT de este pedido en PP-003</value>
+  </data>
   <data name="PP.SupplyPlanImport.WoLink.Awaiting" xml:space="preserve">
     <value>Esperando Revisión PP-03</value>
   </data>

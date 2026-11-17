@@ -229,6 +229,8 @@ else
     const string Href = "pp/plan-confirm";
     bool _canEdit;
 
+    [SupplyParameterFromQuery(Name = "so")] public string? SoQuery { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);
@@ -237,6 +239,9 @@ else
         _canEdit = PermSvc.CanEdit(Href);
 
         try { _customers = MD.ListCustomers(); } catch { }
+        // PP-002 의 「검토 대기」 배지에서 ?so=수주번호 로 넘어오면 그 수주만 보이게 검색해 둔다
+        // 납기 기간 기본값(±7일) 밖의 수주도 보이도록 기간은 비워 둔다 — 이어서 다른 수주·품번을 조회해도 기간에 막히지 않는다
+        if (!string.IsNullOrWhiteSpace(SoQuery)) { _fText = SoQuery.Trim(); _fFrom = null; _fTo = null; }
         Search();
     }
 

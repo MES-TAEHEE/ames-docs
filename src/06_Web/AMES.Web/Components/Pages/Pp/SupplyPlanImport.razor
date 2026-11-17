@@ -162,7 +162,7 @@ else
                     }
                     else if (r.Status == "Confirmed")
                     {
-                        <span class="pill info">@L["PP.SupplyPlanImport.WoLink.Awaiting"]</span>
+                        <a class="pill info wo-link" href="@("/pp/plan-confirm?so=" + Uri.EscapeDataString(r.SoNumber ?? ""))" title="@L["PP.SupplyPlanImport.WoLink.AwaitingTip"]" @onclick:stopPropagation="true">@L["PP.SupplyPlanImport.WoLink.Awaiting"]</a>
                     }
                     else { <span class="dim">—</span> }
                 </Template>
