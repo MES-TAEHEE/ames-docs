@@ -38,7 +38,6 @@ const STATUS_COLOR = { done: '#22c55e', cur: '#3b82f6', todo: '#94a3b8', bad: '#
 const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ...extra });
 
 function WoNode({ data }) {
-  const [moreOpen, setMoreOpen] = useState(false);
   const [chipsOpen, setChipsOpen] = useState(false);
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
   const cur = data.status === 'cur';
@@ -53,13 +52,11 @@ function WoNode({ data }) {
       </div>
       <div className="ames-flow-title">{data.title}</div>
       {(data.lines || []).map((l, i) => <div key={i} className="ames-flow-line">{l}</div>)}
-      {data.operator ? (
-        <div className={'ames-flow-op' + (data.operatorLive ? ' ames-flow-op-live' : '')}>
-          👤 {data.operator}
-          {data.operatorMore && data.operatorMore.length ? (
-            <button type="button" className="ames-flow-more nodrag nopan" onClick={() => setMoreOpen(v => !v)}>{moreOpen ? '▲' : '+' + data.operatorMore.length}</button>
-          ) : null}
-          {moreOpen && data.operatorMore ? data.operatorMore.map((m, i) => <div key={i} className="ames-flow-op-more">{m}</div>) : null}
+      {data.operatorRows && data.operatorRows.length ? (
+        <div className="ames-flow-ops">
+          {data.operatorRows.map((o, i) => (
+            <div key={i} className={'ames-flow-op' + (o.live ? ' ames-flow-op-live' : '')}>{o.live ? '● ' : '👤 '}{o.text}</div>
+          ))}
         </div>
       ) : null}
       {data.chips && data.chips.length ? (
@@ -91,7 +88,7 @@ function theme() { return document.documentElement.getAttribute('data-theme') ==
 const toNode = (n, prev, hostId) => ({
   id: n.id, type: 'wo', position: prev ? prev.position : { x: n.x, y: n.y },   // 사용자가 옮긴 자리를 유지
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
-          progress: n.progress, operator: n.operator, operatorLive: n.operatorLive, operatorMore: n.operatorMore, chips: n.chips, hostId, href: n.href, linkText: n.linkText },
+          progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, hostId, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
 });
 const toEdge = e => ({

@@ -2751,6 +2751,15 @@
   <data name="PP.Lot.NoStock" xml:space="preserve">
     <value>Not in stock (shipped, consumed or scrapped).</value>
   </data>
+  <data name="PP.WoDetail.Operator.Working" xml:space="preserve">
+    <value>Working</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Hour" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Min" xml:space="preserve">
+    <value>min</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>

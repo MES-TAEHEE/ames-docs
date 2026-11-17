@@ -204,67 +204,60 @@ else
         L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value),
         OperatorTexts(), _lots);
 
-    // 라인별 작업자 — 진행 중 공정은 열린 POP 세션(없으면 Logout), 끝난 공정은 당시 실적을 올린 사람(들). 3명을 넘으면 나머지는 눌러서 펼친다
-    const int OpShown = 3;
-    Dictionary<string, WoFlowGraph.OperatorInfo> OperatorTexts()
+    // 라인별 담당자 — 한 사람이 한 줄. 지금 로그인해 작업 중이면 「작업중」(강조), 로그아웃했거나 공정이 끝났으면 담당했던 시간(첫~마지막 실적, 로그아웃 시각)과 작업 시간을 보인다.
+    Dictionary<string, IReadOnlyList<WoFlowGraph.OperatorRow>> OperatorTexts()
     {
-        var map = new Dictionary<string, WoFlowGraph.OperatorInfo>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, IReadOnlyList<WoFlowGraph.OperatorRow>>(StringComparer.OrdinalIgnoreCase);
         foreach (var o in _ops)
         {
             var ended = _steps.Any(st => string.Equals(st.LineId, o.LineId, StringComparison.OrdinalIgnoreCase) && WoStatusRules.IsFinished(st.Status));
-            if (ended)
+            var workers = (o.Workers ?? []).OrderBy(w => w.FirstAt).ToList();
+            var live = ended ? new Dictionary<string, AMES.Data.Repositories.WorkOrderRepository.OperatorSession>(StringComparer.OrdinalIgnoreCase)
+                             : o.Sessions.GroupBy(s => s.Operator, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartedAt).First(), StringComparer.OrdinalIgnoreCase);
+            var rows = new List<WoFlowGraph.OperatorRow>();
+            foreach (var w in workers)
             {
-                var ws = o.Workers ?? [];
-                if (ws.Count == 0) { map[o.LineId] = new("—", false); continue; }
-                var names = ws.Select(w => $"{Actors.Display(w.Operator)} {w.GoodQty:#,0}").ToList();
-                var span = $" · {ws.Min(w => w.FirstAt):MM-dd HH:mm}~{ws.Max(w => w.LastAt):MM-dd HH:mm}";
-                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Done"].Value}: " + string.Join(", ", names.Take(OpShown)) + (names.Count > OpShown ? "" : span), false,
-                    names.Count > OpShown ? names.Skip(OpShown).Append(span.TrimStart(' ', '·')).ToList() : null);
+                if (live.Remove(w.Operator, out var sess))
+                    rows.Add(new($"{Actors.Display(w.Operator)} · {L["PP.WoDetail.Operator.Working"].Value} {Stamp(w.FirstAt)}~ · {w.GoodQty:#,0}", true));
+                else
+                {
+                    var end = w.LoggedOutAt ?? w.LastAt;
+                    rows.Add(new($"{Actors.Display(w.Operator)} · {Stamp(w.FirstAt)}~{Stamp(end, w.FirstAt)} ({Dur(end - w.FirstAt)}) · {w.GoodQty:#,0}", false));
+                }
             }
-            else if (o.Sessions.Count > 0)
-            {
-                var names = o.Sessions.Select(s => Actors.Display(s.Operator) + (string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})")).ToList();
-                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Now"].Value}: " + string.Join(", ", names.Take(OpShown)), true,
-                    names.Count > OpShown ? names.Skip(OpShown).ToList() : null);
-            }
-            else if (o.LastOperator is not null)
-                map[o.LineId] = new($"{L["PP.WoDetail.Operator.Logout"].Value} · {L["PP.WoDetail.Operator.Last"].Value}: {Actors.Display(o.LastOperator)} · {o.LastAt:MM-dd HH:mm}", false);
-            else
-                map[o.LineId] = new(L["PP.WoDetail.Operator.Logout"].Value, false);   // 열린 세션도 실적도 없으면 로그아웃
+            // 실적은 아직 없지만 지금 로그인해 있는 사람
+            foreach (var s in live.Values.OrderBy(s => s.StartedAt))
+                rows.Add(new($"{Actors.Display(s.Operator)}{(string.IsNullOrEmpty(s.Terminal) ? "" : $" ({s.Terminal})")} · {L["PP.WoDetail.Operator.Working"].Value} {Stamp(s.StartedAt)}~", true));
+            if (rows.Count == 0 && !ended) rows.Add(new(L["PP.WoDetail.Operator.Logout"].Value, false));
+            if (rows.Count > 0) map[o.LineId] = rows;
         }
         return map;
     }
 
-    readonly HashSet<string> _opOpen = new(StringComparer.OrdinalIgnoreCase);
+    // 시각 — 오늘이 아니면 날짜를 붙이고, 끝 시각은 시작과 같은 날이면 시·분만
+    static string Stamp(DateTime t, DateTime? sameDayAs = null)
+        => (sameDayAs is DateTime s ? t.Date != s.Date : t.Date != DbClock.Today) ? t.ToString("MM-dd HH:mm") : t.ToString("HH:mm");
 
-    // 공정 표 작업자 칸 — 3명을 넘으면 「+n」을 눌러 나머지를 펼친다
+    string Dur(TimeSpan d)
+    {
+        var min = (int)Math.Round(Math.Max(0, d.TotalMinutes));
+        if (min < 1) return "< 1" + L["PP.WoDetail.Unit.Min"].Value;
+        return min >= 60 ? $"{min / 60}{L["PP.WoDetail.Unit.Hour"].Value} {min % 60}{L["PP.WoDetail.Unit.Min"].Value}" : $"{min}{L["PP.WoDetail.Unit.Min"].Value}";
+    }
+
+    // 공정 표 담당자 칸 — 한 사람이 한 줄
     RenderFragment OperatorCell(string? lineId) => builder =>
     {
         var map = OperatorTexts();
-        if (lineId is null || !map.TryGetValue(lineId, out var op)) { builder.AddMarkupContent(0, "<span class=\"dim\">—</span>"); return; }
-        var open = _opOpen.Contains(lineId);
-        builder.OpenElement(1, "span");
-        builder.AddAttribute(2, "class", op.Live ? "wod-op-live" : "dim");
-        builder.AddContent(3, (op.Live ? "● " : "") + op.Text);
-        if (op.More is { Count: > 0 })
+        if (lineId is null || !map.TryGetValue(lineId, out var rows)) { builder.AddMarkupContent(0, "<span class=\"dim\">—</span>"); return; }
+        var seq = 1;
+        foreach (var r in rows)
         {
-            builder.OpenElement(4, "button");
-            builder.AddAttribute(5, "type", "button");
-            builder.AddAttribute(6, "class", "ipk-tool");
-            builder.AddAttribute(7, "style", "margin-left:6px;padding:0 8px;");
-            builder.AddAttribute(8, "onclick", EventCallback.Factory.Create(this, () => { if (!_opOpen.Add(lineId)) _opOpen.Remove(lineId); }));
-            builder.AddContent(9, open ? "▲" : "+" + op.More.Count);
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", r.Live ? "wod-op-live" : "dim");
+            builder.AddContent(seq++, (r.Live ? "● " : "") + r.Text);
             builder.CloseElement();
-            if (open)
-                foreach (var m in op.More)
-                {
-                    builder.OpenElement(10, "div");
-                    builder.AddAttribute(11, "class", "dim");
-                    builder.AddContent(12, m);
-                    builder.CloseElement();
-                }
         }
-        builder.CloseElement();
     };
 
     // 흐름 화면의 LOT 칩을 누르면 JS 가 부른다 — 그 LOT 의 내용을 팝업으로 연다

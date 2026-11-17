@@ -5941,7 +5941,8 @@ input[data-ames-x] {
 .ames-flow-bar { height: 7px; margin-top: 8px; border-radius: 3px; background: rgba(148,163,184,.3); overflow: hidden; }
 .ames-flow-bar-fill { height: 100%; transition: width .4s; }
 .ames-flow-done { opacity: .92; }
-.ames-flow-op { margin-top: 5px; padding: 3px 6px; border-radius: 5px; font-size: 13px; line-height: 1.4; white-space: normal; background: rgba(148,163,184,.18); }
+.ames-flow-ops { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.ames-flow-op { padding: 3px 6px; border-radius: 5px; font-size: 13px; line-height: 1.4; white-space: normal; background: rgba(148,163,184,.18); }
 .ames-flow-op-live { font-weight: 700; background: rgba(34,197,94,.22); color: #16a34a; }
 /* 지금 진행 중인 공정 — 크게·펄스 테두리·글로우로 한눈에 */
 .ames-flow-cur { transform: scale(1.12); box-shadow: 0 0 0 3px color-mix(in srgb, var(--flow-accent) 35%, transparent), 0 0 22px color-mix(in srgb, var(--flow-accent) 70%, transparent); animation: ames-flow-pulse 1.6s ease-in-out infinite; }
@@ -5957,7 +5958,8 @@ input[data-ames-x] {
 .ames-flow-host:fullscreen { height: 100vh !important; width: 100vw !important; border: 0; border-radius: 0; background: var(--ames-surface, #0f172a); }
 
 /* 흐름 보기 — 팝업 본문을 세로 flex 로 만들어 흐름 영역이 남는 높이를 채우고 버튼 줄은 아래에 둔다 */
-.rz-dialog-content:has(.ames-flow-fill) { display: flex; flex-direction: column; }
+/* Radzen 대화상자를 늘릴 때 흐름 영역도 같이 늘어난다 — 대화상자(.rz-dialog)가 세로 flex 라 본문이 남는 높이를 채워야 한다 */
+.rz-dialog-content:has(.ames-flow-fill) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .rz-dialog-content > .ames-flow-fill { flex: 1 1 auto; min-height: 0; }
 
 /* WO 번호 링크(Shared/WoLink) — 그 위에 열리는 작업지시 팝업(Radzen 대화상자: 마스크 1050 · 창 1051)이 ames-modal(1000) 위, BOM 미리보기(1100) 아래에 온다 */

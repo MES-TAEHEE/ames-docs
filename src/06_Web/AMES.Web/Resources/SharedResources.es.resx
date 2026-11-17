@@ -2748,6 +2748,15 @@
   <data name="PP.Lot.NoStock" xml:space="preserve">
     <value>No está en stock (enviado, consumido o desechado).</value>
   </data>
+  <data name="PP.WoDetail.Operator.Working" xml:space="preserve">
+    <value>Trabajando</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Hour" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Min" xml:space="preserve">
+    <value>min</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

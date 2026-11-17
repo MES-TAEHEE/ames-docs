@@ -2748,6 +2748,15 @@
   <data name="PP.Lot.NoStock" xml:space="preserve">
     <value>재고에 남아 있지 않습니다(출하·소진·불량 처리).</value>
   </data>
+  <data name="PP.WoDetail.Operator.Working" xml:space="preserve">
+    <value>작업중</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Hour" xml:space="preserve">
+    <value>시간</value>
+  </data>
+  <data name="PP.WoDetail.Unit.Min" xml:space="preserve">
+    <value>분</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

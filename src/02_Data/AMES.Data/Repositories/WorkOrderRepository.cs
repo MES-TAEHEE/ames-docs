@@ -284,7 +284,7 @@ public sealed class WorkOrderRepository
         IReadOnlyList<ResultOperator>? Workers = null);
 
     /// <summary>이 작업지시의 그 라인 실적을 올린 사람 — 양품 수량(역분개 제외)과 첫·마지막 실적 시각. 끝난 공정의 「당시 담당자」 기준.</summary>
-    public sealed record ResultOperator(string Operator, decimal GoodQty, DateTime FirstAt, DateTime LastAt);
+    public sealed record ResultOperator(string Operator, decimal GoodQty, DateTime FirstAt, DateTime LastAt, DateTime? LoggedOutAt = null);
 
     public List<StepOperators> ListStepOperators(int woId)
     {
@@ -303,10 +303,15 @@ public sealed class WorkOrderRepository
                 FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL) x
             WHERE x.rn = 1;
 
-            SELECT p.LineID, p.OperatorID, SUM(CASE WHEN p.GoodQty > 0 THEN p.GoodQty ELSE 0 END) AS GoodQty, MIN(p.EntryAt) AS FirstAt, MAX(p.EntryAt) AS LastAt
-            FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL
-            GROUP  BY p.LineID, p.OperatorID
-            ORDER  BY MIN(p.EntryAt);
+            ;WITH g AS (
+                SELECT p.LineID, p.OperatorID, SUM(CASE WHEN p.GoodQty > 0 THEN p.GoodQty ELSE 0 END) AS GoodQty, MIN(p.EntryAt) AS FirstAt, MAX(p.EntryAt) AS LastAt
+                FROM   dbo.PR_ProductionResult p WHERE p.WoID = @Wo AND p.OperatorID IS NOT NULL
+                GROUP  BY p.LineID, p.OperatorID)
+            SELECT g.LineID, g.OperatorID, g.GoodQty, g.FirstAt, g.LastAt,
+                   -- 그 사람이 마지막 실적 뒤 처음 로그아웃한 시각(세션이 로그아웃 없이 만료됐으면 NULL)
+                   (SELECT MIN(s.LoggedOutAt) FROM dbo.PR_PopSession s
+                    WHERE s.OperatorID = g.OperatorID AND s.LineID = g.LineID AND s.LoggedOutAt IS NOT NULL AND s.LoggedOutAt >= g.LastAt) AS LoggedOutAt
+            FROM   g ORDER BY g.FirstAt;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
@@ -331,7 +336,7 @@ public sealed class WorkOrderRepository
         {
             var line = r["LineID"] as string ?? "";
             if (!workers.TryGetValue(line, out var wl)) workers[line] = wl = new();
-            wl.Add(new ResultOperator((string)r["OperatorID"], Convert.ToDecimal(r["GoodQty"]), (DateTime)r["FirstAt"], (DateTime)r["LastAt"]));
+            wl.Add(new ResultOperator((string)r["OperatorID"], Convert.ToDecimal(r["GoodQty"]), (DateTime)r["FirstAt"], (DateTime)r["LastAt"], r["LoggedOutAt"] as DateTime?));
         }
         return lines.Select(line => new StepOperators(line,
             sessions.TryGetValue(line, out var ss) ? ss : [],
