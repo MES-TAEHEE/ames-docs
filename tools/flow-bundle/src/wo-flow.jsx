@@ -121,6 +121,26 @@ function Flow({ elementId, graph, labels }) {
     return () => document.removeEventListener('fullscreenchange', on);
   }, [elementId, fitView]);
 
+  // ESC — 전체화면이면 전체화면만 해제하고, 같은 키가 뒤의 팝업(Radzen 대화상자)을 닫지 않게 막는다.
+  // 브라우저가 ESC 로 전체화면을 먼저 풀어도 곧바로 오는 키 이벤트를 짧게 삼켜 팝업이 같이 닫히지 않게 한다.
+  useEffect(() => {
+    let exitedAt = 0;
+    const onFs = () => { if (!document.fullscreenElement) exitedAt = Date.now(); };
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      const host = document.getElementById(elementId);
+      if (host && document.fullscreenElement === host) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        document.exitFullscreen?.();
+      } else if (Date.now() - exitedAt < 400) {
+        e.preventDefault(); e.stopImmediatePropagation();
+      }
+    };
+    document.addEventListener('fullscreenchange', onFs);
+    window.addEventListener('keydown', onKey, true);
+    return () => { document.removeEventListener('fullscreenchange', onFs); window.removeEventListener('keydown', onKey, true); };
+  }, [elementId]);
+
   // 호스트 크기가 바뀌면(팝업 크기 조정·처음 배치) 화면을 다시 맞춘다 — 처음 작은 크기로 맞춰져 잘리는 것을 막는다
   useEffect(() => {
     const host = document.getElementById(elementId);
