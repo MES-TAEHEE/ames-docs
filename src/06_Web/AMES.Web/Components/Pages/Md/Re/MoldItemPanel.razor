@@ -20,7 +20,7 @@
     <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
-                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.Mold.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
+                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.MoldItem.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyMoldFilter" class="ames-rz-btn" />
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
@@ -206,8 +206,12 @@
 
     void ApplyMoldFilter()
     {
+        // 품번·품명으로도 찾는다 — 그 품번을 제품정보로 가진 금형이 함께 나온다
+        HashSet<string> byItem;
+        try { byItem = MD.FindMoldIdsByItem(_search); } catch { byItem = new(StringComparer.OrdinalIgnoreCase); }
         _molds = _allMolds.Where(m =>
             string.IsNullOrEmpty(_search) ||
+            byItem.Contains(m.MoldID) ||
             m.MoldID.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
             (m.MoldName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)
         ).ToList();

@@ -2106,6 +2106,28 @@ public sealed class MasterDataRepository
         int CavityCount, string? MoldCategory, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
+    /// <summary>
+    /// MD-007 금형별 제품 관리 — 품번·품명에 검색어가 들어 있는 제품정보(MD_MoldItem)를 가진 금형 ID. 금형 목록 검색을 품번으로도 하게 한다.
+    /// 부분 일치이고 대소문자를 가리지 않는다(와일드카드 문자도 글자 그대로 찾는다).
+    /// </summary>
+    public HashSet<string> FindMoldIdsByItem(string text)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(text)) return set;
+        const string sql = """
+            SELECT DISTINCT mi.MoldID
+            FROM   dbo.MD_MoldItem mi
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
+            WHERE  CHARINDEX(@Q, mi.ItemNo) > 0 OR CHARINDEX(@Q, ISNULL(i.ItemName, N'')) > 0;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Q", null, text.Trim());
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) set.Add(r.GetString(0));
+        return set;
+    }
+
     public List<MoldItemRow> ListMoldItems(string moldId)
     {
         using var conn = _factory.OpenConnection();

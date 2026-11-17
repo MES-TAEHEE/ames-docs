@@ -2721,6 +2721,9 @@
   <data name="PP.PlanConfirm.Stock.NoSource" xml:space="preserve">
     <value>수주·작업지시 없음</value>
   </data>
+  <data name="MD.MoldItem.Ph.Search" xml:space="preserve">
+    <value>금형 ID/명칭/품번</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

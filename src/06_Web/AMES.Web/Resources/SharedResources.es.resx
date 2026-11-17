@@ -2721,6 +2721,9 @@
   <data name="PP.PlanConfirm.Stock.NoSource" xml:space="preserve">
     <value>Sin pedido / OT</value>
   </data>
+  <data name="MD.MoldItem.Ph.Search" xml:space="preserve">
+    <value>ID de molde/Nombre/N.º artículo</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>
