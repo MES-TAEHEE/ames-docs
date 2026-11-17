@@ -2,11 +2,12 @@
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
-<div style="display:flex;flex-direction:column;gap:8px;min-width:420px;">
+<div style="display:flex;flex-direction:column;gap:8px;min-width:640px;">
     <div>@string.Format(L["PP.PlanConfirm.Dlg.HoldCount"].Value, Count)</div>
     <label>@L["PP.PlanConfirm.Dlg.HoldReason"]</label>
     <RadzenTextBox @bind-Value="_reason" MaxLength="200" Placeholder="@L["PP.PlanConfirm.Dlg.HoldReasonPh"].Value" Style="width:100%" />
     <span class="dim" style="font-size:.85em;">@L["PP.PlanConfirm.Dlg.HoldHint"]</span>
+    <FgStockPanel ItemNos="@ItemNos" />
     <div class="ames-modal-footer">
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@L["PP.PlanConfirm.Btn.HoldDo"].Value" Icon="pause_circle" Click="@(() => Dialog.Close(new Result(_reason)))" />
@@ -15,6 +16,8 @@
 
 @code {
     [Parameter] public int Count { get; set; }
+    /// <summary>선택한 수주 중 완제품 재고가 있는 품번 — 보류하기 전에 재고 내역(어떤 수주·작업지시로 만든 재고인지)을 같이 보인다.</summary>
+    [Parameter] public IEnumerable<string?> ItemNos { get; set; } = [];
     string? _reason;
 
     public sealed record Result(string? Reason);

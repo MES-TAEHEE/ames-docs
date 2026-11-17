@@ -1,0 +1,67 @@
+@* 완제품 재고 내역 패널 — 팝업(보류·WO 일괄 생성) 안에 같이 보여 준다. 품번마다 재고가 어느 팔레트·위치에 얼마나 있고
+   어떤 수주·작업지시로 만든 것인지 보인다. 재고가 없는 품번은 그리지 않고, 모두 없으면 아무것도 그리지 않는다.
+   재고 합계는 PP-003 순수요 계산과 같은 기준(위치 무관, 반품 검사 대기 제외). 사용: <FgStockPanel ItemNos="@items" /> *@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
+
+@if (_groups.Count > 0)
+{
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;padding:8px 12px;">
+        <div class="dim" style="font-size:.85em;margin-bottom:6px;">@L["PP.PlanConfirm.Stock.Note"]</div>
+        @foreach (var g in _groups)
+        {
+            <div style="margin:6px 0 2px;">
+                <span class="code" data-item="@g.ItemNo">@g.ItemNo</span>
+                <span class="dim"> · @L["PP.PlanConfirm.Stock.Title"]</span>
+                <b style="margin-left:8px;color:var(--ames-tx-green-300);">@g.Rows.Sum(r => r.Qty).ToString("#,0") EA</b>
+            </div>
+            <div class="ipk-tree" style="max-height:170px;margin-bottom:6px;">
+                <div class="ipk-row ipk-head" style="grid-template-columns: 170px 110px 70px 150px minmax(0,1fr);">
+                    <span>@L["PP.PlanConfirm.Stock.Col.Pallet"]</span><span>@L["PP.PlanConfirm.Stock.Col.Location"]</span><span class="r">@L["Col.Qty"]</span><span>@L["Col.SoNo"]</span><span>@L["PP.WorkOrder.Trace.Wo"]</span>
+                </div>
+                @foreach (var r in g.Rows)
+                {
+                    <div class="ipk-row" style="grid-template-columns: 170px 110px 70px 150px minmax(0,1fr);">
+                        <span class="code">@(r.PalletNo ?? "—")</span>
+                        <span>@(string.IsNullOrEmpty(r.LocationNo) ? L["PP.PlanConfirm.Stock.Unassigned"].Value : r.LocationNo)</span>
+                        <span class="r">@r.Qty.ToString("#,0")</span>
+                        <span>
+                            @if (r.SoId is int sid) { <SoLink SoId="@sid" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" /> }
+                            else { <span class="dim">@L["PP.PlanConfirm.Stock.NoSource"]</span> }
+                        </span>
+                        <span>
+                            @if (!string.IsNullOrEmpty(r.WoNumber)) { <WoLink WoNumber="@r.WoNumber" /> <span class="pill info">@r.WoStatus</span> }
+                            else { <span class="dim">—</span> }
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public IEnumerable<string?> ItemNos { get; set; } = [];
+
+    sealed record Group(string ItemNo, List<AMES.Data.Repositories.PpRepository.FgStockOriginRow> Rows);
+    List<Group> _groups = new();
+    string? _loadedFor;
+
+    protected override void OnParametersSet()
+    {
+        var items = ItemNos.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        var key = string.Join("|", items);
+        if (key == _loadedFor) return;
+        _loadedFor = key;
+        _groups = new();
+        foreach (var it in items)
+        {
+            try
+            {
+                var rows = Pp.ListFgStockOrigins(it);
+                if (rows.Count > 0) _groups.Add(new(it, rows));
+            }
+            catch { /* 재고 내역은 보조 정보 — 조회가 실패해도 팝업 본문은 그대로 */ }
+        }
+    }
+}

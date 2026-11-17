@@ -40,6 +40,8 @@
         </div>
     </div>
 
+    <FgStockPanel ItemNos="@StockItems" />
+
     <div style="max-height:360px;overflow:auto;border:1px solid var(--ames-bd-white-a12);border-radius:8px;">
         <table class="ames-table" data-col-resize="pp-batch-lines" style="width:100%;table-layout:fixed;">
             <thead>
@@ -209,6 +211,8 @@
     };
     string TotalKey => _qtyMode switch { QtyManual => "PP.PlanConfirm.Dlg.ManualTotal", QtyOrder => "PP.PlanConfirm.Dlg.OrderTotal", _ => "PP.PlanConfirm.Dlg.NetTotal" };
     int SkipCount  => Lines.Count(l => Qty(l) <= 0);
+    // 완제품 재고가 있는 품번 — 재고 때문에 순수요가 줄거나 0 이 되는 이유를 만든 수주·작업지시와 함께 같이 보인다
+    IEnumerable<string?> StockItems => Lines.Where(l => l.FgOnHand > 0).Select(l => l.ItemNo).ToList();
 
     void OnQtyModeChanged()
     {
@@ -242,16 +246,6 @@
             __b.CloseComponent();
         }
         else __b.AddContent(13, q.ToString("#,0"));
-        if (_qtyMode == QtyNet && l.FgOnHand > 0 && l.NetReq < l.RemainQty)
-        {
-            __b.OpenElement(40, "div");
-            __b.OpenComponent<FgStockLink>(41);
-            __b.AddAttribute(42, "ItemNo", l.ItemNo);
-            __b.AddAttribute(43, "Qty", l.FgOnHand);
-            __b.AddAttribute(44, "Covered", true);
-            __b.CloseComponent();
-            __b.CloseElement();
-        }
         if (q > l.RemainQty)
         {
             __b.OpenElement(14, "div"); __b.OpenElement(15, "span"); __b.AddAttribute(16, "class", "pill warn");

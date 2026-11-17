@@ -2724,12 +2724,6 @@
   <data name="PP.PlanConfirm.Stock.NoSource" xml:space="preserve">
     <value>No order / work order</value>
   </data>
-  <data name="PP.PlanConfirm.Stock.Covered" xml:space="preserve">
-    <value>Covered by stock</value>
-  </data>
-  <data name="PP.PlanConfirm.Stock.CoveredTip" xml:space="preserve">
-    <value>Click to see the stock and which order / work order produced it</value>
-  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>
