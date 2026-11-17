@@ -9,11 +9,11 @@ public sealed class ShippingLabelZplTests
     [Theory]
     [InlineData(203,799,320)]
     [InlineData(300,1181,472)]
-    public void Zebra_labels_use_the_approved_fixed_size_and_one_copy(int dpi, int width, int height)
+    public void Zebra_box_labels_use_the_approved_fixed_size_and_two_copies(int dpi, int width, int height)
     {
         var zpl = ShippingLabelZpl.Build(new("UIT-1","UNIT ITEM (UIT)","Vendor ^XZ","PART-1","RESIN","0.1 kg","LOT 123"),dpi);
         Assert.Contains($"^PW{width}\n^LL{height}",zpl);
-        Assert.Contains("^PQ1\n^XZ",zpl);
+        Assert.Contains("^PQ2\n^XZ",zpl);
         Assert.Equal(1,zpl.Split("^XA").Length-1);
         Assert.Equal(1,zpl.Split("^XZ").Length-1);
         Assert.Contains("_55_49_54_2D_31",zpl);
@@ -47,6 +47,19 @@ public sealed class ShippingLabelZplTests
         Assert.True(layout.QrLeftMm(barcode)>0);
         Assert.True(layout.QrLeftMm(barcode)+layout.QrSideMm(barcode)<CompactQrLabelLayout.TextLeftMm);
         Assert.Contains($"^FO{layout.QrX(barcode)},{layout.QrY(barcode)}^BQN",zpl);
+    }
+
+    [Theory]
+    [InlineData("DELIVERY NOTE",1)]
+    [InlineData("SHIPPING UNIT (SHU)",1)]
+    [InlineData("SHU",1)]
+    [InlineData("UNIT ITEM (UIT)",2)]
+    [InlineData("UIT",2)]
+    public void Copy_count_changes_only_for_unit_item_labels(string kind,int copies)
+    {
+        var label=new ShippingLabel("LABEL-1",kind,"Vendor","PART-1","Resin","100 G","");
+        Assert.Equal(copies,label.Copies);
+        Assert.Contains($"^PQ{copies}\n^XZ",ShippingLabelZpl.Build(label));
     }
 
     [Fact]

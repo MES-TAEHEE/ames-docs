@@ -13780,4 +13780,6 @@
   <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR asignado · no disponible</value></data>
   <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>Solo lectura · no disponible</value></data>
   <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>No disponible para seleccionar</value></data>
+  <data name="SCM.Label.TwoCopies" xml:space="preserve"><value>2 copias por etiqueta</value></data>
+  <data name="SCM.Label.BoxBothSides" xml:space="preserve"><value>Imprima dos etiquetas idénticas por caja. Coloque una en cada lado de la caja.</value></data>
 </root>

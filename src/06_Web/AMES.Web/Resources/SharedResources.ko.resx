@@ -13780,4 +13780,6 @@
   <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR 배정됨 · 선택 불가</value></data>
   <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>조회 전용 · 선택 불가</value></data>
   <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>선택 불가</value></data>
+  <data name="SCM.Label.TwoCopies" xml:space="preserve"><value>라벨당 2매</value></data>
+  <data name="SCM.Label.BoxBothSides" xml:space="preserve"><value>동일한 라벨 2장을 출력하여 박스 양쪽에 한 장씩 부착해 주세요.</value></data>
 </root>
