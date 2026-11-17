@@ -437,6 +437,36 @@ public sealed class WorkOrderRepository
         decimal GoodQty, int DefectCount, int LotCount,
         string? ApsStatus, DateTime? ApsAt);
 
+    /// <summary>
+    /// 공정 단계 하나의 계획·실행 — 슬롯(그 단계 라인)·실적(그 공정)을 단계별로 나눈 값. WoTraceRow 의 합계는 INJ 와 IMG 를 모두 더해
+    /// 같은 제품이 공정마다 한 번씩 세어지므로(주문 10 인데 양품 20), 흐름 보기는 이 단계별 값을 보인다.
+    /// </summary>
+    public sealed record WoStepTrace(int StepSeq, string ProcessCode, string? LineId, int SlotCount, decimal SlotQty, decimal GoodQty, int DefectCount, int LotCount);
+
+    public List<WoStepTrace> ListStepTrace(int woId)
+    {
+        const string sql = """
+            SELECT r.StepSeq, r.ProcessCode, r.LineID,
+                   (SELECT COUNT(*) FROM dbo.PP_LineSchedule s WHERE s.WoID = r.WoID AND s.LineID = r.LineID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotCount,
+                   (SELECT ISNULL(SUM(s.PlannedQty), 0) FROM dbo.PP_LineSchedule s WHERE s.WoID = r.WoID AND s.LineID = r.LineID AND s.EntryType = 'WO' AND ISNULL(s.Status, '') <> 'CANCELLED') AS SlotQty,
+                   (SELECT ISNULL(SUM(p.GoodQty), 0) FROM dbo.PR_ProductionResult p WHERE p.WoID = r.WoID AND p.ProcessCode = r.ProcessCode) AS GoodQty,
+                   (SELECT COUNT(*) FROM dbo.PR_DefectDetail d WHERE d.WoID = r.WoID AND d.ProcessCode = r.ProcessCode) AS DefectCount,
+                   (SELECT COUNT(DISTINCT p.LotID) FROM dbo.PR_ProductionResult p WHERE p.WoID = r.WoID AND p.ProcessCode = r.ProcessCode AND p.LotID IS NOT NULL) AS LotCount
+            FROM   dbo.PP_WorkOrderRouting r
+            WHERE  r.WoID = @Wo
+            ORDER  BY r.StepSeq;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoStepTrace>();
+        while (r.Read())
+            list.Add(new(Convert.ToInt32(r["StepSeq"]), (string)r["ProcessCode"], r["LineID"] as string, Convert.ToInt32(r["SlotCount"]),
+                Convert.ToDecimal(r["SlotQty"]), Convert.ToDecimal(r["GoodQty"]), Convert.ToInt32(r["DefectCount"]), Convert.ToInt32(r["LotCount"])));
+        return list;
+    }
+
     public WoTraceRow? GetTrace(int woId)
     {
         const string sql = """

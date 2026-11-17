@@ -61,12 +61,12 @@ function WoNode({ data }) {
       ) : null}
       {data.chips && data.chips.length ? (
         <div className={'ames-flow-chips nodrag nopan nowheel' + (chipsOpen ? ' ames-flow-chips-open' : '')}>
-          {(chipsOpen ? data.chips : data.chips.slice(0, CHIPS_SHOWN)).map(c => (
+          {(chipsOpen ? data.chips : data.chips.slice(0, CHIPS_SHOWN)).map((c, i) => c.key ? (
             <button key={c.key} type="button" className="ames-flow-chip" title={c.key}
                     onClick={() => dotnetRefs.get(data.hostId)?.invokeMethodAsync('OpenLot', c.key)}>{c.text}</button>
-          ))}
+          ) : <span key={'g' + i} className="ames-flow-chip-group">{c.text}</span>)}
           {data.chips.length > CHIPS_SHOWN ? (
-            <button type="button" className="ames-flow-more" onClick={() => setChipsOpen(v => !v)}>{chipsOpen ? '▲' : '+' + (data.chips.length - CHIPS_SHOWN)}</button>
+            <button type="button" className="ames-flow-more" onClick={() => setChipsOpen(v => !v)}>{chipsOpen ? '▲' : '+' + (data.chips.filter(c => c.key).length - data.chips.slice(0, CHIPS_SHOWN).filter(c => c.key).length)}</button>
           ) : null}
         </div>
       ) : null}

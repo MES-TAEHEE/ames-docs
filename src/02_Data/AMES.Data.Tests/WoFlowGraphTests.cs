@@ -53,7 +53,8 @@ public class WoFlowGraphTests
         var lots = new[] { new WorkOrderRepository.WoLotRow("LOT-A1", "INJ", "CONFIRMED", "I", null), new WorkOrderRepository.WoLotRow("LOT-A2", "INJ", "CONFIRMED", "I", null) };
         var g = WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T, null, lots);
         var chips = g.Nodes.Single(n => n.Id == "result").Chips!;
-        Assert.Equal(["LOT-A1", "LOT-A2"], chips.Select(c => c.Key));
+        Assert.Equal(["LOT-A1", "LOT-A2"], chips.Where(c => !string.IsNullOrEmpty(c.Key)).Select(c => c.Key));
+        Assert.Equal("INJ", chips[0].Text);   // 공정 이름 칩이 앞에 온다
         Assert.Null(WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T).Nodes.Single(n => n.Id == "result").Chips);   // LOT 이 없으면 칩 없음
     }
 }

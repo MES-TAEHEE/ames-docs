@@ -31,7 +31,7 @@ public static class WoFlowGraph
     static double Pct(decimal done, decimal total) => total <= 0 ? 0 : (double)Math.Min(100m, done * 100m / total);
 
     public static Graph Build(WorkOrderDto wo, IReadOnlyList<WorkOrderRepository.StepRow> steps, WorkOrderRepository.WoTraceRow? t, Texts x,
-        IReadOnlyDictionary<string, IReadOnlyList<OperatorRow>>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null)
+        IReadOnlyDictionary<string, IReadOnlyList<OperatorRow>>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null, IReadOnlyList<WorkOrderRepository.WoStepTrace>? stepTrace = null)
     {
         var nodes = new List<Node>();
         var edges = new List<Edge>();
@@ -75,13 +75,31 @@ public static class WoFlowGraph
         if (t is not null)
         {
             var span = t.SlotFrom is DateTime a ? a.ToString("yyyy-MM-dd") + (t.SlotTo is DateTime b && b != a ? " ~ " + b.ToString("yyyy-MM-dd") : "") : "—";
-            nodes.Add(new Node("slots", "slot", x.Slots, $"{t.SlotCount} {x.SlotUnit}",
-                [$"{t.SlotQty:#,0} EA", span], null, "/pp/line-schedule", x.OpenLink, 2 * ColW, RowH));
+            // 슬롯·실적은 공정 단계별로 보인다 — 합계는 INJ 와 IMG 를 더해 같은 제품이 두 번 세어지기 때문(주문 10 인데 20)
+            var stepLines = stepTrace is { Count: > 0 };
+            var slotLines = stepLines
+                ? stepTrace!.Where(s => s.SlotCount > 0).Select(s => $"{s.ProcessCode} {s.LineId} · {s.SlotQty:#,0} EA").Append(span).ToList()
+                : new List<string> { $"{t.SlotQty:#,0} EA", span };
+            nodes.Add(new Node("slots", "slot", x.Slots, $"{t.SlotCount} {x.SlotUnit}", slotLines, null, "/pp/line-schedule", x.OpenLink, 2 * ColW, RowH));
             // 작업지시 아래(b)에서 나와 슬롯 위(t)로 들어간다 — 슬롯이 작업지시 바로 아래 줄에 놓인다
             edges.Add(new Edge("wo-slots", "wo", "slots", false, null, "b", "t"));
-            nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {t.GoodQty:#,0}",
-                [$"{x.Defect} {t.DefectCount}", $"LOT {Math.Max(t.LotCount, lots?.Count ?? 0)}"], t.GoodQty > 0 ? "done" : null, null, null, 3 * ColW, RowH,
-                Chips: lots is { Count: > 0 } ? lots.Select(l => new Chip(l.LotCode, l.LotCode)).ToList() : null));
+            // 실적 — 제목은 마지막 공정(작업지시 완료 수량과 같은 기준), 줄은 공정별 양품·불량·LOT
+            var finalGood = stepLines ? stepTrace!.OrderBy(s => s.StepSeq).Last().GoodQty : t.GoodQty;
+            var resultLines = stepLines
+                ? stepTrace!.Select(s => $"{s.ProcessCode} · {x.Good} {s.GoodQty:#,0} · {x.Defect} {s.DefectCount} · LOT {s.LotCount}").ToList()
+                : new List<string> { $"{x.Defect} {t.DefectCount}", $"LOT {Math.Max(t.LotCount, lots?.Count ?? 0)}" };
+            // LOT 칩은 공정마다 묶어 앞에 공정 이름 칩(Key 없음)을 둔다
+            List<Chip>? chips = null;
+            if (lots is { Count: > 0 })
+            {
+                chips = new List<Chip>();
+                foreach (var g in lots.GroupBy(l => l.ProcessCode ?? ""))
+                {
+                    if (!string.IsNullOrEmpty(g.Key)) chips.Add(new Chip(g.Key, ""));
+                    chips.AddRange(g.Select(l => new Chip(l.LotCode, l.LotCode)));
+                }
+            }
+            nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {finalGood:#,0}", resultLines, finalGood > 0 ? "done" : null, null, null, 3 * ColW, RowH, Chips: chips));
             edges.Add(new Edge("slots-result", "slots", "result", false, null));
         }
         return new Graph(nodes, edges);
