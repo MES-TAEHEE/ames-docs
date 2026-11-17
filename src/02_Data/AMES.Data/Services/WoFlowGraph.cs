@@ -25,7 +25,7 @@ public static class WoFlowGraph
 
     // 노드 폭 260 + 진행 중 확대(1.12배) 여유 + 간격 — 공정 노드끼리 겹치지 않게 열 간격은 노드 폭보다 충분히 크게
     // const int ColW = 600, RowH = 400;
-    const int ColW = 420, RowH = 300;
+    const int ColW = 560, RowH = 360;   // 공정 노드 폭 460(담당자 줄이 한 줄에 들어가는 폭) + 간격
 
     static string Label(string status, Texts x) => status switch { "done" => x.Done, "cur" => x.Running, "bad" => x.Cancelled, _ => x.Waiting };
     static double Pct(decimal done, decimal total) => total <= 0 ? 0 : (double)Math.Min(100m, done * 100m / total);

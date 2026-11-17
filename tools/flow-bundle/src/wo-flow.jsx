@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Panel, Position, MarkerType,
+  ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Panel, Position, MarkerType, NodeResizer,
   useNodesState, useEdgesState, useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -17,6 +17,9 @@ const FIT = {
   padding: '60px',          // 화면 맞춤 여백(클수록 멀리서 보임) — 처음 열 때·「전체 보기」·크기 변경·전체화면 공통
   durationMs: 300,        // 맞춤 애니메이션 시간
 };
+// 노드 기본 폭(px) — 담당자 줄이 한 줄에 들어가도록 공정 노드는 넓게. 노드를 누르면 손잡이로 폭·높이를 바꿀 수 있다.
+const NODE_W = { step: 460, default: 330 };
+const NODE_MIN_W = 240, NODE_MAX_W = 1000;
 const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
 const ZOOM = { min: 0.2, max: 1.8 };                                         // 사용자가 휠로 줄이고 늘릴 수 있는 한계
 const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
@@ -37,13 +40,14 @@ const KIND_COLOR = { so: '#38bdf8', plan: '#a78bfa', wo: '#34d399', step: '#fbbf
 const STATUS_COLOR = { done: '#22c55e', cur: '#3b82f6', todo: '#94a3b8', bad: '#ef4444' };
 const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ...extra });
 
-function WoNode({ data }) {
+function WoNode({ data, selected }) {
   const [chipsOpen, setChipsOpen] = useState(false);
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
   const cur = data.status === 'cur';
   return (
     <div className={'ames-flow-node' + (cur ? ' ames-flow-cur' : '') + (data.status === 'done' ? ' ames-flow-done' : '')}
          style={{ borderColor: accent, '--flow-accent': accent }}>
+      <NodeResizer isVisible={selected} minWidth={NODE_MIN_W} maxWidth={NODE_MAX_W} minHeight={90} color={accent} />
       <Handle type="target" position={Position.Left} style={{ background: accent }} />
       <Handle id="t" type="target" position={Position.Top} style={{ background: accent }} />
       <div className="ames-flow-head">
@@ -55,7 +59,7 @@ function WoNode({ data }) {
       {data.operatorRows && data.operatorRows.length ? (
         <div className="ames-flow-ops">
           {data.operatorRows.map((o, i) => (
-            <div key={i} className={'ames-flow-op' + (o.live ? ' ames-flow-op-live' : '')}>{o.live ? '● ' : '👤 '}{o.text}</div>
+            <div key={i} className={'ames-flow-op' + (o.live ? ' ames-flow-op-live' : '')} title={o.text}>{o.live ? '● ' : '👤 '}{o.text}</div>
           ))}
         </div>
       ) : null}
@@ -90,6 +94,9 @@ const toNode = (n, prev, hostId) => ({
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
           progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, hostId, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
+  // 사용자가 늘이거나 줄인 크기는 실시간 갱신에도 그대로 둔다
+  style: prev?.style ?? { width: n.kind === 'step' ? NODE_W.step : NODE_W.default },
+  ...(prev?.width ? { width: prev.width } : {}), ...(prev?.height ? { height: prev.height } : {}),
 });
 const toEdge = e => ({
   id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined,
