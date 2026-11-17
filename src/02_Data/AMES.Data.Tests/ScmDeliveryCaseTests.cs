@@ -183,7 +183,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(12,repo.ListCaseParts("PO-CASE-1","case-user").Single().Prepared);
             Assert.Null(repo.GetDeliveryCase(first,"other-user"));
             Assert.Equal("Prepared",repo.GetDeliveryCase(first,"case-user")!.Status);
-            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(first,"LOCAL","case-user"));
+            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(first,"LOCAL","case-user",confirmUnscanned:true));
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-CASE-1",[new(1,4),new(1,4),new(1,4)],"case-user"));
             Assert.Throws<ArgumentException>(()=>repo.RegisterSupplierDelivery("PO-CASE-1",DateTime.Today,[new(1,4)],Versions("PO-CASE-1"),Guid.NewGuid(),"case-user","case-user",[]));
             Assert.Throws<InvalidOperationException>(()=>repo.RegisterSupplierDelivery("PO-CASE-1",DateTime.Today,[new(1,11)],Versions("PO-CASE-1"),Guid.NewGuid(),"case-user","case-user",[first,second]));
@@ -230,7 +230,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(DateTime.Today,note.ShipDate);
             Assert.Equal(1,Count($"SELECT COUNT(*) FROM SCM_Delivery WHERE DeliveryNumber='{delivery}' AND Status='Registered' AND ShipDate IS NULL AND ShippedAt IS NULL"));
             Assert.False(repo.GetDeliveryCase(first,"case-user")!.ReadyToReceive);
-            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(first,"LOCAL","case-user"));
+            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(first,"LOCAL","case-user",confirmUnscanned:true));
             Assert.Throws<InvalidOperationException>(()=>repo.IssueDeliveryNote([delivery],"other-user","other-user"));
             Assert.Throws<InvalidOperationException>(()=>Update(delivery,"PO-CASE-1",1,12));
             Assert.Equal(note.Number,repo.GetDeliveryNote(note.Number,"case-user")!.Number);
@@ -306,7 +306,7 @@ public sealed class ScmDeliveryCaseTests
             repo.IssueDeliveryNote([otherDelivery],"case-user","case-user");
             Sql("UPDATE SCM_DeliveryLine SET Quantity=6 WHERE PoID=2;");
             var beforeFailedReceipt=Count("SELECT COUNT(*) FROM WH_InventoryTransaction");
-            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(rollbackCase,"LOCAL","case-user"));
+            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryCase(rollbackCase,"LOCAL","case-user",confirmUnscanned:true));
             Assert.Equal(0,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=2"));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM WH_Inventory WHERE PartNo='PART-2'"));
             Assert.Equal(beforeFailedReceipt,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
@@ -404,12 +404,12 @@ public sealed class ScmDeliveryCaseTests
             }
             Assert.True(repo.GetDeliveryCase(mixed,"case-user")!.ReadyToReceive);
             Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
-            var requiredBox=repo.GetDeliveryCase(mixed,"case-user")!.Boxes.Single(b=>b.Item=="PART-1").Number;
             var beforePolicyCheck=Count("SELECT COUNT(*) FROM WH_Inventory");
             Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user"));
             Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",["WRONG-BOX"]));
             Assert.Equal(beforePolicyCheck,Count("SELECT COUNT(*) FROM WH_Inventory"));
-            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",[requiredBox]));
+            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",confirmUnscanned:true));
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",confirmUnscanned:true));
             Assert.Equal(2,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=4"));
             Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=5"));
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{mixed}' AND DeliveryNoteNo='{mixedNote.Number}'"));
@@ -534,6 +534,10 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(1,repo.ReceiveDeliveryNote(looseNote.Number,"LOCAL","case-user"));
             Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=7"));
             Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryNote(partOnly.Number,"LOCAL","case-user"));
+            Assert.Equal(1,repo.ReceiveDeliveryNote(partOnly.Number,"LOCAL","case-user",confirmUnscanned:true));
+            Assert.Equal(6,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=7"));
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryNote(partOnly.Number,"LOCAL","case-user",confirmUnscanned:true));
             // A whole multi-PO note is cancelled atomically; old labels stay void and replacements get new numbers.
             Dictionary<string,string> NoteVersions(string noteNumber)=>repo.ListSupplierDeliveries(true,"case-user")
                 .Where(d=>repo.ListNoteDeliveries("case-user").Any(n=>n.Number==d.Number && n.NoteNumber==noteNumber))
@@ -551,6 +555,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.All(cancelVersions.Keys,d=>Assert.NotEmpty(repo.ListDeliveryBoxes(d,"case-user")));
             Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(mixedNote.Number,NoteVersions(mixedNote.Number),"case-user","case-user"));
             repo.CancelSupplierDeliveryNote(draftNote.Number,cancelVersions,"case-user","case-user");
+            Assert.Throws<SqlException>(()=>repo.ReceiveDeliveryNote(draftNote.Number,"LOCAL","case-user",confirmUnscanned:true));
             Assert.All(cancelVersions.Keys,d=>Assert.Empty(repo.ListDeliveryBoxes(d,"case-user")));
             Assert.All(cancelledUnits,k=>Assert.Null(repo.GetDeliveryCase(k,"case-user")));
             Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>cancelVersions.ContainsKey(d.Number)),d=>Assert.Equal("Cancelled",d.Status));

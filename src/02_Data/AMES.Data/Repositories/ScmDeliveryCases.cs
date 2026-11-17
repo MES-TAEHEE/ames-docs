@@ -388,13 +388,13 @@ public sealed partial class ScmRepository
         Add(cmd,("@ID", "SCM_DeliveryCase.DeliveryID",deliveryId),("@CasesJson", null,JsonSerializer.Serialize(cases)),("@Header", null,updateHeader));cmd.ExecuteNonQuery();
     }
 
-    public int ReceiveDeliveryCase(string caseNo,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
-        => ReceiveInboundDocument(caseNo,mode,actor,scannedBoxes,false);
+    public int ReceiveDeliveryCase(string caseNo,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null,bool confirmUnscanned = false)
+        => ReceiveInboundDocument(caseNo,mode,actor,scannedBoxes,false,confirmUnscanned);
 
-    public int ReceiveDeliveryNote(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
-        => ReceiveInboundDocument(number,mode,actor,scannedBoxes,true);
+    public int ReceiveDeliveryNote(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null,bool confirmUnscanned = false)
+        => ReceiveInboundDocument(number,mode,actor,scannedBoxes,true,confirmUnscanned);
 
-    private int ReceiveInboundDocument(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes,bool isNote)
+    private int ReceiveInboundDocument(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes,bool isNote,bool confirmUnscanned)
     {
         if(mode is not ("LOCAL" or "CKD"))throw new ArgumentException("Invalid receive type.");
         if(string.IsNullOrWhiteSpace(number) || number.Length>50)throw new ArgumentException("Scan a valid document barcode.");
@@ -448,7 +448,7 @@ public sealed partial class ScmRepository
         using(var r=select.ExecuteReader())while(r.Read())
         {
             var barcode=r.GetString(0);
-            if(r.GetBoolean(1) && !scanned.Contains(barcode))
+            if(r.GetBoolean(1) && !scanned.Contains(barcode) && !confirmUnscanned)
                 throw new InvalidOperationException($"Scan required box {barcode} before receiving this document.");
             boxes.Add(barcode);
         }

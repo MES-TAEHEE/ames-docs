@@ -408,12 +408,12 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         }
     }
 
-    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode, IEnumerable<string> scannedBoxes, bool isDeliveryNote=false)
+    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode, IEnumerable<string> scannedBoxes, bool isDeliveryNote=false, bool confirmUnscanned=false)
     {
         try
         {
             Authorize();
-            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-document", new { Mode = mode, Barcode = barcode, ScannedBoxes = scannedBoxes.ToArray(), IsDeliveryNote=isDeliveryNote });
+            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-document", new { Mode = mode, Barcode = barcode, ScannedBoxes = scannedBoxes.ToArray(), IsDeliveryNote=isDeliveryNote, ConfirmUnscanned=confirmUnscanned });
             return await ReadInboundReceiveResultAsync(response);
         }
         catch
