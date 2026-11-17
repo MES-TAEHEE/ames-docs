@@ -514,6 +514,26 @@ public sealed class ScmDeliveryCaseTests
                 Assert.Single(repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==partOnly.Number)).Number,"case-user")).Number);
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,5,false)]));
+            // Delivery Note receipt includes both the grouped and loose labels in one transaction.
+            var receiptCountBefore=Count("SELECT COUNT(*) FROM WH_InventoryTransaction");
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryNote(looseNote.Number,"LOCAL","case-user"));
+            Assert.Equal(receiptCountBefore,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(looseLabels.Length,repo.ReceiveDeliveryNote(looseNote.Number,"LOCAL","case-user",looseLabels.Select(b=>b.Number).ToArray()));
+            Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=7"));
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryNote(looseNote.Number,"LOCAL","case-user",looseLabels.Select(b=>b.Number).ToArray()));
+            Assert.Equal(receiptCountBefore+looseLabels.Length,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            using(var connection=factory.OpenConnection())
+            using(var cancel=new SqlCommand(PdaWarehouseSql.InboundCancel,connection))
+            {
+                cancel.Parameters.Add("@ReceiveMode",SqlDbType.NVarChar,10).Value="LOCAL";
+                cancel.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,50).Value=looseLabels[0].Number;
+                cancel.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="case-user";
+                cancel.ExecuteNonQuery();
+            }
+            Sql("UPDATE MD_Item SET ScanRequired=0 WHERE ItemNo='PART-1';");
+            Assert.Equal(1,repo.ReceiveDeliveryNote(looseNote.Number,"LOCAL","case-user"));
+            Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=7"));
+            Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
             // A whole multi-PO note is cancelled atomically; old labels stay void and replacements get new numbers.
             Dictionary<string,string> NoteVersions(string noteNumber)=>repo.ListSupplierDeliveries(true,"case-user")
                 .Where(d=>repo.ListNoteDeliveries("case-user").Any(n=>n.Number==d.Number && n.NoteNumber==noteNumber))

@@ -389,11 +389,36 @@ public sealed partial class ScmRepository
     }
 
     public int ReceiveDeliveryCase(string caseNo,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
+        => ReceiveInboundDocument(caseNo,mode,actor,scannedBoxes,false);
+
+    public int ReceiveDeliveryNote(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
+        => ReceiveInboundDocument(number,mode,actor,scannedBoxes,true);
+
+    private int ReceiveInboundDocument(string number,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes,bool isNote)
     {
         if(mode is not ("LOCAL" or "CKD"))throw new ArgumentException("Invalid receive type.");
+        if(string.IsNullOrWhiteSpace(number) || number.Length>50)throw new ArgumentException("Scan a valid document barcode.");
         using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
         using var select=new SqlCommand("""
             SET XACT_ABORT ON;
+            DECLARE @Boxes TABLE(BoxID bigint PRIMARY KEY);
+            IF @IsNote=1
+            BEGIN
+                IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryNote WITH(UPDLOCK,HOLDLOCK) WHERE NoteNumber=@N)
+                    THROW 51440,'Delivery Note barcode was not found.',1;
+                IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryNote n JOIN dbo.SCM_DeliveryNoteDelivery x ON x.NoteID=n.NoteID
+                    JOIN dbo.SCM_Delivery d WITH(UPDLOCK,HOLDLOCK) ON d.DeliveryID=x.DeliveryID
+                    WHERE n.NoteNumber=@N AND d.Status NOT IN('Shipped','Received'))
+                    THROW 51442,'Only shipped delivery notes can be received.',1;
+                INSERT @Boxes SELECT b.BoxID FROM dbo.SCM_DeliveryNote n
+                    JOIN dbo.SCM_DeliveryNoteDelivery x ON x.NoteID=n.NoteID
+                    JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=x.DeliveryID
+                    JOIN dbo.SCM_DeliveryBox b ON b.DeliveryLineID=l.DeliveryLineID AND b.ActiveFlag=1
+                    WHERE n.NoteNumber=@N;
+                IF NOT EXISTS(SELECT 1 FROM @Boxes) THROW 51442,'The delivery note has no active unit items.',1;
+            END
+            ELSE
+            BEGIN
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryCase WITH(UPDLOCK,HOLDLOCK) WHERE CaseNo=@N)
                 THROW 51440,'Pallet barcode was not found.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox WHERE CaseNo=@N AND ActiveFlag=1)
@@ -403,24 +428,31 @@ public sealed partial class ScmRepository
                 LEFT JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
                 WHERE b.CaseNo=@N AND (b.ActiveFlag=0 OR d.DeliveryID IS NULL OR d.Status NOT IN('Shipped','Received')))
                 THROW 51442,'This pallet has not been shipped or contains cancelled boxes.',1;
+            INSERT @Boxes SELECT BoxID FROM dbo.SCM_DeliveryBox WHERE CaseNo=@N AND ActiveFlag=1;
+            END
             SELECT b.BoxNumber, ISNULL(i.ScanRequired,1)
             FROM dbo.SCM_DeliveryBox b WITH(UPDLOCK,HOLDLOCK)
             LEFT JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo COLLATE DATABASE_DEFAULT=b.ItemNo COLLATE DATABASE_DEFAULT
-            WHERE b.CaseNo=@N AND b.ActiveFlag=1 AND NOT EXISTS(
-                SELECT 1 FROM dbo.WH_Inventory w WITH(UPDLOCK,HOLDLOCK)
-                WHERE w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT)
+            WHERE b.BoxID IN(SELECT BoxID FROM @Boxes) AND b.ActiveFlag=1 AND COALESCE((
+                SELECT TOP(1) CASE WHEN t.TransactionType='IN' THEN 1 ELSE 0 END
+                FROM dbo.WH_InventoryTransaction t WITH(UPDLOCK,HOLDLOCK)
+                WHERE t.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT
+                  AND ((t.TransactionType='IN' AND t.SourceType='SCM_DeliveryLine' AND t.SourceID=b.DeliveryLineID)
+                    OR t.ReasonCode='INBOUND_CANCEL') ORDER BY t.TransactionID DESC),0)=0
             ORDER BY b.BoxID;
             """,c,tx);
-        Filter(select,("@N", "SCM_DeliveryBox.CaseNo",caseNo));var boxes=new List<string>();
+        Filter(select,("@N", isNote ? "SCM_DeliveryNote.NoteNumber" : "SCM_DeliveryBox.CaseNo",number));
+        select.Parameters.Add("@IsNote",System.Data.SqlDbType.Bit).Value=isNote;
+        var boxes=new List<string>();
         var scanned = new HashSet<string>(scannedBoxes ?? [], StringComparer.OrdinalIgnoreCase);
         using(var r=select.ExecuteReader())while(r.Read())
         {
             var barcode=r.GetString(0);
             if(r.GetBoolean(1) && !scanned.Contains(barcode))
-                throw new InvalidOperationException($"Scan required box {barcode} before receiving this pallet.");
+                throw new InvalidOperationException($"Scan required box {barcode} before receiving this document.");
             boxes.Add(barcode);
         }
-        if(boxes.Count==0)throw new InvalidOperationException("This pallet has already been fully received.");
+        if(boxes.Count==0)throw new InvalidOperationException("This document has already been fully received.");
         foreach(var barcode in boxes)
         {
             using var receive=new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx){CommandTimeout=60};

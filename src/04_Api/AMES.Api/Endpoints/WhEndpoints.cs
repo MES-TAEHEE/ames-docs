@@ -56,7 +56,7 @@ public static class WhEndpoints
         string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
         string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
         DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
-        int TotalBoxes, int ScannedBoxes, string? Yn, bool IsPortalCase = false);
+        int TotalBoxes, int ScannedBoxes, string? Yn, bool IsPortalCase = false, bool IsDeliveryNote = false);
     public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
@@ -66,7 +66,7 @@ public static class WhEndpoints
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
-    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null);
+    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null, bool IsDeliveryNote = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
@@ -274,32 +274,38 @@ public static class WhEndpoints
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
         g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
 
-        g.MapPost("/inbound/receive-case", (HttpContext ctx, InboundCaseReceiveReq body) =>
+        IResult ReceiveInboundDocument(HttpContext ctx, InboundCaseReceiveReq body)
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (string.IsNullOrWhiteSpace(body.Barcode) || body.Barcode.Trim().Length > 50
                 || body.Mode?.Trim().ToUpperInvariant() is not ("LOCAL" or "CKD"))
-                return Results.BadRequest(new InboundReceiveResult(false, "Scan a valid case barcode and select a receive type.", null));
+                return Results.BadRequest(new InboundReceiveResult(false, "Scan a valid Delivery Note or Shipping Unit barcode and select a receive type.", null));
+            var isDeliveryNote=body.IsDeliveryNote || body.Barcode.Trim().StartsWith("DLN-",StringComparison.OrdinalIgnoreCase);
             try
             {
-                var count = new ScmRepository(factory).ReceiveDeliveryCase(
-                    body.Barcode.Trim(), body.Mode.Trim().ToUpperInvariant(), s.EmployeeNo, body.ScannedBoxes);
+                var repository=new ScmRepository(factory);
+                var count = isDeliveryNote
+                    ? repository.ReceiveDeliveryNote(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes)
+                    : repository.ReceiveDeliveryCase(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes);
                 var message = $"{count} boxes were received successfully.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RECEIVE", "WH002", "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
+                    s, "RECEIVE", "WH002", isDeliveryNote ? "DELIVERY_NOTE" : "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
                 return Results.Ok(new InboundReceiveResult(true, message, null));
             }
             catch (Exception ex)
             {
                 var message = WarehouseErrorMessage(ex);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RECEIVE", "WH002", "CASE", body.Barcode, "FAIL", message, lotNo: body.Barcode));
+                    s, "RECEIVE", "WH002", isDeliveryNote ? "DELIVERY_NOTE" : "CASE", body.Barcode, "FAIL", message, lotNo: body.Barcode));
                 var validation = ex is InvalidOperationException or ArgumentException
                     || ex is SqlException sql && sql.Number is >= 51400 and < 51500;
                 return Results.Problem(message, statusCode: validation ? 400 : 503);
             }
-        }).WithSummary("Receive all pending boxes in a CASE / PALLET")
-          .WithDescription("One atomic receipt. ScannedBoxes must include every pending box whose item requires a scan on case receipt. Already received boxes are skipped; any failure rolls back all new receipts.");
+        }
+        g.MapPost("/inbound/receive-case",ReceiveInboundDocument);
+        g.MapPost("/inbound/receive-document",ReceiveInboundDocument)
+          .WithSummary("Receive all pending unit items in a Delivery Note or Shipping Unit")
+          .WithDescription("One atomic receipt. Required unit items must be scanned. Received items are skipped and any failure rolls back the entire receipt.");
 
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
@@ -341,8 +347,8 @@ public static class WhEndpoints
                 .Select(value => value.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList() ?? [];
-            if (barcodes.Count == 0)
-                return Results.BadRequest(new InboundReceiveResult(false, "Select at least one box.", null));
+            if (barcodes.Count is <1 or >1000)
+                return Results.BadRequest(new InboundReceiveResult(false, "Select 1-1,000 stock items.", null));
             if (string.IsNullOrWhiteSpace(body.LocationId))
                 return Results.BadRequest(new InboundReceiveResult(false, "Scan a valid location first.", null));
 
@@ -2629,8 +2635,11 @@ public static class WhEndpoints
                 boxes.Add(ReadInboundDocumentBoxRow(rdr));
         }
         rdr.Close();
-        if (!string.IsNullOrWhiteSpace(document?.CaseNo))
-            boxes = ApplyCaseReceivePolicy(factory, boxes);
+        if(document is not null)
+        {
+            document=document with { IsDeliveryNote=true };
+            boxes=ApplyCaseReceivePolicy(factory,boxes);
+        }
         return new InboundDocumentResult(document, lines, boxes);
     }
 
@@ -2746,8 +2755,16 @@ public static class WhEndpoints
         {
             WarehouseRepository.LockLinePicking(conn,transaction);
             InboundScanRow? lastRow = null;
-            foreach (var row in rows)
+            foreach (var row in rows.OrderBy(r=>r.LotNo,StringComparer.OrdinalIgnoreCase))
             {
+                using(var check=new SqlCommand("SELECT Qty,COALESCE(LocationNo,'') FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Lot",conn,transaction))
+                {
+                    check.Parameters.Add("@Lot",SqlDbType.NVarChar,50).Value=row.LotNo;
+                    using var current=check.ExecuteReader();
+                    if(!current.Read() || current.GetDecimal(0)!=row.Qty
+                        || !string.Equals(current.GetString(1),row.LocationNo ?? "",StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException($"{row.LotNo}: stock changed. Scan the items again.");
+                }
                 using var cmd = new SqlCommand(PdaWarehouseSql.InboundMove, conn, transaction)
                 {
                     CommandType = CommandType.Text,

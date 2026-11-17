@@ -94,7 +94,7 @@ public abstract class PdaApi
         string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
         string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
         DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
-        int TotalBoxes, int ScannedBoxes, string? Yn, bool IsPortalCase = false);
+        int TotalBoxes, int ScannedBoxes, string? Yn, bool IsPortalCase = false, bool IsDeliveryNote = false);
     public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
