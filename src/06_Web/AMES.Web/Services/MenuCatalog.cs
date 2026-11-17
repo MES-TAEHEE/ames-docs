@@ -82,7 +82,7 @@ public sealed class MenuCatalog
         new("pp", "pp/downtime",         "DTL",    "비가동 이력",      "Downtime Log"),
         new("pp", "pp/downtime-monitor", "ODM",    "비가동 모니터",    "Downtime Monitor"),
         new("pp", "pp/delivery",         "OTD",    "납기 준수율",      "On-Time Delivery"),
-        new("pp", "pp/lot",              "PP-LOT", "LOT 조회",        "LOT Lookup"),
+        new("pp", "pp/lot",              "LOT",    "LOT 조회",        "LOT Lookup"),
 
         // ── MNT ──
         new("mnt", "mnt/equipment-card", "MNT-001", "설비 카드",   "Equipment Card"),

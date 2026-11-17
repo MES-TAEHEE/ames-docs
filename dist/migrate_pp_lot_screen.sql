@@ -22,11 +22,15 @@ BEGIN
          ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy, CreatedTS)
     VALUES
         ('PP-LOT', 'WEB', 'PP', NULL,
-         N'LOT 조회', N'LOT Lookup', 'pp/lot', 'PP-LOT', 14, 1, 'seed', SYSDATETIME());
+         N'LOT 조회', N'LOT Lookup', 'pp/lot', 'LOT', 14, 1, 'seed', SYSDATETIME());
     PRINT N'✓ SYS_Screen PP-LOT 등록 (pp/lot, SortOrder 14)';
 END
 ELSE
     PRINT N'· SYS_Screen PP-LOT 이미 존재';
+GO
+
+-- 메뉴·머리글에 보이는 이름은 LOT (화면 코드 PP-LOT 은 권한·감사 키라 그대로) — 이미 PP-LOT 으로 등록된 DB 도 맞춘다
+UPDATE dbo.SYS_Screen SET LidLabel = 'LOT' WHERE ScreenCode = 'PP-LOT' AND LidLabel = 'PP-LOT';
 GO
 
 -- 화면 기본 권한(조회 전용) — 이 컬럼이 없는 옛 DB 는 건너뛴다

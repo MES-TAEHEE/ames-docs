@@ -9,10 +9,10 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
-@* PP-LOT LOT 조회 — LOT 번호·작업지시·품번·공정·상태·기간으로 찾는다. 작업지시를 몰라도 LOT 번호만으로 찾고, LOT 을 누르면 LOT 팝업(공정별 스테이션·작업자 이력)을 연다.
+@* LOT 조회(화면 코드 PP-LOT, 메뉴 표시 LOT) — LOT 번호·작업지시·품번·공정·상태·기간으로 찾는다. 작업지시를 몰라도 LOT 번호만으로 찾고, LOT 을 누르면 LOT 팝업(공정별 스테이션·작업자 이력)을 연다.
    조회 전용(권한은 읽기). 확정 전(RAW) LOT 도 찾는다. *@
-<PageTitle>PP-LOT @L["PP.LotLookup.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="PP-LOT" TitleKey="PP.LotLookup.Title" />
+<PageTitle>LOT @L["PP.LotLookup.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="LOT" TitleKey="PP.LotLookup.Title" />
 
 <div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
