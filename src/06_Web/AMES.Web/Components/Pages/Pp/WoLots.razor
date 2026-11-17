@@ -44,7 +44,7 @@
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="Apply" Placeholder="@L["PP.WoLots.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" />
             <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
-            <RadzenButton Text="@L["PP.WoLots.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+            <RadzenButton Text="@L["PP.LotLookup.Btn.Excel"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportExcel" />
             <RadzenButton Text="@L["PP.WoLots.Btn.Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(() => Nav.NavigateTo("/pp/work-order"))" />
         </RadzenStack>
     </div>
@@ -166,18 +166,18 @@ else
         _view = q.ToList();
     }
 
-    static string Csv(string? v) => AMES.Contracts.Formatting.CsvCell.Escape(v);
-
-    async Task ExportCsv()
+    // 엑셀 내려받기 — 지금 정렬·필터로 보이는 순서 그대로, 양품은 숫자 칸
+    async Task ExportExcel()
     {
         if (_view.Count == 0) return;
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(string.Join(",", new[] { "LOT", L["PP.Lot.Process"].Value, L["Col.Line"].Value, L["PP.Lot.Station"].Value, L["Col.PartNo"].Value, L["Col.Status"].Value,
-            L["PP.WoDetail.Operator"].Value, L["PP.WorkOrder.Trace.Good"].Value, L["PP.Lot.ProducedAt"].Value, L["PP.Lot.Parent"].Value }.Select(Csv)));
-        foreach (var r in _view)
-            sb.AppendLine(string.Join(",", new[] { r.LotCode, r.ProcessCode, r.LineId, r.Station, r.ItemNo, r.Status, r.OperatorText, r.GoodQty.ToString("0.###"),
-                r.At?.ToString("yyyy-MM-dd HH:mm:ss"), r.ParentLotCode }.Select(Csv)));
-        var bytes = new System.Text.UTF8Encoding(true).GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        await JS.InvokeVoidAsync("amesDownload", $"{WoNumber}_LOT_{DbClock.Now:yyyyMMdd_HHmmss}.csv", Convert.ToBase64String(bytes), "text/csv;charset=utf-8");
+        var headers = new List<string> { "No.", "LOT", L["PP.Lot.Process"].Value, L["Col.Line"].Value, L["PP.Lot.Station"].Value, L["Col.PartNo"].Value, L["Col.Status"].Value,
+            L["PP.WoDetail.Operator"].Value, L["PP.WorkOrder.Trace.Good"].Value, L["PP.Lot.ProducedAt"].Value, L["PP.Lot.Parent"].Value };
+        var data = new List<IReadOnlyList<object?>>();
+        var no = 0;
+        foreach (var r in (_grid?.View ?? _view.AsQueryable()))
+            data.Add([++no, r.LotCode, r.ProcessCode, r.LineId, r.Station, r.ItemNo, r.Status, r.OperatorText, r.GoodQty, r.At?.ToString("yyyy-MM-dd HH:mm:ss"), r.ParentLotCode]);
+        var bytes = AMES.Web.Services.XlsxWriter.Build("LOT", headers, data);
+        await JS.InvokeVoidAsync("amesDownload", $"{WoNumber}_LOT_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }

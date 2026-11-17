@@ -2811,6 +2811,9 @@
   <data name="PP.LotLookup.Truncated" xml:space="preserve">
     <value>More than {0} LOTs match — only the latest {0} are shown. Narrow the conditions.</value>
   </data>
+  <data name="PP.LotLookup.Btn.Excel" xml:space="preserve">
+    <value>Download Excel</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>

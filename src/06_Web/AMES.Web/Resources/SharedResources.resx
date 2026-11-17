@@ -2811,6 +2811,9 @@
   <data name="PP.LotLookup.Truncated" xml:space="preserve">
     <value>조건에 맞는 LOT 이 {0}건을 넘어 최신 {0}건만 보입니다. 조건을 좁혀 주세요.</value>
   </data>
+  <data name="PP.LotLookup.Btn.Excel" xml:space="preserve">
+    <value>엑셀 다운로드</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>
