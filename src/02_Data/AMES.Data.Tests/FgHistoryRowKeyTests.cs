@@ -41,24 +41,18 @@ public sealed class FgHistoryRowKeyTests
     }
 
     [Fact]
-    public void History_reuses_shipment_drilldowns_and_keeps_queries_lazy_and_modal_results_current()
+    public void History_shows_pallet_parts_as_text_without_LOT_drilldowns()
     {
         var page=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor"));
         Assert.DoesNotContain("RowExpand=",page);
         Assert.DoesNotContain("ExpandRow(",page);
-        Assert.Contains("row.HasShipmentDetails",page);
-        Assert.DoesNotContain("chevron_right",page);
-        Assert.Contains("Click=\"@(()=>OpenDetail(row))\"",page);
-        Assert.Contains("_detailRow=row;_detailParts=[];_partsError=\"\";_partsLoading=row.HasShipmentDetails",page);
-        Assert.Contains("ListShipmentHistoryParts(row.DeliveryId,row.ShipmentId!.Value)",page);
-        Assert.Contains("OpenLots(detail,item)",page);
-        Assert.Contains("ListShipmentHistoryLots(history.DeliveryId,history.ShipmentId!.Value,part.PalletNo,part.PartNo)",page);
-        Assert.Contains("KeyProperty=\"TransactionId\"",page);
-        Assert.Contains("request==_lotRequest",page);
+        Assert.DoesNotContain("OpenLots",page);
+        Assert.DoesNotContain("ListShipmentHistoryLots",page);
+        Assert.DoesNotContain("history-lots-modal",page);
+        Assert.DoesNotContain("Property=\"PalletNo\"",page);
+        Assert.Contains("Property=\"PartName\"",page);
+        Assert.Contains("<div>@(row.PartNo??\"—\")</div>",page);
         Assert.Contains("request==_reloadRequest",page);
-        Assert.Contains("request==_detailRequest",page);
-        Assert.Contains("void CloseDetail(){++_detailRequest;CloseLots();",page);
-        Assert.Contains("void CloseLots(){++_lotRequest",page);
     }
 
     [Fact]
@@ -75,8 +69,7 @@ public sealed class FgHistoryRowKeyTests
         Assert.Contains("class=\"history-detail-text\">@DetailSummary(detail)",page);
         Assert.Contains("Click=\"CloseDetail\"",page);
         Assert.Contains("_loading=true;CloseDetail();",page);
-        Assert.Contains("shipment-history-modal",page);
-        Assert.Contains("Data=\"_detailParts\" IsLoading=\"_partsLoading\"",page);
+        Assert.DoesNotContain("Data=\"_detailParts\"",page);
         Assert.Contains("text-overflow:ellipsis",css);
         Assert.Contains("white-space:pre-wrap;overflow-wrap:anywhere",css);
     }
