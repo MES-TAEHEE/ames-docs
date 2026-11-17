@@ -35,8 +35,8 @@
             <section class="wh-putaway-selection">
                 <div class="wh-putaway-document-head">
                     <div>
-                        <span>@(_selectionType == "DELIVERY_NOTE" ? "DELIVERY NOTE" : _fgScan?.Items is not null ? "ASSY PALLET" : _fgScan is not null ? "ASSY LOT" : _selectionType == "CASE" ? "SHIPPING UNIT" : "UNIT ITEM")</span>
-                        <strong>@Text(_barcode)</strong>
+                        <span>@(_selectionType == "DELIVERY_NOTE" ? "DELIVERY NOTE" : _selectedBarcodes.Count>1 ? "SELECTED ITEMS" : _fgScan?.Items is not null ? "ASSY PALLET" : _fgScan is not null ? "ASSY LOT" : _selectionType == "CASE" ? "SHIPPING UNIT" : "UNIT ITEM")</span>
+                        <strong>@(_selectedBarcodes.Count) ITEMS SELECTED</strong>
                     </div>
                     <div class="wh-putaway-document-summary">
                         <strong>@PendingBoxes.Count pending · @StoredBoxes.Count stored</strong>
@@ -44,7 +44,7 @@
                     </div>
                 </div>
 
-                <div class="wh-putaway-select-actions"><span>@(_selectionType == "DELIVERY_NOTE" ? "VIEW ONLY" : "PENDING ITEMS")</span></div>
+                <div class="wh-putaway-select-actions"><span>@(_selectionType == "DELIVERY_NOTE" ? "VIEW ONLY" : "SELECTED ITEMS")</span></div>
                 <div class="wh-putaway-boxes">
                     @foreach (var box in PendingBoxes)
                     {
@@ -67,7 +67,7 @@
                 </div>
                 @if (StoredBoxes.Count > 0)
                 {
-                    <div class="wh-putaway-select-actions"><span>ALREADY PUT AWAY</span></div>
+                    <div class="wh-putaway-select-actions"><span>STORED ITEMS</span></div>
                     <div class="wh-putaway-boxes">
                         @foreach (var box in StoredBoxes)
                         {
@@ -164,6 +164,7 @@
 
     private string _lastInitialLot = "";
     private PdaApi.FgPutAwayScanRow? _fgScan;
+    private readonly List<PdaApi.FgPutAwayScanRow> _fgUnits=[];
     private const string PptDeliveryNote = "PPT-WH-NOTE-PUTAWAY";
     private const string PptBox = "5011LL260908850001";
     private const string PptRelocationBox = "5011LL260908850004";
@@ -324,22 +325,20 @@
         if (string.IsNullOrWhiteSpace(value) || IsBusy || _modalOpen) return;
         await InvokeAsync(async () =>
         {
-            if (_selectionType == "CASE" && _boxes.Any(box =>
-                    string.Equals(box.Barcode, value, StringComparison.OrdinalIgnoreCase)))
+            try
             {
-                await ScanCaseBox(value);
+                _isScanning=true;
+                var kind=await Api.WhInventoryScanAsync(value);
+                _isScanning=false;
+                if(kind?.SearchKind=="LOCATION")
+                {
+                    if(_selectedBarcodes.Count==0)ShowAlert("Scan Items First","Scan the items to move before scanning a location.");
+                    else { _locationNo=value;await ScanLocation(); }
+                }
+                else { _barcode=value;await ScanItem(); }
             }
-            else if (_selectionType == "DELIVERY_NOTE" || _boxes.Count == 0 || (_fgScan is not null && !CanScanLocation))
-            {
-                _barcode = value;
-                await ScanItem();
-            }
-            else if (CanScanLocation)
-            {
-                _locationNo = value;
-                await ScanLocation();
-            }
-            else ShowAlert("Box Scan Required", "Scan a pending box barcode in this case.");
+            catch(Exception ex) { ShowAlert("Barcode Scan Failed",ex.Message); }
+            finally { _isScanning=false; }
             StateHasChanged();
         });
     }
@@ -369,7 +368,6 @@
     {
         if (IsBusy || string.IsNullOrWhiteSpace(_barcode)) return;
         _isScanning = true;
-        ClearLoadedSelection();
         _message = "Loading received inventory...";
         _messageClass = "dim";
         try
@@ -377,9 +375,14 @@
             var selection = await Api.WhPutAwayScanAsync(_barcode);
             if (selection.FinishedGoods is { } fg)
             {
+                if(_boxes.Count>0 && _fgScan is null && _selectionType!="DELIVERY_NOTE")
+                    throw new InvalidOperationException("ASSY and warehouse items need different location types. Clear the selection first.");
                 LoadFinishedGoods(fg);
                 return;
             }
+            if(_fgScan is not null)throw new InvalidOperationException("ASSY and warehouse items need different location types. Clear the selection first.");
+            if(selection.SelectedBarcodes.Count>0 && selection.SelectedBarcodes.All(IsSelected))
+                throw new InvalidOperationException("These items are already selected.");
             if (selection.RequiresRelocation)
             {
                 _pendingRelocation = selection;
@@ -403,58 +406,16 @@
         finally { _isScanning = false; }
     }
 
-    private async Task ScanCaseBox(string? barcode)
-    {
-        var value = Normalize(barcode);
-        if (IsBusy || _selectionType != "CASE" || value.Length == 0) return;
-        if (!_boxes.Any(box => string.Equals(box.Barcode, value, StringComparison.OrdinalIgnoreCase)))
-        {
-            ShowAlert("Box Not In Case", "This box does not belong to the scanned case.");
-            return;
-        }
-
-        _isScanning = true;
-        try
-        {
-            var result = await Api.WhPutAwayScanAsync(value);
-            var box = result.Boxes.SingleOrDefault();
-            if (result.SelectionType != "BOX" || box is null ||
-                !_boxes.Any(item => string.Equals(item.Barcode, box.Barcode, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("This box does not belong to the scanned case.");
-            if (!string.IsNullOrWhiteSpace(box.LocationNo))
-            {
-                _boxes = _boxes.Select(item => string.Equals(item.Barcode, box.Barcode, StringComparison.OrdinalIgnoreCase)
-                    ? box : item).ToList();
-                ShowAlert("Already Put Away", $"Box {box.Barcode} is already at {box.LocationNo}.");
-                return;
-            }
-            _selectedBarcodes.Add(box.Barcode);
-            ClearLocationIfCapacityExceeded();
-            SetSelectionMessage();
-        }
-        catch (Exception ex) { ShowAlert("Box Scan Failed", ex.Message); }
-        finally { _isScanning = false; }
-    }
-
     private bool IsSelected(string barcode) => _selectedBarcodes.Contains(barcode);
 
     private void SetSelectionMessage()
     {
         _message = _selectedBarcodes.Count == 0
-            ? "No pending boxes."
+            ? "Scan a Unit Item, Shipping Unit or LOT."
             : _location is not null
-                ? $"{_selectedBarcodes.Count} box(es) ready. Tap Confirm."
-                : $"{_selectedBarcodes.Count} of {PendingBoxes.Count} pending box(es) scanned. Scan a location.";
-        _messageClass = _selectedBarcodes.Count == 0 ? "fail" : "ok";
-    }
-
-    private void ClearLocationIfCapacityExceeded()
-    {
-        if (_location?.Capacity is > 0 && _location.TotalQty + SelectedQty > _location.Capacity.Value)
-        {
-            _location = null;
-            _locationNo = "";
-        }
+                ? $"{_selectedBarcodes.Count} item(s) ready. Tap Confirm."
+                : $"{_selectedBarcodes.Count} item(s) selected. Scan more items or a location.";
+        _messageClass = _selectedBarcodes.Count == 0 ? "dim" : "ok";
     }
 
     private async Task ScanLocation()
@@ -476,7 +437,7 @@
             {
                 if (!CanScanLocation)
                     throw new InvalidOperationException(fg.Message);
-                var fgLocation = await FgApi.FgValidatePutAwayLocationAsync(_locationNo.Trim(), fg.ItemNo, fg.CustomerCode, fg.Qty, "LOCATION");
+                var fgLocation = await FgApi.FgValidatePutAwayLocationAsync(_locationNo.Trim(), fg.ItemNo, fg.CustomerCode, SelectedQty, "LOCATION");
                 if (fgLocation is not { IsValid: true })
                     throw new InvalidOperationException(fgLocation?.Message ?? "FG location was not found.");
                 _location = new PdaApi.LocationRow(fgLocation.LocationId, fgLocation.LocationName, null, 0, fgLocation.CurrentQty,
@@ -534,8 +495,10 @@
         {
             if (_fgScan is { } fg)
             {
-                var fgResult = await FgApi.FgConfirmPutAwayAsync(new PdaApi.FgPutAwayConfirmReq(
-                    fg.LotNo, _location.LocationId, fg.Items?.ToDictionary(item => item.LotNo, item => item.Qty)));
+                var requests=_fgUnits.Select(unit=>new PdaApi.FgPutAwayConfirmReq(unit.LotNo,_location.LocationId,
+                    (unit.Items ?? [unit]).ToDictionary(item=>item.LotNo,item=>item.Qty))).ToList();
+                var fgResult = requests.Count==1 ? await FgApi.FgConfirmPutAwayAsync(requests[0])
+                    : await FgApi.FgConfirmPutAwayBatchAsync(requests);
                 if (!fgResult.Success)
                 {
                     ShowAlert("Set Location Failed", fgResult.Message);
@@ -562,12 +525,14 @@
             ShowAlert(wasRelocating ? "Relocation Complete" : "Location Saved",
                 $"{completedCount} box(es) were {(wasRelocating ? "relocated" : "assigned")} successfully.", "success");
         }
+        catch(Exception ex) { ShowAlert("Set Location Failed",ex.Message); }
         finally { _isConfirming = false; }
     }
 
     private void ClearLoadedSelection()
     {
         _fgScan = null;
+        _fgUnits.Clear();
         _selectionType = "";
         _boxes = [];
         _selectedBarcodes.Clear();
@@ -594,31 +559,45 @@
 
     private void LoadSelection(PdaApi.PutAwaySelectionResult selection, bool relocating)
     {
-        _selectionType = selection.SelectionType;
-        _boxes = selection.Boxes;
-        _selectedBarcodes = selection.SelectedBarcodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _isRelocating = relocating;
-        _message = selection.SelectionType == "DELIVERY_NOTE"
-            ? "Delivery Note is view only. Scan a Case or Box barcode to put away."
-            : selection.SelectionType == "CASE"
-                ? $"{PendingBoxes.Count} pending box(es) selected. Scan a location to put away."
-                : "Box scanned. Scan a location.";
-        _messageClass = selection.SelectionType == "DELIVERY_NOTE" ? "dim" : "ok";
+        if(selection.SelectionType=="DELIVERY_NOTE")
+        {
+            if(_selectedBarcodes.Count>0)throw new InvalidOperationException("Scan individual items or Shipping Units to add to the current move.");
+            _selectionType=selection.SelectionType;_boxes=selection.Boxes;
+            _message="Scan a Shipping Unit or Unit Item to select stock.";_messageClass="dim";return;
+        }
+        var selected=selection.SelectedBarcodes;
+        if(selected.Count==0)throw new InvalidOperationException("No pending items were found. Scan a stored Unit Item to relocate it.");
+        if(selected.All(IsSelected))throw new InvalidOperationException("These items are already selected.");
+        if(_selectionType=="DELIVERY_NOTE")_boxes=[];
+        if(_selectedBarcodes.Union(selected,StringComparer.OrdinalIgnoreCase).Count()>1000)
+            throw new InvalidOperationException("Select at most 1,000 items per move.");
+        _boxes=_boxes.Concat(selection.Boxes).GroupBy(b=>b.Barcode,StringComparer.OrdinalIgnoreCase).Select(g=>g.Last()).ToList();
+        _selectedBarcodes.UnionWith(selected);
+        _selectionType=_selectedBarcodes.Count>1 ? "BATCH" : selection.SelectionType;
+        _isRelocating|=relocating;
+        _location=null;_locationNo="";_barcode="";
+        SetSelectionMessage();
     }
 
     private void LoadFinishedGoods(PdaApi.FgPutAwayScanRow fg)
     {
-        _fgScan = fg;
-        _barcode = fg.LotNo;
-        _selectionType = "FG";
-        _boxes = (fg.Items ?? [fg]).Select(item => new PdaApi.PutAwayRow(
-            "FG", item.LotNo, item.LotNo, item.ItemNo, item.ItemName, item.Qty, item.Unit,
-            null, item.ReadyAt, item.ExistingLocation)).ToList();
-        _selectedBarcodes = _boxes.Select(item => item.Barcode).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _message = fg.Message;
-        _messageClass = CanScanLocation ? "ok" : "fail";
-        if (!CanScanLocation)
-            ShowAlert("Set Location Blocked", fg.Message);
+        if(!fg.IsProductionCompleted || fg.AlreadyStocked || fg.Qty<=0)throw new InvalidOperationException(fg.Message);
+        var items=(fg.Items ?? [fg]).Select(item=>new PdaApi.PutAwayRow(
+            "FG",item.LotNo,item.LotNo,item.ItemNo,item.ItemName,item.Qty,item.Unit,null,item.ReadyAt,item.ExistingLocation)).ToList();
+        if(items.Any(item=>IsSelected(item.Barcode)))throw new InvalidOperationException("This LOT or pallet content is already selected.");
+        if(_fgUnits.Any(unit=>!string.Equals(unit.Unit,fg.Unit,StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("All selected ASSY stock must use the same quantity unit.");
+        if(_selectionType=="DELIVERY_NOTE")_boxes=[];
+        if(_fgUnits.Count>=200 || _selectedBarcodes.Count+items.Count>1000)
+            throw new InvalidOperationException("Select at most 200 pallets and 1,000 LOTs per move.");
+        _fgScan ??=fg;
+        _fgUnits.Add(fg);
+        _selectionType="FG";
+        _boxes.AddRange(items);
+        _selectedBarcodes.UnionWith(items.Select(item=>item.Barcode));
+        _location=null;_locationNo="";_barcode="";
+        _message=$"{_selectedBarcodes.Count} ASSY LOT(s) selected. Scan more items or a location.";
+        _messageClass="ok";
     }
 
     private void AcceptRelocation()
@@ -626,14 +605,15 @@
         if (_pendingRelocation is not { } selection) return;
         _pendingRelocation = null;
         _modalOpen = false;
-        LoadSelection(selection, true);
+        try { LoadSelection(selection,true); }
+        catch(Exception ex) { ShowAlert("Set Location Check",ex.Message); }
     }
 
     private void CancelRelocation()
     {
         _pendingRelocation = null;
         _modalOpen = false;
-        Reset();
+        SetSelectionMessage();
     }
 
     private void CloseModal()

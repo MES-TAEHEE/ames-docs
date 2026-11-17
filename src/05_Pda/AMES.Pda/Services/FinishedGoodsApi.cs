@@ -325,6 +325,18 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         }
     }
 
+    public async Task<FgPutAwayResult> FgConfirmPutAwayBatchAsync(List<FgPutAwayConfirmReq> items)
+    {
+        Authorize();
+        try
+        {
+            using var response=await _http.PostAsJsonAsync("/api/fg/putaway/batch",items);
+            return await ReadFgPutAwayResultAsync(response) ?? new(false,"Set Location returned an empty response.",null,null,null);
+        }
+        catch(Exception ex) when(ex is HttpRequestException or OperationCanceledException)
+        { return new(false,"Set Location response was lost. Check transaction history before retrying.",null,null,null); }
+    }
+
     private async Task<FgPutAwayResult> PostFgPutAwayResultAsync(string url, FgPutAwayConfirmReq body)
     {
         Authorize();
