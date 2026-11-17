@@ -381,13 +381,13 @@
     void CompleteCase()
     {
         if(_busy||!_allowed||_quantityError||!_draft.Any(b=>b.Selected))return;
-        var completed=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(completed);_activeCase=null;
+        var completed=_draft.Where(b=>b.Selected).ToList();_draftCases=[.._draftCases,completed];_activeCase=null;
         FinishEditingCase();
     }
     void RemoveDraftCase(List<DraftBox> item)
     {
         if(_busy)return;
-        _draftCases.Remove(item);_activeCase=null;
+        _draftCases=_draftCases.Where(unit=>!ReferenceEquals(unit,item)).ToList();_activeCase=null;
         if(_editingCase)RebuildBoxes();
     }
     void SelectDraftCase(List<DraftBox>? item){if(item is not null)_activeCase=_activeCase==item?null:item;}
@@ -406,7 +406,7 @@
                 throw new InvalidOperationException(L["Portal.Create.SelectPurchaseOrders"]);
             var date=_deliveryDate;
             var note=await Task.Run(()=>Scm.CreateDeliveryNoteFromDraftCases(cases,date,_user,_actor));
-            _draftCases.Clear();_activeCase=null;await Reload();_createdNote=note.Number;_message=L["Portal.Create.Ok.CreatedFmt", note.Number];
+            _draftCases=[];_activeCase=null;await Reload();_createdNote=note.Number;_message=L["Portal.Create.Ok.CreatedFmt", note.Number];
             LogCreated(note);await Changed.InvokeAsync();
         }
         catch(Exception ex){Fail(ex,L["Portal.Create.Err.Create"]);}
