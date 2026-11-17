@@ -1,12 +1,13 @@
 @inject UomFormat UomFmt
 <article class="delivery-note box-labels">
-@foreach(var page in Boxes.Chunk(6))
+@foreach(var page in Boxes.Chunk(3))
 {
     <div class="label-page">
-    @foreach(var row in page.Chunk(2))
+    <p class="label-instructions">Print two identical labels per box. Attach one to each side of the box.</p>
+    @foreach(var b in page)
     {
         <div class="label-pair">
-        @foreach(var b in row)
+        @for(var copy=0;copy<2;copy++)
         {
             <section class="box-label">
                 <header class="label-header"><strong class="@(b.VendorName.Length>40 ? "compact" : "")">@b.VendorName</strong><span>@LabelDate(b.ProductionDate) · @b.Sequence</span></header>

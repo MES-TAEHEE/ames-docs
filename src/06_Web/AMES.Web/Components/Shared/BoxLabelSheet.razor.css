@@ -1,6 +1,7 @@
 .box-labels { width:210mm; max-width:none; margin:20px auto; color:#000; font-family:Arial,sans-serif; background:white; }
-.label-page { box-sizing:border-box; width:210mm; min-height:267mm; padding:10mm 0 0; break-after:page; }
+.label-page { box-sizing:border-box; width:210mm; min-height:267mm; padding:6mm 0 0; break-after:page; }
 .label-page:last-child { break-after:auto; }
+.label-instructions { display:flex; align-items:center; height:6mm; margin:0; padding:0 2mm; font-size:9pt; line-height:1.1; }
 .label-pair { display:grid; grid-template-columns:1fr 1fr; break-inside:avoid; }
 .box-label { box-sizing:border-box; display:grid; grid-template-rows:5mm 17mm 9mm 8mm 25mm 11mm 3.5mm; height:85mm; padding:3mm 4mm; border:0.25mm dashed #333; background:white; color:black; overflow:hidden; }
 .box-label * { box-sizing:border-box; min-width:0; }

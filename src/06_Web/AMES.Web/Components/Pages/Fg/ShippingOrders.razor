@@ -29,7 +29,7 @@
                 <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
             </RadzenStack>
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Reload" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"]" Icon="close" Click="Clear" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
@@ -141,7 +141,6 @@
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
     async Task Reload(){if(!_allowed||_loading)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}_loading=true;try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();_message="";}catch(Exception ex){_message=ex.Message;}finally{_loading=false;}}
-    async Task Clear(){_search="";_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);await Reload();}
     void Select(int id,bool value){if(!value){_selected.Remove(id);return;}if(_orders.FirstOrDefault(o=>o.OrderId==id) is {} order && CanSelect(order))_selected.Add(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {

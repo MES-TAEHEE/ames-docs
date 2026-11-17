@@ -31,6 +31,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="OnSearchKeyDown" Placeholder="@L["SCM.PurchaseItems.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
             </RadzenStack>
         </div>
         <RadzenDataGrid @ref="_grid" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"

@@ -33,7 +33,7 @@
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ClearFilters" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
@@ -129,7 +129,6 @@
         try { _rows = await Task.Run(()=>Fg.ListReturns(_search, _status, _from, _to)); _message = ""; }
         catch (Exception ex) { _rows = new(); _message = ex.Message; }
     }
-    async Task ClearFilters() { _search = ""; _status = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1); await Reload(); }
     int CountStatus(string status) => _rows.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
     void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow row)
     { if (_inspecting) return; _detail = row; _inspectionNote = ""; _inspectionError = ""; }

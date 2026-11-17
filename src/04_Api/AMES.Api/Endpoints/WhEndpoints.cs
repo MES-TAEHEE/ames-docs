@@ -61,12 +61,12 @@ public static class WhEndpoints
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
-        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false);
+        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false, string? ShippingUnitNo = null);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
-    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null, bool IsDeliveryNote = false);
+    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null, bool IsDeliveryNote = false, bool ConfirmUnscanned = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
@@ -285,8 +285,8 @@ public static class WhEndpoints
             {
                 var repository=new ScmRepository(factory);
                 var count = isDeliveryNote
-                    ? repository.ReceiveDeliveryNote(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes)
-                    : repository.ReceiveDeliveryCase(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes);
+                    ? repository.ReceiveDeliveryNote(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes,body.ConfirmUnscanned)
+                    : repository.ReceiveDeliveryCase(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes,body.ConfirmUnscanned);
                 var message = $"{count} boxes were received successfully.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "RECEIVE", "WH002", isDeliveryNote ? "DELIVERY_NOTE" : "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
@@ -305,7 +305,7 @@ public static class WhEndpoints
         g.MapPost("/inbound/receive-case",ReceiveInboundDocument);
         g.MapPost("/inbound/receive-document",ReceiveInboundDocument)
           .WithSummary("Receive all pending unit items in a Delivery Note or Shipping Unit")
-          .WithDescription("One atomic receipt. Required unit items must be scanned. Received items are skipped and any failure rolls back the entire receipt.");
+          .WithDescription("One atomic receipt. Unscanned required unit items need explicit ConfirmUnscanned acknowledgement. Received items are skipped and any failure rolls back the entire receipt.");
 
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
@@ -2608,7 +2608,7 @@ public static class WhEndpoints
                     g.Sum(b => b.Quantity), g.Where(b => b.Received).Sum(b => b.Quantity),
                     g.Where(b => !b.Received).Sum(b => b.Quantity), g.Key.Unit, g.All(b => b.Received) ? "Y" : "N")).ToList();
             var caseBoxes = package.Boxes.Select(b => new InboundDocumentBoxRow(
-                b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N")).ToList();
+                b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N", ShippingUnitNo:b.CaseNo??package.Number)).ToList();
             return new(caseDocument, caseLines, ApplyCaseReceivePolicy(factory, caseBoxes));
         }
         using var conn = factory.OpenConnection();
@@ -3163,7 +3163,7 @@ public static class WhEndpoints
             GetString(rdr, "LOTNO"),
             GetDecimal(rdr, "QTY"),
             GetString(rdr, "UNIT"),
-            GetString(rdr, "YN"));
+            GetString(rdr, "YN"),ShippingUnitNo:GetString(rdr,"SHIPPING_UNIT_NO"));
     }
 
     private static LocationRow ReadLocationRow(SqlDataReader rdr)

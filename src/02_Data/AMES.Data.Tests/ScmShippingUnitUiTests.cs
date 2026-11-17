@@ -33,7 +33,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.Contains("Click=\"AddShippingUnit\"", page);
         foreach (var removed in new[] { "Portal.Create.AddBox", "Portal.Create.AddPart", "_editingKind", "LooseDraft", "_loose", "KindLabel" })
             Assert.DoesNotContain(removed, page);
-        Assert.Contains("var completed=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(completed)", page);
+        Assert.Contains("var completed=_draft.Where(b=>b.Selected).ToList();_draftCases=[.._draftCases,completed]", page);
         Assert.Contains("row.Part.PackingQty", page);
         Assert.Contains("row.Part.Issue.Length==0", page);
         Assert.Contains("p.Quantity<=Available(p)", page);
@@ -57,7 +57,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.True(page.IndexOf("class=\"part-barcode\"",StringComparison.Ordinal)>page.IndexOf("class=\"label-details\"",StringComparison.Ordinal));
         Assert.Contains("<Code128Barcode Value=\"@b.Number\"",page);
         Assert.Contains("<Code128Barcode Value=\"@b.Item\"",page);
-        Assert.Contains("Boxes.Chunk(6)",page);
+        Assert.Contains("Boxes.Chunk(3)",page);
     }
 
     [Fact]
@@ -83,14 +83,13 @@ public sealed class ScmShippingUnitUiTests
     }
 
     [Fact]
-    public void Scm_and_portal_lists_start_and_reset_to_one_month_before_and_after_today()
+    public void Scm_and_portal_lists_start_with_one_month_before_and_after_today()
     {
         var page = Read("src/06_Web/AMES.Web/Components/Shared/ScmPreview.razor");
         Assert.Contains("DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1);", page);
         Assert.Contains("_from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1);", page);
         var progress=Read("src/06_Web/AMES.Web/Components/Pages/Scm/DeliveryProgress.razor");
         Assert.Contains("_from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1)",progress);
-        Assert.Contains("_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1)",progress);
         Assert.DoesNotContain("_from = _to = null", page);
         // Clearing either bound must still permit a user-selected wider range.
         Assert.Contains("(!_from.HasValue || o.Due >= _from) && (!_to.HasValue || o.Due <= _to)", page);
