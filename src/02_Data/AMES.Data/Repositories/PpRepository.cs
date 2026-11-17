@@ -661,7 +661,7 @@ public sealed partial class PpRepository
 
     // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
     // includeIssued = 수주 수량만큼 WO 가 다 발행된 확정 수주도 함께 (조회용, 선택 불가)
-    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false, bool onlyHeld = false)
+    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false, bool includeHeld = false)
     {
         var sql = $$"""
             SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
@@ -687,8 +687,8 @@ public sealed partial class PpRepository
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
                          ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
             WHERE  s.Status = 'Confirmed'
-               AND (   (@Held = 1 AND s.PlanHold = 1)                                                       -- 검토 대기 보기: 보류한 수주만
-                    OR (@Held = 0 AND s.PlanHold = 0 AND (@All = 1 OR ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0)))   -- 기본: 보류 아닌 잔량 있는 수주(분할 발행 가능), @All 이면 발행 완료 수주도
+               AND (   (s.PlanHold = 1 AND @Held = 1)                                                       -- 검토 대기 보기를 켜면 보류한 수주도 함께
+                    OR (s.PlanHold = 0 AND (@All = 1 OR ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0)))   -- 기본: 보류 아닌 잔량 있는 수주(분할 발행 가능), @All 이면 발행 완료 수주도
                AND (@Cust = '' OR s.CustomerID = @Cust)
                AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
                AND (@To   IS NULL OR s.RequestedDeliveryDate <= @To)
@@ -700,7 +700,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)dueFrom ?? DBNull.Value;
         cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)dueTo   ?? DBNull.Value;
         cmd.Parameters.Add("@All",  SqlDbType.Bit).Value  = includeIssued;
-        cmd.Parameters.Add("@Held", SqlDbType.Bit).Value  = onlyHeld;
+        cmd.Parameters.Add("@Held", SqlDbType.Bit).Value  = includeHeld;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PlanLineRow>();
         while (rdr.Read())

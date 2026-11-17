@@ -41,7 +41,7 @@ public class PlanHoldTests
 
             Assert.Equal(1, pp.SetPlanHold([soId], true, "고객 확인 대기", Actor));
             Assert.DoesNotContain(pp.ListPlanCandidates(Cust, null, null), r => r.SoId == soId);
-            var held = pp.ListPlanCandidates(Cust, null, null, onlyHeld: true).Single(r => r.SoId == soId);
+            var held = pp.ListPlanCandidates(Cust, null, null, includeHeld: true).Single(r => r.SoId == soId);
             Assert.True(held.PlanHold);
             Assert.Equal("고객 확인 대기", held.PlanHoldReason);
             Assert.Equal(1, pp.CountPlanHeld(Cust, null, null));
