@@ -42,7 +42,7 @@
                         <strong>@Text(_document.DocumentNo ?? _document.DocumentBarcode)</strong>
                     </div>
                     <RadzenBadge class="wh02-document-progress"
-                                 Text="@($"{(IsCaseDocument ? "READY " : "")}{DisplayScannedBoxes} / {_document.TotalBoxes}")" />
+                                 Text="@($"{(DocumentReceived ? "RECEIVED " : IsCaseDocument ? "READY " : "")}{DisplayScannedBoxes} / {_document.TotalBoxes}")" />
                 </div>
 
                 <div class="wh02-document-meta">
@@ -60,7 +60,7 @@
                         {
                             <div class="wh02-document-head wh02-shipping-unit-head">
                                 <div><span>SHIPPING UNIT</span><strong>@(string.IsNullOrWhiteSpace(section.ShippingUnitNo)?"UNASSIGNED UNIT ITEMS":section.ShippingUnitNo)</strong></div>
-                                <RadzenBadge class="wh02-document-progress" Text="@($"READY {section.Boxes.Count(IsBoxReady)} / {section.Boxes.Count}")" />
+                                <RadzenBadge class="wh02-document-progress" Text="@($"{(section.Boxes.All(IsBoxReceived) ? "RECEIVED" : "READY")} {section.Boxes.Count(IsBoxReady)} / {section.Boxes.Count}")" />
                             </div>
                         }
                     @foreach (var line in section.Lines)
@@ -84,7 +84,7 @@
                                         <span>@box.BoxBarcode
                                             @if (IsCaseDocument)
                                             {
-                                                <small style="display:block">@(IsBoxScanned(box) ? "SCANNED" : box.ScanRequired ? "SCAN REQUIRED" : "BULK RECEIVE")</small>
+                                                <small style="display:block">@(IsBoxReceived(box) ? "RECEIVED" : IsBoxScanned(box) ? "SCANNED" : box.ScanRequired ? "SCAN REQUIRED" : "BULK RECEIVE")</small>
                                             }
                                             else
                                             {
@@ -490,15 +490,16 @@
         && !string.IsNullOrWhiteSpace(_scan?.ReceivedLocation)
         && _selectedLocation is not null
         && string.Equals(_selectedLocation.LocationId, _scan.ReceivedLocation, StringComparison.OrdinalIgnoreCase);
-    private bool DisableReceive => IsBusy
-        || (_document is not null && !IsScheduledDelivery ? (IsPortalCase ? _documentBoxes.Count == 0 : !DocumentReadyToReceive) : _scan is null || AlreadyReceived);
+    private bool DocumentReceived => _document is not null && IsFullyReceivedCase(_document);
+    private bool DisableReceive => IsBusy || DocumentReceived
+        || (_document is not null && !IsScheduledDelivery ? (IsPortalCase ? !_documentBoxes.Any(box => !IsBoxReceived(box)) : !DocumentReadyToReceive) : _scan is null || AlreadyReceived);
     private bool DisableCancel => IsBusy || _document is not null || _scan is null || !AlreadyReceived;
     private int DisplayScannedBoxes => _document is null
         ? 0
         : IsCaseDocument
-            ? Math.Min(_document.TotalBoxes, _document.ScannedBoxes + _documentBoxes.Count(IsBoxReady))
+            ? Math.Min(_document.TotalBoxes, _document.ScannedBoxes + _documentBoxes.Count(box => !IsBoxReceived(box) && IsBoxReady(box)))
             : _document.ScannedBoxes;
-    private bool DocumentReadyToReceive => _document is not null && IsCaseDocument
+    private bool DocumentReadyToReceive => _document is not null && IsCaseDocument && !DocumentReceived
         && _documentBoxes.Count > 0
         && DisplayScannedBoxes >= _document.TotalBoxes;
     private string ActionBarClass => !AlreadyReceived ? "has-reset" : AlreadyReceived ? "has-cancel" : "has-secondary";
@@ -748,20 +749,16 @@
             if (documentResult.Document is not null)
             {
                 _pendingDocumentBoxes.Clear();
-                if (IsFullyReceivedCase(documentResult.Document))
+                ApplyDocumentResult(documentResult);
+                _barcode = documentResult.Document.DocumentBarcode;
+                if (DocumentReceived)
                 {
-                    _document = null;
-                    _documentLines = [];
-                    _documentBoxes = [];
-                    _barcode = "";
-                    _msg = "This document or shipping unit has already been fully received.";
-                    _cls = "fail";
+                    _msg = "This document or shipping unit has already been fully received. You can review its details.";
+                    _cls = "ok";
                     ShowAlert("Already Received", _msg, "warn");
                     return;
                 }
 
-                ApplyDocumentResult(documentResult);
-                _barcode = documentResult.Document.DocumentBarcode;
                 _msg = IsCaseDocument
                     ? DocumentReadyToReceive
                         ? "All remaining unit items are ready. Tap Receive to receive this document."
@@ -830,7 +827,9 @@
                 : AlreadyReceived
                     ? "This box is already received."
                     : "Box matched. Tap Receive.";
-            _cls = AlreadyReceived ? "fail" : "ok";
+            _cls = "ok";
+            if (AlreadyReceived)
+                ShowAlert("Already Received", "This box has already been received. You can review its details.", "warn");
 
         }
         catch (Exception ex)
@@ -998,7 +997,7 @@
             }
             if (_document is not null && !IsScheduledDelivery)
             {
-                var boxes = _documentBoxes.Where(IsBoxReady).Select(b => b.BoxBarcode).ToList();
+                var boxes = _documentBoxes.Where(box => !IsBoxReceived(box) && IsBoxReady(box)).Select(b => b.BoxBarcode).ToList();
                 foreach (var boxBarcode in boxes)
                 {
                     var batchResult = await Api.WhReceiveInboundAsync(
@@ -1215,12 +1214,8 @@
     private void ApplyDocumentResult(PdaApi.InboundDocumentResult result)
     {
         _document = result.Document;
-        _documentLines = result.Lines
-            .Where(line => !IsCaseDocument || line.ScanCount < line.BoxCount || line.RemainingQty > 0)
-            .ToList();
-        _documentBoxes = result.Boxes
-            .Where(box => !IsCaseDocument || !string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        _documentLines = result.Lines.ToList();
+        _documentBoxes = result.Boxes.ToList();
     }
 
     private int DisplayScanCount(PdaApi.InboundDocumentLineRow line,IReadOnlyList<PdaApi.InboundDocumentBoxRow> boxes)
@@ -1228,13 +1223,15 @@
         if (!IsCaseDocument) return line.ScanCount;
         var pending = boxes.Count(box =>
             string.Equals(box.PartNo, line.PartNo, StringComparison.OrdinalIgnoreCase)
-            && IsBoxReady(box));
+            && !IsBoxReceived(box) && IsBoxReady(box));
         return Math.Min(line.BoxCount, line.ScanCount + pending);
     }
 
+    private static bool IsBoxReceived(PdaApi.InboundDocumentBoxRow box)
+        => string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase);
+
     private bool IsBoxScanned(PdaApi.InboundDocumentBoxRow box)
-        => string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase)
-            || _pendingDocumentBoxes.Contains(box.BoxBarcode);
+        => IsBoxReceived(box) || _pendingDocumentBoxes.Contains(box.BoxBarcode);
 
     private bool IsBoxReady(PdaApi.InboundDocumentBoxRow box)
         => IsBoxScanned(box) || (IsCaseDocument && !box.ScanRequired);
@@ -1290,6 +1287,8 @@
     {
         if (_document is not null && !IsScheduledDelivery)
         {
+            if (DocumentReceived || !_documentBoxes.Any(box => !IsBoxReceived(box)))
+                return "This document has already been fully received.";
             if (!IsCaseDocument)
                 return "Delivery Note is for status only. Scan a box barcode to receive it.";
             if (!IsPortalCase && !DocumentReadyToReceive)
