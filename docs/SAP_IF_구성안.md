@@ -425,7 +425,7 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.IF_TX_PRODRECEIPT WHERE MES_RESULT_NO = @Mes
 | 3단계 DDL | `dist/migrate_sap_if_log.sql`·`dist/migrate_sap_if_po_mrp.sql` **운영 DB(`172.29.3.21\MES`/`AMES`)와 로컬 `AMES_DEV` 적용 완료(11-13)**. `AMES_Schema.sql`·`rebuild_db.sh` 반영은 아직 |
 | 4단계 공통 기반 | 완료 — `EosIfConnectionFactory`, `SapIfRules`, `SapIfLogRepository` |
 | 5단계 수신 Worker | **M01 단위 · M02 품목 · M03 BOM · M04 고객 · M05 공급사 · M06 로케이션 · T04 구매 PO · T08 MRP** 8종 구현(`SapInRunner`, `SapInBom`, `SapInPo`, `SapInMrp`, `SapInWorker`). DryRun 기본 ON. 품목은 사출품 여부(InjFlag)를 SUB 일 때만 유지하고 기본 단위가 바뀌면 BOM 라인 단위를 동기화, BOM 은 헤더+라인 한 트랜잭션·IF 에 없는 라인 비활성. PO 는 `WH_PurchaseOrder`(B1DocEntry+B1LineNum 키, 잔량·수량·납기·상태를 B1 값으로 덮어씀, X 는 Cancelled), MRP 는 `SCM_MrpPlan` 에 같은 버킷(D/W)을 통째로 교체 |
-| 운영 반영 | 운영 웹서버(100.92.74.65) `AMES.Api` 앱풀에 `ConnectionStrings__EOS_IF` 설정 완료. 푸시 후 Jenkins 배포본부터 수신 Worker 가 DryRun 으로 8종을 5분마다 돈다 |
+| 운영 반영 | 운영 웹서버(100.92.74.65) `AMES.Api` 앱풀에 `ConnectionStrings__EOS_IF` 설정 완료. 수신 Worker 가 8종을 5분마다 돈다. **11-17 16:53 `DRYRUN=0` — 실반영 중, UOM 5건 `Y` 처리 완료**(위 「첫 실반영」) |
 | 미구현 | 송신(T01~T03·T05~T07·T09) 전부, 공급사 포털의 MRP 화면 |
 | 6단계 송신 | 미구현: 아웃박스 Enqueue·`SAPOUT` Worker·현장 연결 |
 | 7단계 | 모니터(`SYS_InterfaceMonitor` `SAPIN-IF-Mxx`)는 수신 Worker 에 포함. 알림·화면은 후속 |
@@ -448,6 +448,43 @@ SAP(EOS_IF)와 AMES 마스터를 키로 비교했을 때의 처리. 수신 Worke
 - 실행 요약은 모니터(`SYS_InterfaceMonitor`)에 `신규 a·변경 b·동일 c·AMES 단독(유지) d` 로 남는다.
 - DryRun 에서는 반영을 롤백하므로 위 로그만 쌓인다 → **실반영 전에 이 로그로 덮어쓰기 대상을 확인한다.**
 - `IF_ACTION='D'` 는 삭제가 아니라 비활성(`ActiveFlag=0`, 고객은 `Status='CLOSED'`)이며 로그에 `비활성 처리` 로 남는다.
+
+### 첫 실반영 — IF-M01 UOM (11-17)
+
+SAP 팀 확인: **SAP 는 EOS_IF 의 IF 테이블에만 쓴다.** AMES 가 IF 테이블에서 가져와 AMES 에 동기화하고, 정상이면 그 행의 `IF_STATUS` 를 `Y` 로 표시한다.
+
+| 시각 | 내용 |
+|---|---|
+| 16:53:38 | 운영 DB `SW_SAPIN.DRYRUN` 을 `1` → `0` (`UPDATE dbo.MD_CodeItem SET Attribute1='0' WHERE CodeID='SW_SAPIN_DRYRUN'`) |
+| 16:56:18~19 | 운영 웹서버 `AMES.Api` 의 `SapInWorker` 가 다음 주기에 UOM 5건을 AMES `MD_Uom` 에 반영하고 EOS_IF 에 `Y` 기록 |
+
+**EOS_IF `IF_MD_UOM`** — 5건 모두 `IF_STATUS='Y'`, `PROC_TS=2026-11-17 16:56:19`, `IF_MSG=NULL`(`[DRYRUN]` 문구 삭제). `V_IF_QUEUE`: `PENDING_N=0`, `ERROR_E=0`, `LAST_PROC=16:56:19`.
+
+**AMES `MD_Uom`** (SAP 우선 정책대로 반영)
+
+| UOM | 처리 | 결과 |
+|---|---|---|
+| EA | 변경 | `BaseUOM` NULL → EA, `SAPFlag=1`, `ModifiedBy='SAP-IF'` |
+| SHT | 신규 | SAP 값으로 등록, `CreatedBy='SAP-IF'`, `SAPFlag=1` |
+| G | 변경 | `BaseFlag` 0 → 1, `BaseUOM` → G, `ConvFactor` 0.0022046 → 1 |
+| KG | 변경 | `BaseUOM` → G, `ConvFactor` 2.205 → 1000 |
+| RACK | 신규 | SAP 값으로 등록 |
+| BOX·FT·GAL·HR·LB·M·PLT·SH | 유지 | AMES 에만 있어 그대로(`SAPFlag=0`) |
+
+- 변경 전·후 값은 `SAP_IfLog`(`IfID='IF-M01'`, 16:56:19)에 남아 있다. 별도 백업 테이블은 만들지 않았다(사용자 결정).
+- **무게 기준 단위가 LB → G 로 바뀌었다.** AMES 에만 있는 `LB` 는 G·KG 와의 환산 연결이 끊긴 채 남는다(`LB` 의 `BaseFlag=1`, 환산계수 1). `SH`(AMES)와 `SHT`(SAP)는 같은 의미의 단위가 둘이다 — 후속 정리 대상.
+- `SW_SAPIN.DRYRUN` 은 이제 `0` 이라 **다른 마스터(품목·BOM·고객·공급사·로케이션·PO·MRP)도 SAP 가 적재하면 다음 주기에 바로 반영된다.**
+
+### AMES 반영 결과를 SAP 에 알리는 방법
+
+SAP 는 IF 테이블만 보므로 알림도 **EOS_IF 안에서** 한다.
+
+| 방법 | 상태 |
+|---|---|
+| 행 단위: `IF_STATUS` `Y`(성공)/`E`(실패), `PROC_TS`(반영 시각), 실패 사유 `IF_MSG` | **구현됨.** 반영이 커밋된 행에만 `Y` 를 쓴다 |
+| 모니터링 뷰 `V_IF_QUEUE`(`PENDING_N`·`ERROR_E`·`OLDEST_N`·`LAST_PROC`), `V_IF_STATUS` | 웅진 제공, SAP 가 이미 사용 가능 |
+| 성공 내용을 `IF_MSG` 에 `[OK] …` 로 남기기 | 미구현 — 웅진이 `IF_MSG` 를 어떻게 쓰는지(오류 판정에 쓰는지) 확인 후 결정 |
+| `E`·30분 이상 `N` 알림(메일·PUSH) | 미구현 — 수신 대상·채널 결정 필요 |
 
 ### 대조 결과 (2단계, 11-13 EOS_IF 실제 구조)
 
