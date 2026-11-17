@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Panel, Position, MarkerType, NodeResizeControl,
+  ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Panel, Position, MarkerType, NodeResizer,
   useNodesState, useEdgesState, useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -20,7 +20,7 @@ const FIT = {
 // 노드 기본 폭(px) — 담당자 줄이 한 줄에 들어가도록 공정 노드는 넓게. 노드를 누르면 손잡이로 폭·높이를 바꿀 수 있다.
 // const NODE_W = { step: 460, default: 330 };
 const NODE_W = { step: 380, default: 330 };
-const NODE_MIN_W = 240, NODE_MAX_W = 1000;
+const NODE_MIN_W = 240, NODE_MAX_W = 1000, NODE_MIN_H = 90;
 const FIT_RUNNING = { padding: 0.9, maxZoom: 0.9, fallbackPadding: 0.5 };   // 「● 진행 중 보기」 — maxZoom 이 확대 상한
 const ZOOM = { min: 0.2, max: 1.8 };                                         // 사용자가 휠로 줄이고 늘릴 수 있는 한계
 const GRID = { show: true, variant: 'dots', gap: 18, color: undefined, size: undefined };   // 배경 격자 — variant 'dots'|'lines'|'cross', color 예 '#334155'(없으면 기본색)
@@ -49,13 +49,13 @@ function WoNode({ id, data, selected }) {
   return (
     <div className={'ames-flow-node' + (cur ? ' ames-flow-cur' : '') + (data.status === 'done' ? ' ames-flow-done' : '')}
          style={{ borderColor: accent, '--flow-accent': accent }}>
-      {/* 폭만 조절한다 — 높이는 내용(담당자 줄·LOT 칩 펼침)에 따라 저절로 늘어나야 하므로 고정하지 않는다 */}
-      {selected ? ['left', 'right'].map(pos => (
-        <NodeResizeControl key={pos} position={pos} variant="line" resizeDirection="horizontal" minWidth={NODE_MIN_W} maxWidth={NODE_MAX_W}
-                           className="ames-flow-resize" onResizeEnd={(e, p) => updateNodeData(id, { userW: p.width })} />
-      )) : null}
+      {/* 폭·높이 조절 — 선택한 노드의 변·모서리를 끈다. 높이를 줄여 내용이 넘치면 노드 안에서 스크롤된다 */}
+      <NodeResizer isVisible={selected} minWidth={NODE_MIN_W} maxWidth={NODE_MAX_W} minHeight={NODE_MIN_H}
+                   lineClassName="ames-flow-rline" handleClassName="ames-flow-rhandle"
+                   onResizeEnd={(e, p) => updateNodeData(id, { userW: p.width, userH: p.height })} />
       <Handle type="target" position={Position.Left} style={{ background: accent }} />
       <Handle id="t" type="target" position={Position.Top} style={{ background: accent }} />
+      <div className="ames-flow-body">
       <div className="ames-flow-head">
         <span className="ames-flow-kind" style={{ color: accent }}>{data.kindLabel}</span>
         {data.statusLabel ? <span className={'ames-flow-badge ames-flow-badge-' + data.status}>{cur ? '● ' : data.status === 'done' ? '✓ ' : ''}{data.statusLabel}</span> : null}
@@ -92,6 +92,7 @@ function WoNode({ id, data, selected }) {
         </div>
       ) : null}
       {data.href ? <a className="ames-flow-link" href={data.href}>{data.linkText || '열기'}</a> : null}
+      </div>
       <Handle type="source" position={Position.Right} style={{ background: accent }} />
       <Handle id="b" type="source" position={Position.Bottom} style={{ background: accent }} />
     </div>
@@ -104,10 +105,10 @@ function theme() { return document.documentElement.getAttribute('data-theme') ==
 const toNode = (n, prev, hostId) => ({
   id: n.id, type: 'wo', position: prev ? prev.position : { x: n.x, y: n.y },   // 사용자가 옮긴 자리를 유지
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
-          progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, titleKey: n.titleKey, lineKeys: n.lineKeys, hostId, userW: prev?.data?.userW, href: n.href, linkText: n.linkText },
+          progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, titleKey: n.titleKey, lineKeys: n.lineKeys, hostId, userW: prev?.data?.userW, userH: prev?.data?.userH, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
-  // 사용자가 조절한 폭(userW)만 실시간 갱신에도 유지한다 — 측정된 폭·높이를 붙들면 내용이 늘어나도 노드가 커지지 않는다
-  style: { width: prev?.data?.userW ?? (n.kind === 'step' ? NODE_W.step : NODE_W.default) },
+  // 사용자가 조절한 폭·높이(userW·userH)만 실시간 갱신에도 유지한다 — 측정된 값을 붙들면 내용이 늘어나도 노드가 커지지 않는다
+  style: { width: prev?.data?.userW ?? (n.kind === 'step' ? NODE_W.step : NODE_W.default), ...(prev?.data?.userH ? { height: prev.data.userH } : {}) },
 });
 const toEdge = e => ({
   id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined,
