@@ -17,14 +17,14 @@ public sealed partial class WarehouseRepository
         FROM dbo.SYS_UserProfile P JOIN dbo.AspNetUsers U ON U.Id=P.UserID
         JOIN dbo.AspNetUserRoles UR ON UR.UserId=U.Id
         JOIN dbo.AspNetRoles R ON R.Id=UR.RoleId
-        JOIN dbo.SYS_RolePermission RP ON RP.RoleID=R.Id
-            OR (NULLIF(RP.RoleID,'') IS NULL AND RP.RoleName=R.Name)
-        JOIN dbo.SYS_Screen S ON S.ScreenCode=RP.ScreenCode
-        WHERE P.EmployeeNo=@Employee AND P.AccountStatus='ACTIVE'
-          AND (U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSDATETIME())
-          AND TRIM('/' FROM S.HRef)='wh/picking-requests' AND S.ModuleCode='WEB'
-          AND RP.ModuleCode='WEB' AND ISNULL(S.IsVisible,1)=1
-          AND RP.PermissionLevel LIKE @Permission;
+        WHERE P.EmployeeNo=@Employee AND UPPER(P.AccountStatus)='ACTIVE'
+          AND (U.LockoutEnd IS NULL OR U.LockoutEnd<=SYSUTCDATETIME())
+          AND (R.Id='ROLE-SYSADMIN' OR EXISTS(
+              SELECT 1 FROM dbo.SYS_RolePermission RP
+              JOIN dbo.SYS_Screen S ON S.ScreenCode=RP.ScreenCode AND S.ModuleCode=RP.ModuleCode
+              WHERE (RP.RoleID=R.Id OR (NULLIF(RP.RoleID,'') IS NULL AND RP.RoleName=R.Name))
+                AND TRIM('/' FROM S.HRef)='wh/picking-requests' AND RP.ModuleCode='WEB'
+                AND RP.PermissionLevel LIKE @Permission));
         """, r=>r.GetInt32(0), ("@Employee","SYS_UserProfile.EmployeeNo",employeeNo),
             ("@Permission",null,$"%{permission}%")).Count>0;
 
