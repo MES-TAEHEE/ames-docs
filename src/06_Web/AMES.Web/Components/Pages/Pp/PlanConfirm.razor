@@ -73,6 +73,7 @@
         </RadzenStack>
     </div>
 
+<div class="dim" style="font-size:.85em;padding:4px 2px 6px;">@L["PP.PlanConfirm.Guide"]</div>
 <div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
@@ -165,7 +166,7 @@ else
                     }
                     else if (r.FullyIssued)
                     {
-                        <span class="pill ok" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Issued"]</span>
+                        <SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" Text="@L["PP.PlanConfirm.Status.Issued"].Value" PillClass="ok" />
                     }
                     else if (r.Blocked)
                     {
@@ -173,11 +174,19 @@ else
                     }
                     else if (r.IssuedQty > 0)
                     {
-                        <span class="pill warn" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Partial"]</span>
+                        @if (_canEdit)
+                        {
+                            <a href="javascript:void(0)" class="pill warn wo-link" title="@PartialTip(r)" @onclick="() => CreateFor(r)" @onclick:stopPropagation="true">@L["PP.PlanConfirm.Status.Partial"]</a>
+                        }
+                        else { <span class="pill warn" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Partial"]</span> }
                     }
                     else
                     {
-                        <span class="pill info">@L["PP.PlanConfirm.Status.Pending"]</span>
+                        @if (_canEdit)
+                        {
+                            <a href="javascript:void(0)" class="pill info wo-link" title="@L["PP.PlanConfirm.Tip.CreateWo"]" @onclick="() => CreateFor(r)" @onclick:stopPropagation="true">@L["PP.PlanConfirm.Status.Pending"]</a>
+                        }
+                        else { <span class="pill info">@L["PP.PlanConfirm.Status.Pending"]</span> }
                     }
                 </Template>
             </RadzenDataGridColumn>
@@ -304,6 +313,17 @@ else
             Search();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    string PartialTip(PpRepository.PlanLineRow r) => $"{r.IssuedQty:#,0} / {r.OrderQty:#,0} · {L["PP.PlanConfirm.Tip.CreateWo"].Value}";
+
+    // 상태 배지(검토 대기·부분 발행)를 누르면 그 수주 하나만 골라 바로 WO 생성 창으로 간다 — 다음 순서로 이동
+    async Task CreateFor(PpRepository.PlanLineRow r)
+    {
+        if (!_canEdit || r.Blocked || r.FullyIssued || r.PlanHold) return;
+        _selected.Clear();
+        _selected.Add(r.SoId);
+        await OpenBatch();
     }
 
     void ToggleRow(int soId, bool on)

@@ -11,7 +11,7 @@
 }
 else
 {
-    <a href="javascript:void(0)" class="code wo-link @Class" title="@L["SoLink.Tip"]" @onclick="Open" @onclick:stopPropagation="true">@SoNumber</a>@if (SoLineNo is int ln && ShowLine) { <span class="dim">-@ln</span> }
+    <a href="javascript:void(0)" class="@(PillClass is null ? "code wo-link" : "pill wo-link " + PillClass) @Class" title="@L["SoLink.Tip"]" @onclick="Open" @onclick:stopPropagation="true">@(Text ?? SoNumber)</a>@if (SoLineNo is int ln && ShowLine && PillClass is null) { <span class="dim">-@ln</span> }
 }
 
 @code {
@@ -21,6 +21,10 @@ else
     /// <summary>수주 번호 뒤에 -라인 번호를 붙여 보일지.</summary>
     [Parameter] public bool ShowLine { get; set; }
     [Parameter] public string? Class { get; set; }
+    /// <summary>링크에 보일 글자 — 비우면 수주 번호.</summary>
+    [Parameter] public string? Text { get; set; }
+    /// <summary>지정하면 번호 글자 대신 배지(pill ok/warn/info …)로 그린다 — 상태 배지를 누르면 작업지시를 보게 할 때.</summary>
+    [Parameter] public string? PillClass { get; set; }
 
     async Task Open()
     {

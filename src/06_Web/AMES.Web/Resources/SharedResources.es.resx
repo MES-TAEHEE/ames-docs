@@ -2694,6 +2694,12 @@
   <data name="PP.PlanConfirm.Ok.HoldReleased" xml:space="preserve">
     <value>Se liberaron {0} espera(s).</value>
   </data>
+  <data name="PP.PlanConfirm.Guide" xml:space="preserve">
+    <value>Pasos: 1) elija pedidos o pulse la etiqueta "Pendiente" para crear OT → 2) revise el programa en PP-LSB → 3) produzca en POP. Los pedidos que no se harán por ahora se ponen en "Espera".</value>
+  </data>
+  <data name="PP.PlanConfirm.Tip.CreateWo" xml:space="preserve">
+    <value>Pulse para crear la OT de este pedido</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>
