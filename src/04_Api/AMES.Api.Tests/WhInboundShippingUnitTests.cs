@@ -28,7 +28,7 @@ public sealed class WhInboundShippingUnitTests
         Assert.Contains("_documentBoxes.Count > 0", page);
         Assert.Contains("DisplayScannedBoxes >= _document.TotalBoxes", page);
         Assert.Contains("All remaining unit items are ready. Tap Receive to receive this document.", page);
-        Assert.Contains("Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes, _document.IsDeliveryNote)", page);
+        Assert.Contains("Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes, _document.IsDeliveryNote, confirmUnscanned)", page);
         Assert.Contains("_documentBoxes.Where(b => !IsBoxReady(b))", page);
 
         var repository = Read("src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs");
@@ -37,7 +37,7 @@ public sealed class WhInboundShippingUnitTests
         var receipt = repository[start..end];
         Assert.Contains("using var tx=c.BeginTransaction()", receipt);
         Assert.Contains("ISNULL(i.ScanRequired,1)", receipt);
-        Assert.Contains("if(r.GetBoolean(1) && !scanned.Contains(barcode))", receipt);
+        Assert.Contains("if(r.GetBoolean(1) && !scanned.Contains(barcode) && !confirmUnscanned)", receipt);
         Assert.Contains("d.Status NOT IN('Shipped','Received')", receipt);
         Assert.Contains("tx.Commit();return boxes.Count;", receipt);
     }
@@ -98,6 +98,50 @@ public sealed class WhInboundShippingUnitTests
         var singleUnit=Assert.Single(AMES.Pda.Services.InboundDocumentSections.Build(false,lines,boxes));
         Assert.Same(lines,singleUnit.Lines);
         Assert.Same(boxes,singleUnit.Boxes);
+    }
+
+    [Theory]
+    [InlineData("SHU-1", false, false)]
+    [InlineData("SHU-1", false, true)]
+    [InlineData("DLN-1", true, false)]
+    [InlineData("DLN-1", true, true)]
+    public async Task Receipt_sends_explicit_unscanned_confirmation_only_when_requested(string barcode,bool isNote,bool confirmed)
+    {
+        using var handler=new ReceiptHandler();
+        using var http=new HttpClient(handler){BaseAddress=new Uri("http://localhost")};
+        var auth=new AMES.Pda.Services.AuthState();
+        var api=new AMES.Pda.Services.WarehouseApi(http,auth,new AMES.Pda.Services.SparePartsApi(http,auth),new AMES.Pda.Services.FinishedGoodsApi(http,auth));
+        var result=confirmed
+            ? await api.WhReceiveCaseAsync("LOCAL",barcode,["UIT-1"],isNote,confirmUnscanned:true)
+            : await api.WhReceiveCaseAsync("LOCAL",barcode,["UIT-1"],isNote);
+        Assert.True(result.Success);
+        var request=handler.Request!;
+        Assert.Equal(barcode,request.Barcode);
+        Assert.Equal(isNote,request.IsDeliveryNote);
+        Assert.Equal(confirmed,request.ConfirmUnscanned);
+        Assert.Equal("UIT-1",Assert.Single(request.ScannedBoxes!));
+    }
+
+    [Fact]
+    public void Legacy_receipt_payload_does_not_bypass_the_scan_check()
+    {
+        var request=System.Text.Json.JsonSerializer.Deserialize<AMES.Api.Endpoints.WhEndpoints.InboundCaseReceiveReq>(
+            """{"mode":"LOCAL","barcode":"SHU-1"}""",
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.False(request.ConfirmUnscanned);
+    }
+
+    sealed class ReceiptHandler:HttpMessageHandler
+    {
+        public AMES.Api.Endpoints.WhEndpoints.InboundCaseReceiveReq? Request {get;private set;}
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken cancellationToken)
+        {
+            Assert.Equal("/api/wh/inbound/receive-document",request.RequestUri!.AbsolutePath);
+            Request=System.Text.Json.JsonSerializer.Deserialize<AMES.Api.Endpoints.WhEndpoints.InboundCaseReceiveReq>(
+                await request.Content!.ReadAsStringAsync(cancellationToken),
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+            return new(System.Net.HttpStatusCode.OK){Content=System.Net.Http.Json.JsonContent.Create(new {Success=true,Message="Received"})};
+        }
     }
 
     static string Page() => Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh02PdaInbound.razor");

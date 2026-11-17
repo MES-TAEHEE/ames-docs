@@ -491,7 +491,7 @@
         && _selectedLocation is not null
         && string.Equals(_selectedLocation.LocationId, _scan.ReceivedLocation, StringComparison.OrdinalIgnoreCase);
     private bool DisableReceive => IsBusy
-        || (_document is not null && !IsScheduledDelivery ? !DocumentReadyToReceive : _scan is null || AlreadyReceived);
+        || (_document is not null && !IsScheduledDelivery ? (IsPortalCase ? _documentBoxes.Count == 0 : !DocumentReadyToReceive) : _scan is null || AlreadyReceived);
     private bool DisableCancel => IsBusy || _document is not null || _scan is null || !AlreadyReceived;
     private int DisplayScannedBoxes => _document is null
         ? 0
@@ -765,7 +765,7 @@
                 _msg = IsCaseDocument
                     ? DocumentReadyToReceive
                         ? "All remaining unit items are ready. Tap Receive to receive this document."
-                        : "Scan unit items marked SCAN REQUIRED, then tap Receive."
+                        : "Scan unit items, or tap Receive to review unscanned items."
                     : "Delivery Note status only. Scan a box barcode to receive it individually.";
                 _cls = "dim";
                 return;
@@ -945,9 +945,11 @@
         }
     }
 
-    private async Task Receive()
+    private Task Receive() => ReceiveDocumentAsync(false);
+
+    private async Task ReceiveDocumentAsync(bool confirmUnscanned)
     {
-        if (IsBusy) return;
+        if (IsBusy || _modalOpen) return;
 
         var validation = ReceiveValidationMessage();
         if (validation is not null)
@@ -960,6 +962,18 @@
 
         if (_document is null && _scan is null) return;
 
+        if (IsPortalCase && !confirmUnscanned)
+        {
+            var missing = _documentBoxes.Where(b => !IsBoxReady(b)).ToList();
+            if (missing.Count > 0)
+            {
+                ShowConfirm("Receive Confirmation",
+                    $"{missing.Count} unit item(s) have not been scanned:\n{string.Join("\n", missing.Select(b => $"{b.BoxBarcode} · {b.PartNo}"))}\n\nReceive all remaining items anyway?",
+                    () => ReceiveDocumentAsync(true));
+                return;
+            }
+        }
+
         _isReceiving = true;
         _msg = "Receiving...";
         _cls = "dim";
@@ -968,7 +982,7 @@
         {
             if (IsPortalCase)
             {
-                var caseResult = await Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes, _document.IsDeliveryNote);
+                var caseResult = await Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes, _document.IsDeliveryNote, confirmUnscanned);
                 if (!caseResult.Success)
                 {
                     await RefreshDocumentAsync();
@@ -1278,18 +1292,9 @@
         {
             if (!IsCaseDocument)
                 return "Delivery Note is for status only. Scan a box barcode to receive it.";
-            if (IsCaseDocument)
-            {
-                var missing = _documentBoxes.Where(b => !IsBoxReady(b)).Select(b => b.BoxBarcode).ToList();
-                if (missing.Count > 0)
-                    return $"Scan required boxes first ({missing.Count} remaining):\n{string.Join("\n", missing.Take(5))}";
-                return _documentBoxes.Count == 0 ? "This shipping unit has already been fully received." : null;
-            }
-            if (_pendingDocumentBoxes.Count == 0)
-                return "Scan the boxes in this document first.";
-            if (!DocumentReadyToReceive)
+            if (!IsPortalCase && !DocumentReadyToReceive)
                 return $"Scan all boxes first ({DisplayScannedBoxes}/{_document.TotalBoxes}).";
-            return null;
+            return _documentBoxes.Count == 0 ? "This document has already been fully received." : null;
         }
 
         if (string.IsNullOrWhiteSpace(_barcode))

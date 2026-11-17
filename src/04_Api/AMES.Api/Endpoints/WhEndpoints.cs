@@ -66,7 +66,7 @@ public static class WhEndpoints
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
-    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null, bool IsDeliveryNote = false);
+    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null, bool IsDeliveryNote = false, bool ConfirmUnscanned = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
@@ -285,8 +285,8 @@ public static class WhEndpoints
             {
                 var repository=new ScmRepository(factory);
                 var count = isDeliveryNote
-                    ? repository.ReceiveDeliveryNote(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes)
-                    : repository.ReceiveDeliveryCase(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes);
+                    ? repository.ReceiveDeliveryNote(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes,body.ConfirmUnscanned)
+                    : repository.ReceiveDeliveryCase(body.Barcode.Trim(),body.Mode.Trim().ToUpperInvariant(),s.EmployeeNo,body.ScannedBoxes,body.ConfirmUnscanned);
                 var message = $"{count} boxes were received successfully.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "RECEIVE", "WH002", isDeliveryNote ? "DELIVERY_NOTE" : "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
@@ -305,7 +305,7 @@ public static class WhEndpoints
         g.MapPost("/inbound/receive-case",ReceiveInboundDocument);
         g.MapPost("/inbound/receive-document",ReceiveInboundDocument)
           .WithSummary("Receive all pending unit items in a Delivery Note or Shipping Unit")
-          .WithDescription("One atomic receipt. Required unit items must be scanned. Received items are skipped and any failure rolls back the entire receipt.");
+          .WithDescription("One atomic receipt. Unscanned required unit items need explicit ConfirmUnscanned acknowledgement. Received items are skipped and any failure rolls back the entire receipt.");
 
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
