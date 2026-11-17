@@ -25,7 +25,7 @@
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Data="@_rows" IsLoading="_loading" AllowPaging="true" PageSize="25"
@@ -107,5 +107,4 @@
         catch(Exception ex) { Logger.LogError(ex,"Shipments load failed");_rows=[]; _message=L["Shipment.LoadError"]; }
         finally{_loading=false;}
     }
-    private async Task Clear() { _search=""; _from=DbClock.Today.AddMonths(-1); _to=DbClock.Today.AddMonths(1); await Reload(); }
 }

@@ -37,7 +37,7 @@
             </div>
             <div class="delivery-progress-filter-group">
                 <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
-                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Reload" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
             </div>
         </RadzenStack>
     </div>
@@ -134,7 +134,6 @@
         catch(Exception ex){Logger.LogError(ex,"Delivery progress load failed");_error=L["SCM.DeliveryProgress.LoadError"];}
         finally{_busy=false;}
     }
-    async Task Reset(){_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);_vendor=null;_search="";_includeReceived=false;await Reload();}
     string Status(string status)=>status switch{"OnTheWay"=>L["SCM.DeliveryProgress.OnTheWay"],"PartiallyReceived"=>L["SCM.DeliveryProgress.Partial"],"Received"=>L["Scm.Text.Received"],_=>L["Portal.Text.Registered"]};
     public async ValueTask DisposeAsync(){_stop.Cancel();if(_refresh is not null)await _refresh;_stop.Dispose();}
 }

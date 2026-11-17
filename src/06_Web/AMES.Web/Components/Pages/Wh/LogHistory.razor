@@ -32,7 +32,7 @@
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text='@L["WH.Inventory.Export"]' Icon="download" Click="ExportHistory" Disabled="@(_loading || _rows.Count==0)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
@@ -139,7 +139,6 @@
         }
         finally {if(request==_reloadRequest)_loading=false;}
     }
-    async Task Clear() { _search="";_eventType=null;_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);await Reload(); }
     void OpenDetail(WarehouseRepository.OperationLogRow row)=>_detailRow=row;
     void CloseDetail()=>_detailRow=null;
     string? DetailSummary(WarehouseRepository.OperationLogRow row)=>row.HasShipmentDetails

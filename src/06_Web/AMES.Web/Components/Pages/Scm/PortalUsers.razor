@@ -63,6 +63,7 @@
             <RadzenDropDown Name="DropDownStatus" @bind-Value:get="_fStatus" @bind-Value:set="SetStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click=@OpenCreate class="ames-rz-btn" />
