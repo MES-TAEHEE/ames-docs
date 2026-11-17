@@ -4566,6 +4566,16 @@ html[data-theme="light"] .wh-location-directory-card:hover { background: rgba(37
 }
 
 .master-list-toolbar > span { white-space: nowrap; }
+/* Warehouse history and FG lists share the same Radzen typography and controls. */
+.inventory-history-list .ames-rz-grid { --rz-grid-cell-font-size:14px; --rz-grid-header-font-size:12px; }
+.inventory-history-list .ames-rz-grid thead th,
+.inventory-history-list .ames-rz-grid .rz-column-title {
+    font-family:var(--ames-font-mono);font-size:12px;letter-spacing:1.2px;color:var(--ames-tx-blue-300);
+}
+.inventory-history-list .ames-rz-grid .rz-data-row > td {font-family:var(--ames-font-sans) !important;font-size:14px !important;}
+.inventory-history-list .ames-rz-grid .rz-cell-data {font-family:inherit;font-size:inherit;}
+.inventory-history-list .ames-rz-grid td .rz-variant-text {font-family:inherit;font-size:inherit;letter-spacing:normal;text-transform:none;}
+.inventory-history-list .master-list-toolbar .ames-rz-input {font-family:var(--ames-font-mono);font-size:12px;}
 .inventory-summary-grid .rz-data-row { cursor: pointer; }
 
 .fg-web-form-grid,

@@ -13682,4 +13682,9 @@
   <data name="Portal.Create.Err.SameDestination" xml:space="preserve"><value>Select items for the same supplier and delivery destination.</value></data>
   <data name="Portal.Create.Err.Unavailable" xml:space="preserve"><value>An item is unavailable or the remaining PO quantity changed. Refresh the list.</value></data>
   <data name="Portal.Create.AlarmTitle" xml:space="preserve"><value>Alert</value></data>
+  <data name="FG.ShipOrders.Ph.Search" xml:space="preserve"><value>Order / customer / DCR / part…</value></data>
+  <data name="FG.ShipOrders.Selection.Shipped" xml:space="preserve"><value>Shipped · unavailable</value></data>
+  <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR assigned · unavailable</value></data>
+  <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>View only · unavailable</value></data>
+  <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>Unavailable to select</value></data>
 </root>

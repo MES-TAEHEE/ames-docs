@@ -26,25 +26,45 @@ public sealed class ShipmentHistoryTests
     }
 
     [Fact]
-    public void Shipment_rows_use_inline_expandable_details_without_a_trailer_column()
+    public void Shipment_rows_show_DCR_pallet_and_part_without_expansion()
     {
         var source=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Fg/Shipments.razor"));
+        Assert.DoesNotContain("ExpandRow",source);
+        Assert.DoesNotContain("ToggleDetails",source);
         Assert.DoesNotContain("Property=\"TrailerNo\"",source);
-        Assert.Contains("ShowExpandColumn=\"false\"",source);
-        Assert.Contains("class=\"ames-rz-btn shipment-toggle\"",source);
-        Assert.Contains("IsExpanded(row) ? \"expand_more\" : \"chevron_right\"",source);
-        Assert.Contains("Text=\"@row.ReferenceNo\" Click=\"@(()=>ToggleDetails(row))\"",source);
-        Assert.Contains("await _grid.ExpandRow(row)",source);
-        Assert.Contains("<Template Context=\"shipment\">",source);
-        Assert.DoesNotContain("RowClick=",source);
-        Assert.DoesNotContain("RowRender=",source);
-        Assert.Contains("OpenLots(shipment,item)",source);
+        Assert.Contains("Fg.ListShipmentHistoryRows(_search,_from,_to)",source);
+        var dcr=source.IndexOf("Property=\"Shipment.ReferenceNo\"",StringComparison.Ordinal);
+        var pallet=source.IndexOf("Property=\"PalletNo\"",StringComparison.Ordinal);
+        var part=source.IndexOf("Property=\"PartNo\"",StringComparison.Ordinal);
+        Assert.True(dcr>=0 && pallet>dcr && part>pallet);
+        Assert.Contains("OpenLots(row)",source);
         Assert.Contains("ListShipmentHistoryLots(shipment.DeliveryId,shipment.ShipmentId,part.PalletNo,part.PartNo)",source);
         Assert.Contains("Property=\"LotNo\"",source);
         Assert.Contains("request==_lotRequest",source);
-        Assert.Contains("ShipmentPalletPartRow",source);
-        Assert.Contains("@onclick:stopPropagation=\"true\"",source);
-        Assert.Contains("_children.ContainsKey(row.Key)",source);
+    }
+
+    [SkippableFact]
+    public void Flat_shipment_rows_preserve_parent_totals_and_LOT_details()
+    {
+        var connection=Environment.GetEnvironmentVariable("AMES_TEST_CONN");
+        Skip.If(string.IsNullOrWhiteSpace(connection),"Opt-in SELECT-only flat shipment verification.");
+        var repo=new FinishedGoodsRepository(new AmesConnectionFactory(connection!));
+        var history=repo.ListShipmentHistory();
+        var rows=repo.ListShipmentHistoryRows();
+        Assert.Equal(history.Count,rows.Select(row=>row.Shipment.Key).Distinct().Count());
+        foreach(var shipment in history)
+        {
+            var parts=rows.Where(row=>row.Shipment.Key==shipment.Key).ToList();
+            Assert.Equal(shipment.Qty,parts.Sum(row=>row.Qty));
+            Assert.Equal(shipment.ItemCount,parts.Sum(row=>row.LotCount));
+            Assert.Equal(parts.Count,parts.Select(row=>(row.PalletNo,row.PartNo,row.Unit)).Distinct().Count());
+        }
+        foreach(var row in rows.Where(row=>row.LotCount>0).Take(5))
+        {
+            var lots=repo.ListShipmentHistoryLots(row.Shipment.DeliveryId,row.Shipment.ShipmentId,row.PalletNo,row.PartNo);
+            Assert.Equal(row.LotCount,lots.Count);
+            Assert.Equal(row.Qty,lots.Sum(lot=>lot.Qty));
+        }
     }
 
     [SkippableFact]

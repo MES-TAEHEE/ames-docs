@@ -1,2 +1,6 @@
 .created-order-list {max-height:65vh;overflow:auto;}
 .shipping-orders-page ::deep .rz-expanded-row-content > td {height:auto !important;background:transparent !important;padding:0 !important;}
+.shipping-orders-page ::deep tr.shipping-order-unavailable > td {background:var(--ames-bd-white-a04) !important;color:var(--ames-tx-slate-400);}
+.shipping-orders-page ::deep tr.shipping-order-selectable > td:first-child {box-shadow:inset 3px 0 var(--ames-tx-green-400);}
+.shipping-orders-page ::deep tr.shipping-order-selected > td {background:color-mix(in srgb,var(--ames-tx-blue-300) 12%,transparent) !important;}
+.shipping-order-unavailable-icon {color:var(--ames-tx-slate-400);font-size:18px;}

@@ -13682,4 +13682,9 @@
   <data name="Portal.Create.Err.SameDestination" xml:space="preserve"><value>같은 협력업체와 납품장소의 품목을 선택하세요.</value></data>
   <data name="Portal.Create.Err.Unavailable" xml:space="preserve"><value>품목을 납품할 수 없거나 발주 잔량이 변경되었습니다. 목록을 새로고침하세요.</value></data>
   <data name="Portal.Create.AlarmTitle" xml:space="preserve"><value>알림</value></data>
+  <data name="FG.ShipOrders.Ph.Search" xml:space="preserve"><value>출하오더 / 고객사 / DCR / 품번…</value></data>
+  <data name="FG.ShipOrders.Selection.Shipped" xml:space="preserve"><value>출하 완료 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR 배정됨 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>조회 전용 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>선택 불가</value></data>
 </root>

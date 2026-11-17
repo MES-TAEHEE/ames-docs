@@ -20,20 +20,19 @@
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipPlan.Kpi.EstTrailers"]</div><div class="ames-kpi-v">@(_draft?.Trailers.Count(x=>x.Pallets.Count>0) ?? 0)</div></div>
 </div>
 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false">@_error</RadzenAlert> }
-<section class="ames-card shipment-plan-orders" data-no-busy>
+<section class="ames-card shipment-plan-orders inventory-history-list" data-no-busy>
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ @L["FG.ShipPlan.List"] · @_view.Count</span>
+        <span>▼ @L["FG.ShipPlan.List"] · @_view.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-            <RadzenLabel Text="@L["Col.ShipDate"]" Component="ShipDateFrom" />
-            <RadzenDatePicker Name="ShipDateFrom" TValue="DateTime?" @bind-Value="_shipFrom" @bind-Value:after="Load" Disabled="_loading"
-                NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-            <span>–</span>
-            <RadzenDatePicker TValue="DateTime?" @bind-Value="_shipTo" @bind-Value:after="Load" Disabled="_loading"
-                NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Load();}' />
             <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
-                AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
-            <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
-            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
+            <RadzenDatePicker Name="ShipDateFrom" TValue="DateTime?" @bind-Value="_shipFrom" @bind-Value:after="Load" Disabled="_loading"
+                NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_shipTo" @bind-Value:after="Load" Disabled="_loading"
+                NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"]" Icon="close" Click="Clear" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="@L["FG.ShipPlan.Btn.TrailerPreview"]" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
@@ -152,6 +151,7 @@
         var draft=new TrailerLoadDraft();
         if(draft.Build(TrailerLoadDraft.FromOrders(_view.SelectMany(d=>d.Orders)),out _error))_draft=draft;
     }
+    async Task Clear(){_search="";_customer=null;_shipFrom=DbClock.Today.AddMonths(-1);_shipTo=DbClock.Today.AddMonths(1);await Load();}
     string DeliveryQuantity(ShipmentPlanRows.Delivery delivery)=>string.Join(" · ",delivery.Lines.GroupBy(l=>l.Unit)
         .Select(g=>UomFmt.QtyUnit(g.Sum(l=>l.Qty),g.Key)));
     async Task PrintDelivery(ShipmentPlanRows.Delivery delivery)
