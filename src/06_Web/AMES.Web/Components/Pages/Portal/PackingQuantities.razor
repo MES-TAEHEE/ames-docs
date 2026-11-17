@@ -8,7 +8,7 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["Portal.Text.PackingQuantities"] · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-004" Title='@L["Portal.Text.PackingQuantities"]' />
+<AmesPageHeader Code="PORTAL-003" Title='@L["Portal.Text.PackingQuantities"]' />
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.LinkedItems"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.Text.PackingQuantitySet"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.CanSave && r.Source.PackingQty>0)</div></div>
@@ -26,7 +26,7 @@
     <div class="packing-hint dim">@L["Portal.PackingQty.Hint"]</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center"
         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PageSizeChanged="@(s => _pageRows = s)"
-        EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageRows}")">
+        EmptyText='@L["Portal.Text.NoLinkedItems"]' RowRender="HighlightMissingPacking" Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
             <RadzenDataGridColumn TItem="EditRow" Title='@L["Col.RowNo"]' Width="60px" MinWidth="60px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]' Width="190px" MinWidth="190px" CssClass="packing-nowrap"><Template Context="r"><span class="code">@r.Source.VendorID</span> @r.Source.VendorName</Template></RadzenDataGridColumn>
@@ -34,12 +34,14 @@
             <RadzenDataGridColumn TItem="EditRow" MinWidth="200px" Property="Source.ItemName" Title='@L["Scm.Text.Description"]'>
                 <Template Context="r">@r.Source.ItemName
                     @if(!r.Source.CanSave){<div class="packing-issue" role="status">@IssueText(r.Source.Issue)</div>}
-                    else if(r.Source.PackingQty is null or <=0){<div class="dim">@L["Portal.PackingQty.NotSetHint"]</div>}
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title='@L["Scm.Text.Unit"]' Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" />
             <RadzenDataGridColumn TItem="EditRow" Title='@L["Scm.Text.PackingQuantity"]' Width="240px" MinWidth="240px" Sortable="false">
-                <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Disabled="@(!r.Source.CanSave || r.Saving)" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class="ames-rz-input" /></Template>
+                <Template Context="r">
+                    <RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Disabled="@(!r.Source.CanSave || r.Saving)" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class='@(r.Source.PackingQty is null or <=0 ? "ames-rz-input packing-input-missing" : "ames-rz-input")' />
+                    @if(r.Source.CanSave && r.Source.PackingQty is null or <=0){<div class="packing-quantity-hint">@L["Portal.PackingQty.NotSetHint"]</div>}
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Width="210px" MinWidth="210px" Title="" Sortable="false">
                 <Template Context="r">
@@ -53,6 +55,8 @@
     </RadzenDataGrid>
 </div>
 @code {
+    [SupplyParameterFromQuery(Name="part")] public string? RequestedPart {get;set;}
+    [SupplyParameterFromQuery(Name="parts")] public string? RequestedParts {get;set;}
     sealed class EditRow(ScmRepository.PackingQuantityRow source)
     {
         public ScmRepository.PackingQuantityRow Source { get; set; }=source;
@@ -73,12 +77,19 @@
         "Not a material item. Ask EOS to check the item type."=>L["Portal.PackingQty.Issue.NotMaterial"],
         "Supplier link is inactive. Ask EOS to check the supplier mapping."=>L["Portal.PackingQty.Issue.LinkInactive"],
         _=>issue };
-    List<EditRow> Rows=>_rows.Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
+    static void HighlightMissingPacking(RowRenderEventArgs<EditRow> args)
+    {
+        if(args.Data is not null && args.Data.Source.PackingQty is null or <=0)args.Attributes["class"]="packing-missing";
+    }
+    List<EditRow> Rows=>_rows.Where(r=>string.IsNullOrWhiteSpace(RequestedParts)
+        || RequestedParts.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Contains(r.Source.ItemNo,StringComparer.OrdinalIgnoreCase))
+        .Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
     protected override async Task OnInitializedAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
         _allowed=PortalAuth.IsPortalUser(u);
+        _search=RequestedPart ?? "";
         await Load();
     }
     async Task Load()

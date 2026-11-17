@@ -12,6 +12,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
 @inject DialogService Dialog
+@inject NotificationService Notifications
 @inject ActorNames Actors
 @using System.Globalization
 
@@ -84,9 +85,10 @@
                 {
                     <RadzenButton Text='@L["Scm.Text.NewOrder"]' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="NewOrder" class="ames-rz-btn" />
                 }
-                @if (IsPortal && Mode == "Due" && _isExternalPortalUser)
+                @if (IsPortal && Mode is ("Orders" or "Due") && _isExternalPortalUser)
                 {
-                    <RadzenButton Text='@L["SCM.Preview.Btn.CreateNote"]' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCaseSelection" class="ames-rz-btn" />
+                    <RadzenButton Text='@L[_choosingCreationPo ? "Portal.Create.SelectionDone" : "SCM.Preview.Btn.CreateNote"]' Icon="@(_choosingCreationPo ? "check" : "add")" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCaseSelection" class="ames-rz-btn" />
+                    @if(_choosingCreationPo){<RadzenButton Text='@L["Btn.Cancel"]' Icon="close" Click="CancelPoSelection" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />}
                 }
             </RadzenStack>
         </div>
@@ -170,8 +172,11 @@
         {
             <RadzenDataGrid @ref="_orderGrid" TItem="OrderItemRow" Data="@OrderItems" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                 PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
-                RowClick="@(e=>{if(e.Data is {} row)Select(row.Order);})" RowRender="RowLinkOrder" EmptyText="@Empty" PageSizeChanged="s=>_pageRows=s" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                RowClick="e=>ClickOrderRow(e.Data)" RowRender="RowLinkOrder" EmptyText="@Empty" PageSizeChanged="s=>_pageRows=s" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                        <RadzenDataGridColumn TItem="OrderItemRow" Visible="@(IsPortal && _choosingCreationPo)" OrderIndex="0" Frozen="true" FrozenPosition="FrozenColumnPosition.Left" Width="55px" MinWidth="55px" Sortable="false" Filterable="false">
+                            <Template Context="row"><div @onclick:stopPropagation="true"><RadzenCheckBox TValue="bool" Value="@_creationPos.Contains(row.Number)" Change="value=>ToggleCreationPo(row.Order,value)" Disabled="@(!CanDeliverPo(row.Order))" aria-label='@(L["Scm.Text.Select"]+" "+row.Number)' /></div></Template>
+                        </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OrderItemRow" Title='@L["Col.RowNo"]' Width="60px" Sortable="false"><Template Context="r">@GridRowNo.Of(_orderGrid,r)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OrderItemRow" Property="Number" Title='@L["SCM.Preview.Col.PoNo"]' Width="175px" />
                     <RadzenDataGridColumn TItem="OrderItemRow" Property="Line.Id" Title='@L["Col.No"]' Width="65px" />
@@ -265,7 +270,7 @@
         </div>
     }
 
-    @if (IsPortal && Mode=="Due" && _creationOrder is not null)
+    @if (IsPortal && Mode is ("Orders" or "Due") && _creationOrder is not null)
     {
         <div class="ames-modal-bg" data-no-busy>
             <div class="ames-modal" role="dialog" aria-modal="true" aria-label='@L["SCM.Preview.Btn.CreateNote"]' data-create-note style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
@@ -274,7 +279,7 @@
                     <RadzenButton Icon="close" aria-label='@L["Btn.Close"]' data-portal-close ButtonStyle="ButtonStyle.Light" Click="CloseCreation" />
                 </div>
                 <div class="ames-modal-body" style="overflow:auto;min-height:0;">
-                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="_creationOrder" Embedded="true" InitialOrder="@_creationOrder" Changed="RefreshCreation" />
+                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="_creationOrder" Embedded="true" AllowedOrders="_creationAllowedOrders" Changed="RefreshCreation" OnCancel="CloseCreation" />
                 </div>
             </div>
         </div>
@@ -720,9 +725,41 @@
         .Where(o => string.IsNullOrWhiteSpace(_search) || (o.Number + " " + o.Item + " " + o.Name).Contains(_search, StringComparison.OrdinalIgnoreCase))
         .OrderBy(o => !IsPortal && Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
     string? _creationOrder;
-    void OpenCaseSelection() { _creationOrder=""; }
+    bool _choosingCreationPo;
+    readonly HashSet<string> _creationPos=new(StringComparer.OrdinalIgnoreCase);
+    IReadOnlyList<string> _creationAllowedOrders=[];
+    static bool CanDeliverPo(ScmPreviewStore.Order order) => order.Status is "Published" or "Confirmed"
+        && order.Lines.Any(line=>line.ItemExists && line.AvailableDelivery>0);
+    void OpenCaseSelection()
+    {
+        if(!_choosingCreationPo)
+        {
+            _selected=null;_creationPos.Clear();_choosingCreationPo=true;
+            Notifications.Notify(new NotificationMessage{Severity=NotificationSeverity.Info,Detail=L["Portal.Create.SelectPurchaseOrders"],Duration=2000});
+            return;
+        }
+        _creationAllowedOrders=_dbOrders.Where(o=>_creationPos.Contains(o.Number) && CanDeliverPo(o)).Select(o=>o.Number).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if(_creationAllowedOrders.Count==0)
+        {
+            Notifications.Notify(new NotificationMessage{Severity=NotificationSeverity.Warning,Detail=L["Portal.Create.SelectPurchaseOrders"],Duration=2000});
+            return;
+        }
+        _creationOrder=string.Join("|",_creationAllowedOrders);_choosingCreationPo=false;
+    }
+    void ToggleCreationPo(ScmPreviewStore.Order order,bool selected)
+    {
+        if(!selected){_creationPos.Remove(order.Number);return;}
+        if(CanDeliverPo(order) && _creationPos.Count<100)_creationPos.Add(order.Number);
+    }
+    void ClickOrderRow(OrderItemRow? row)
+    {
+        if(row is null)return;
+        if(IsPortal && _choosingCreationPo)ToggleCreationPo(row.Order,!_creationPos.Contains(row.Number));
+        else Select(row.Order);
+    }
+    void CancelPoSelection(){_choosingCreationPo=false;_creationPos.Clear();}
     async Task RefreshCreation() => await ReloadOrdersAsync();
-    void CloseCreation() => _creationOrder=null;
+    void CloseCreation(){_creationOrder=null;_creationAllowedOrders=[];CancelPoSelection();}
     List<ScmPreviewStore.Delivery> DeliveryRows => Store.Deliveries
         .Where(d=>_dbOrders.Any(o=>o.Number==d.OrderNumber))
         .Where(d=>string.IsNullOrEmpty(_status) || d.Status==_status)

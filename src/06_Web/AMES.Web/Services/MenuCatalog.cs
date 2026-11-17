@@ -54,8 +54,8 @@ public sealed class MenuCatalog
         new("scm", "scm/portal-users", "SCM-005", "외부 사용자 관리", "Portal Users"),
         new("portal", "portal/orders", "PORTAL-001", "발주 조회", "Orders"),
         new("portal", "portal/due-orders", "PORTAL-002", "납품 생성", "Delivery Creation"),
-        new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
-        new("portal", "portal/packing-quantities", "PORTAL-004", "적입량 관리", "Packing Quantities"),
+        new("portal", "portal/deliveries", "PORTAL-002", "납품서 관리", "Delivery Management"),
+        new("portal", "portal/packing-quantities", "PORTAL-003", "적입량 관리", "Packing Quantities"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
@@ -159,11 +159,20 @@ public sealed class MenuCatalog
 
     static readonly HashSet<string> HiddenItems = new(StringComparer.OrdinalIgnoreCase)
     {
+        "portal/due-orders",
         "portal/delivery-notes",
         "portal/receipts",
         "wh/locations",
         "wh/picking-requests",
         "fg/history",
+    };
+
+    public static string? PortalDisplayCode(string href) => href.Trim('/').ToLowerInvariant() switch
+    {
+        "portal/orders" or "portal/due-orders" => "PORTAL-001",
+        "portal/deliveries" => "PORTAL-002",
+        "portal/packing-quantities" => "PORTAL-003",
+        _ => null
     };
 
     public static bool IsHidden(string href) => HiddenItems.Contains(href.TrimStart('/'));
@@ -213,7 +222,7 @@ public sealed class MenuCatalog
                 .Select(s => new Item(
                     s.ProcessCode!.ToLowerInvariant(),
                     s.HRef!.TrimStart('/'),
-                    s.LidLabel ?? s.ScreenCode,
+                    PortalDisplayCode(s.HRef!) ?? s.LidLabel ?? s.ScreenCode,
                     s.HRef!.TrimStart('/') == "portal/orders" ? "발주 조회" : s.ScreenName,
                     s.HRef!.TrimStart('/') == "portal/orders" ? "Orders" : s.ScreenNameEn ?? s.ScreenName,
                     s.SubProcessCode))
