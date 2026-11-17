@@ -32,8 +32,9 @@
         @if (_layoutError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Warning">@_layoutError</RadzenAlert> }
         @if(_previewLabels.Count>0)
         {
+            @if(_previewLabels[_previewIndex].Copies==2){<p class="shipping-printer-hint">@L["SCM.Label.BoxBothSides"]</p>}
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem" class="shipping-preview-toolbar">
-                <span>@L["SCM.Preview.Print.Preview"] · 100 × 40 mm · @L["SCM.Label.OneCopy"]</span>
+                <span>@L["SCM.Preview.Print.Preview"] · 100 × 40 mm · @L[_previewLabels[_previewIndex].Copies==2 ? "SCM.Label.TwoCopies" : "SCM.Label.OneCopy"]</span>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                     <RadzenButton Icon="chevron_left" aria-label='@L["SCM.Label.Previous"]' Click="PreviousLabel" Disabled="@(_busy || _previewIndex==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
                     <span>@(_previewIndex+1) / @_previewLabels.Count</span>

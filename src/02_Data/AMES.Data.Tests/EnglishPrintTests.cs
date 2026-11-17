@@ -50,7 +50,9 @@ public sealed class EnglishPrintTests
         Assert.Equal(new[]{"DLN-1","1"},CompactQrLabelLayout.Fields(bundle.UnitLabels[0]).Select(f=>f.Value));
         Assert.Equal(new[]{"PART NO.","QUANTITY","LOT NO.","FIFO / PRODUCTION DATE"},CompactQrLabelLayout.Fields(bundle.ItemLabels[0]).Select(f=>f.Caption));
         var zpl=string.Concat(bundle.AllLabels.Select(l=>ShippingLabelZpl.Build(l)));
-        Assert.Equal(4,zpl.Split("^PQ1").Length-1);
+        Assert.Equal(2,zpl.Split("^PQ1").Length-1);
+        Assert.Equal(2,zpl.Split("^PQ2").Length-1);
+        Assert.Equal(6,bundle.AllLabels.Sum(label=>label.Copies));
         Assert.Equal(4,zpl.Split("^XZ").Length-1);
     }
 

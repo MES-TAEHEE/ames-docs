@@ -57,7 +57,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.True(page.IndexOf("class=\"part-barcode\"",StringComparison.Ordinal)>page.IndexOf("class=\"label-details\"",StringComparison.Ordinal));
         Assert.Contains("<Code128Barcode Value=\"@b.Number\"",page);
         Assert.Contains("<Code128Barcode Value=\"@b.Item\"",page);
-        Assert.Contains("Boxes.Chunk(6)",page);
+        Assert.Contains("Boxes.Chunk(3)",page);
     }
 
     [Fact]

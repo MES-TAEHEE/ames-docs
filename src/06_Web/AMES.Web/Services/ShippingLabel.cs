@@ -5,7 +5,10 @@ namespace AMES.Web.Services;
 
 public sealed record ShippingLabel(string Barcode,string Kind,string Vendor,string PartNo,
     string PartName,string Quantity,string Reference,string Fifo="",string Destination="",string Order="",string Lot="",string Sequence="",
-    string DeliveryDate="",string ParentNumber="",int UnitItemCount=0);
+    string DeliveryDate="",string ParentNumber="",int UnitItemCount=0)
+{
+    public int Copies => Kind is "UNIT ITEM (UIT)" or "UIT" ? 2 : 1;
+}
 
 public sealed record ShippingLabelField(string Caption,string Value);
 
@@ -78,7 +81,7 @@ public static class ShippingLabelZpl
             z.Append(Text(top,1.7m,field.Caption));
             z.Append(Text(top+2.1m,layout.FontMm(field.Value),field.Value));
         }
-        return z.Append("^PQ1\n^XZ\n").ToString();
+        return z.Append($"^PQ{label.Copies}\n^XZ\n").ToString();
     }
     private static string Hex(string value)=>string.Concat(Encoding.UTF8.GetBytes(value).Select(b=>$"_{b:X2}"));
 }
