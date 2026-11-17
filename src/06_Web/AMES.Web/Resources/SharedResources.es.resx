@@ -2757,6 +2757,15 @@
   <data name="PP.WoDetail.Unit.Min" xml:space="preserve">
     <value>min</value>
   </data>
+  <data name="PP.Lot.Station" xml:space="preserve">
+    <value>Estación</value>
+  </data>
+  <data name="PP.Lot.History" xml:space="preserve">
+    <value>Historial por proceso (OT {0})</value>
+  </data>
+  <data name="PP.Lot.HistoryNote" xml:space="preserve">
+    <value>Línea, estación y operario por proceso de la OT de este LOT. La fila en negrita (◀) incluye este LOT. Cada proceso crea sus propios LOT.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

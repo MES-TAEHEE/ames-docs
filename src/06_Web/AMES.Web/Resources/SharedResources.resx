@@ -2760,6 +2760,15 @@
   <data name="PP.WoDetail.Unit.Min" xml:space="preserve">
     <value>분</value>
   </data>
+  <data name="PP.Lot.Station" xml:space="preserve">
+    <value>스테이션</value>
+  </data>
+  <data name="PP.Lot.History" xml:space="preserve">
+    <value>공정별 작업 이력 (작업지시 {0})</value>
+  </data>
+  <data name="PP.Lot.HistoryNote" xml:space="preserve">
+    <value>이 LOT 이 속한 작업지시의 공정별 라인·스테이션·작업자입니다. 굵은 줄(◀)에 이 LOT 이 포함됩니다. 공정마다 LOT 번호는 따로 만들어집니다.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

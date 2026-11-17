@@ -371,12 +371,15 @@ public sealed class WorkOrderRepository
         return list;
     }
 
-    public sealed record LotResultRow(DateTime? At, string? ProcessCode, string? LineId, decimal GoodQty, string? OperatorId, string? MoldId, string? WoNumber);
+    public sealed record LotResultRow(DateTime? At, string? ProcessCode, string? LineId, decimal GoodQty, string? OperatorId, string? MoldId, string? WoNumber, string? Station = null);
+    /// <summary>작업지시의 공정별 작업 이력 한 줄 — 같은 공정·라인·스테이션·작업자의 실적 묶음. HasThisLot = 조회한 LOT 이 이 줄에 포함됨.</summary>
+    public sealed record LotProcessRow(string? ProcessCode, string? LineId, string? Station, string? OperatorId, decimal GoodQty, DateTime FirstAt, DateTime LastAt, bool HasThisLot);
     public sealed record LotDefectRow(DateTime? At, string? DefectCode, decimal Qty, string? Disposition, string? CauseCode);
     public sealed record LotStockRow(string? PalletNo, string? LocationNo, decimal Qty, string? PartNo);
     public sealed record LotDetail(int LotId, string LotCode, string? ItemNo, string? ItemName, string? ProcessCode, string? LineId, string? Status,
         DateTime? ProducedAt, string? WoNumber, string? ParentLotCode, IReadOnlyList<string> ChildLotCodes,
-        IReadOnlyList<LotResultRow> Results, IReadOnlyList<LotDefectRow> Defects, IReadOnlyList<LotStockRow> Stock);
+        IReadOnlyList<LotResultRow> Results, IReadOnlyList<LotDefectRow> Defects, IReadOnlyList<LotStockRow> Stock,
+        IReadOnlyList<LotProcessRow>? ProcessHistory = null);
 
     /// <summary>LOT 번호 한 건의 내용 — 기본 정보·부모/자식 LOT·실적·불량·현재 재고(팔레트·위치). 없는 번호는 null.</summary>
     public LotDetail? GetLotDetail(string lotCode)
@@ -392,9 +395,10 @@ public sealed class WorkOrderRepository
 
             SELECT c.LotCode FROM dbo.tbl_Lot c JOIN dbo.tbl_Lot l ON l.LotID = c.ParentLotID WHERE l.LotCode = @Lot ORDER BY c.LotID;
 
-            SELECT r.EntryAt, r.ProcessCode, r.LineID, r.GoodQty, r.OperatorID, r.MoldID, w.WoNumber
+            SELECT r.EntryAt, r.ProcessCode, r.LineID, r.GoodQty, r.OperatorID, r.MoldID, w.WoNumber, ps.TerminalID AS Station
             FROM   dbo.PR_ProductionResult r
             JOIN   dbo.tbl_Lot l ON l.LotID = r.LotID
+            LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
             WHERE  l.LotCode = @Lot ORDER BY r.EntryAt, r.ResultID;
 
@@ -403,6 +407,17 @@ public sealed class WorkOrderRepository
             WHERE  l.LotCode = @Lot ORDER BY d.DetectedAt, d.DefectID;
 
             SELECT x.PalletNo, x.LocationNo, x.Qty, x.PartNo FROM dbo.WH_Inventory x WHERE x.LotNo = @Lot AND x.Qty > 0;
+
+            -- 이 LOT 이 속한 작업지시의 공정별 작업 이력(어느 공정·라인·스테이션·작업자) — 시간순
+            SELECT r.ProcessCode, r.LineID, ps.TerminalID AS Station, r.OperatorID,
+                   SUM(CASE WHEN r.GoodQty > 0 THEN r.GoodQty ELSE 0 END) AS GoodQty, MIN(r.EntryAt) AS FirstAt, MAX(r.EntryAt) AS LastAt,
+                   MAX(CASE WHEN r.LotID = me.LotID THEN 1 ELSE 0 END) AS HasThisLot
+            FROM   dbo.tbl_Lot me
+            JOIN   dbo.PR_ProductionResult r ON r.WoID = me.WoID
+            LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
+            WHERE  me.LotCode = @Lot AND r.OperatorID IS NOT NULL
+            GROUP  BY r.ProcessCode, r.LineID, ps.TerminalID, r.OperatorID
+            ORDER  BY MIN(r.EntryAt);
             """;
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
@@ -419,14 +434,19 @@ public sealed class WorkOrderRepository
         while (r.Read()) children.Add((string)r["LotCode"]);
         r.NextResult();
         while (r.Read())
-            results.Add(new(r["EntryAt"] as DateTime?, r["ProcessCode"] as string, r["LineID"] as string, Convert.ToDecimal(r["GoodQty"]), r["OperatorID"] as string, r["MoldID"] as string, r["WoNumber"] as string));
+            results.Add(new(r["EntryAt"] as DateTime?, r["ProcessCode"] as string, r["LineID"] as string, Convert.ToDecimal(r["GoodQty"]), r["OperatorID"] as string, r["MoldID"] as string, r["WoNumber"] as string, r["Station"] as string));
         r.NextResult();
         while (r.Read())
             defects.Add(new(r["DetectedAt"] as DateTime?, r["DefectCode"] as string, Convert.ToDecimal(r["Qty"]), r["Disposition"] as string, r["CauseCode"] as string));
         r.NextResult();
         while (r.Read())
             stock.Add(new(r["PalletNo"] as string, r["LocationNo"] as string, Convert.ToDecimal(r["Qty"]), r["PartNo"] as string));
-        return new LotDetail(id, code, item, name, proc, line, status, at, wo, parent, children, results, defects, stock);
+        var history = new List<LotProcessRow>();
+        r.NextResult();
+        while (r.Read())
+            history.Add(new(r["ProcessCode"] as string, r["LineID"] as string, r["Station"] as string, r["OperatorID"] as string,
+                Convert.ToDecimal(r["GoodQty"]), (DateTime)r["FirstAt"], (DateTime)r["LastAt"], Convert.ToInt32(r["HasThisLot"]) == 1));
+        return new LotDetail(id, code, item, name, proc, line, status, at, wo, parent, children, results, defects, stock, history);
     }
 
     /// <summary>작업지시 하나의 계획 → 실행 연결(수주 · 생성 경로 · 슬롯 · 실적). 화면 상세와 재무 자료의 기준.</summary>
