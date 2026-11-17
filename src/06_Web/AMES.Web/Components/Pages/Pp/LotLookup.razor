@@ -58,6 +58,9 @@ else
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" class="ames-rz-grid">
         <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Title="No." MinWidth="64px" Width="70px" TextAlign="TextAlign.Right" Sortable="false" Filterable="false" Frozen="true">
+                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? n.ToString("#,0") : "")</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="LotCode" Title="LOT" MinWidth="150px" Width="170px" Frozen="true">
                 <Template Context="r"><LotLink LotCode="@r.LotCode" /></Template>
             </RadzenDataGridColumn>
@@ -84,9 +87,6 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ParentLotCode" Title="@L["PP.Lot.Parent"].Value" MinWidth="150px" Width="170px" Filterable="false">
                 <Template Context="r"><LotLink LotCode="@r.ParentLotCode" /></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Title="No." MinWidth="70px" Width="80px" TextAlign="TextAlign.Right" Sortable="false" Filterable="false">
-                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? n.ToString("#,0") : "")</span></Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
