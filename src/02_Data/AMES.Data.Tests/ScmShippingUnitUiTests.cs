@@ -33,7 +33,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.Contains("Click=\"AddShippingUnit\"", page);
         foreach (var removed in new[] { "Portal.Create.AddBox", "Portal.Create.AddPart", "_editingKind", "LooseDraft", "_loose", "KindLabel" })
             Assert.DoesNotContain(removed, page);
-        Assert.Contains("var completed=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(completed)", page);
+        Assert.Contains("var completed=_draft.Where(b=>b.Selected).ToList();_draftCases=[.._draftCases,completed]", page);
         Assert.Contains("row.Part.PackingQty", page);
         Assert.Contains("row.Part.Issue.Length==0", page);
         Assert.Contains("p.Quantity<=Available(p)", page);
