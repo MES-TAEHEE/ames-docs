@@ -56,7 +56,7 @@
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid @ref="_grid" Data="_view" TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" class="ames-rz-grid">
         <Columns>
@@ -84,6 +84,10 @@ else
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ParentLotCode" Title="@L["PP.Lot.Parent"].Value" MinWidth="150px" Width="170px" Filterable="false">
                 <Template Context="r"><LotLink LotCode="@r.ParentLotCode" /></Template>
             </RadzenDataGridColumn>
+            @* 맨 오른쪽 번호 — 지금 정렬·필터로 보이는 순서의 몇 번째인지(전체 몇 개인지 바로 파악) *@
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Title="No." MinWidth="70px" Width="80px" TextAlign="TextAlign.Right" Sortable="false" Filterable="false">
+                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? n.ToString("#,0") : "")</span></Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 }
@@ -96,6 +100,30 @@ else
     [SupplyParameterFromQuery(Name = "process")] public string? Process { get; set; }
 
     AMES.Contracts.Dto.WorkOrderDto? _wo;
+    RadzenDataGrid<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow>? _grid;
+    object? _noKey;
+    Dictionary<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow, int> _noMap = new(ReferenceEqualityComparer.Instance);
+
+    // 표 참조(@ref)는 첫 그리기 뒤에야 생기므로, 번호를 그리려면 한 번 더 그려야 한다
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_grid is not null && _noKey is null) StateHasChanged();
+    }
+
+    // 지금 정렬·필터로 보이는 순서의 번호 — 표가 보기(View)를 바꿀 때만 한 번 다시 만든다(수천 건도 한 번에)
+    int RowNo(AMES.Data.Repositories.WorkOrderRepository.WoLotListRow r)
+    {
+        var v = _grid?.View;
+        if (v is null) return 0;
+        if (!ReferenceEquals(_noKey, v))
+        {
+            _noMap = new(ReferenceEqualityComparer.Instance);
+            var i = 0;
+            foreach (var x in v) _noMap[x] = ++i;
+            _noKey = v;
+        }
+        return _noMap.GetValueOrDefault(r);
+    }
     List<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow> _rows = new();
     List<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow> _view = new();
     List<string> _processes = new(), _statuses = new();
