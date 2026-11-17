@@ -27,8 +27,8 @@ public sealed class WhInboundShippingUnitTests
         Assert.Contains("IsBoxScanned(box) || (IsCaseDocument && !box.ScanRequired)", page);
         Assert.Contains("_documentBoxes.Count > 0", page);
         Assert.Contains("DisplayScannedBoxes >= _document.TotalBoxes", page);
-        Assert.Contains("All remaining unit items are ready. Tap Receive to receive this shipping unit.", page);
-        Assert.Contains("Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes)", page);
+        Assert.Contains("All remaining unit items are ready. Tap Receive to receive this document.", page);
+        Assert.Contains("Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode, _pendingDocumentBoxes, _document.IsDeliveryNote)", page);
         Assert.Contains("_documentBoxes.Where(b => !IsBoxReady(b))", page);
 
         var repository = Read("src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs");
@@ -50,6 +50,19 @@ public sealed class WhInboundShippingUnitTests
         Assert.DoesNotContain("DELIVERIES", header);
         Assert.DoesNotContain("/wh/01", header);
         Assert.Contains("IsCaseDocument ? \"SHIPPING UNIT\" : \"DELIVERY NOTE\"", page);
+    }
+
+    [Fact]
+    public void Delivery_note_kind_survives_the_API_to_PDA_contract()
+    {
+        var response=new AMES.Api.Endpoints.WhEndpoints.InboundDocumentRow("LOCAL",1,"DLN-1","DLN-1","V1","Vendor",
+            null,null,null,null,null,null,null,3,1,"N",IsDeliveryNote:true);
+        var options=new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        var client=System.Text.Json.JsonSerializer.Deserialize<AMES.Pda.Services.PdaApi.InboundDocumentRow>(
+            System.Text.Json.JsonSerializer.Serialize(response,options),options)!;
+        Assert.True(client.IsDeliveryNote);
+        Assert.False(client.IsPortalCase);
+        Assert.Equal(3,client.TotalBoxes);
     }
 
     static string Page() => Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh02PdaInbound.razor");

@@ -17,19 +17,25 @@ public sealed partial class WarehouseRepository
             GetString(r,"SourceType"),GetNullableInt(r,"SourceID"),GetString(r,"LotNo"),GetString(r,"PartNo"),
             GetString(r,"LocationID"),GetNullableDecimal(r,"Qty"),
             HistoryKey:GetString(r,"RowKey"),ReferenceNo:GetString(r,"ReferenceNo"),
-            Customer:GetString(r,"Customer"),Unit:GetString(r,"Unit")),
+            Customer:GetString(r,"Customer"),Unit:GetString(r,"Unit"),PartName:GetString(r,"PartName")),
             ("@Like",null,Like(search)),("@OperationType",null,type),
             ("@DateFrom",null,from?.Date),("@DateTo",null,to?.Date));
 
         if (type is null or "OUTBOUND")
-            rows.AddRange(new FinishedGoodsRepository(_factory).ListShipmentHistory(search,from,to,1000)
-                .Select(s => new OperationLogRow(s.ShipmentId,s.ShippedAt,"SHIPPED",null,s.ShippedBy,null,
+            rows.AddRange(new FinishedGoodsRepository(_factory).ListShipmentHistoryRows(search,from,to,1000)
+                .Select(part =>
+                {
+                    var s=part.Shipment;
+                    return new OperationLogRow(s.ShipmentId,s.ShippedAt,"SHIPPED",null,s.ShippedBy,null,
                     s.ShippedBy,null,null,null,null,null,"SHIPPED",null,null,"FG_OUTBOUND",s.ShipmentId,
-                    null,null,null,s.Qty,HistoryKey:s.Key,ReferenceNo:s.ReferenceNo,DeliveryId:s.DeliveryId,
-                    ShipmentId:s.ShipmentId,PalletCount:s.PalletCount,ItemCount:s.ItemCount,
-                    Customer:string.IsNullOrWhiteSpace(s.CustomerName) ? s.CustomerId : $"{s.CustomerId} · {s.CustomerName}")));
+                    null,part.PartNo,null,part.Qty,HistoryKey:s.Key,ReferenceNo:s.ReferenceNo,DeliveryId:s.DeliveryId,
+                    ShipmentId:s.ShipmentId,PalletCount:s.PalletCount,ItemCount:part.LotCount,
+                    Customer:string.IsNullOrWhiteSpace(s.CustomerName) ? s.CustomerId : $"{s.CustomerId} · {s.CustomerName}",
+                    Unit:part.Unit,PalletNo:part.PalletNo,PartName:part.PartName);
+                }));
         return rows.OrderByDescending(row => row.EventTime)
-            .ThenByDescending(row => row.RowKey,StringComparer.Ordinal).Take(1000).ToList();
+            .ThenByDescending(row => row.EventKey,StringComparer.Ordinal)
+            .ThenBy(row=>row.PalletNo,StringComparer.Ordinal).ThenBy(row=>row.PartNo,StringComparer.Ordinal).Take(1000).ToList();
     }
 
     internal const string OperationHistorySql = """

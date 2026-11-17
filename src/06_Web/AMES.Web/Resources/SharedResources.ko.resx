@@ -11508,7 +11508,7 @@
     <value>사유 / 비고</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>Shipping Unit</value>
+    <value>출하 묶음</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>Unit Item {0}개</value>
@@ -11571,7 +11571,7 @@
     <value>되돌리기</value>
   </data>
   <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
-    <value>적입량이 없습니다. 박스당 수량을 입력하고 저장하세요.</value>
+    <value>묶음으로 보낼 적입량을 입력해주세요</value>
   </data>
   <data name="Portal.PackingQty.Issue.ItemMissing" xml:space="preserve">
     <value>품목 마스터에 없습니다. EOS 에 자재 품목 마스터 등록을 요청하세요.</value>
@@ -11613,16 +11613,16 @@
     <value>납품서 인쇄</value>
   </data>
   <data name="Portal.Create.Items" xml:space="preserve">
-    <value>Shipping Units</value>
+    <value>출하 묶음</value>
   </data>
   <data name="Portal.Create.Part" xml:space="preserve">
     <value>부품</value>
   </data>
   <data name="Portal.Create.Box" xml:space="preserve">
-    <value>Unit Item</value>
+    <value>단위 품목</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>Shipping Unit 추가</value>
+    <value>출하 묶음 추가</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>박스 추가</value>
@@ -11631,16 +11631,16 @@
     <value>부품 추가</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>Shipping Unit 삭제</value>
+    <value>출하 묶음 삭제</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>납품서 확인 · Shipping Unit {0}개 · Unit Item {1}개</value>
+    <value>납품서 확인 · 출하 묶음 {0}개 · 단위 품목 {1}개</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>선택 수량</value>
   </data>
   <data name="Portal.Create.Col.BoxesParts" xml:space="preserve">
-    <value>Unit Items</value>
+    <value>단위 품목</value>
   </data>
   <data name="Portal.Create.BoxesPartsFmt" xml:space="preserve">
     <value>박스 {0}개 · 부품 {1}개</value>
@@ -11667,7 +11667,7 @@
     <value>필요 부품 수</value>
   </data>
   <data name="Portal.Create.Col.BoxesNeeded" xml:space="preserve">
-    <value>Unit Items Needed</value>
+    <value>필요 단위 품목 수</value>
   </data>
   <data name="Portal.Create.AlreadyRegistered" xml:space="preserve">
     <value>이미 등록됨</value>
@@ -11691,13 +11691,13 @@
     <value>정수만 입력하세요.</value>
   </data>
   <data name="Portal.Create.PerBoxFmt" xml:space="preserve">
-    <value>{0} / Unit Item</value>
+    <value>{0} / 단위 품목</value>
   </data>
   <data name="Portal.Create.Ph.QtyPerBox" xml:space="preserve">
-    <value>Unit Item당 수량</value>
+    <value>단위 품목당 수량</value>
   </data>
   <data name="Portal.Create.Btn.SaveBoxSize" xml:space="preserve">
-    <value>Unit Item 수량 저장</value>
+    <value>단위 품목 수량 저장</value>
   </data>
   <data name="Portal.Create.AskEos" xml:space="preserve">
     <value>EOS 에 자재 품목 마스터·협력업체 연결 확인을 요청하세요.</value>
@@ -11706,19 +11706,19 @@
     <value>부품 선택</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>Select Unit Items</value>
+    <value>단위 품목 선택</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>이 납품에 넣을 부품을 체크하세요.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>이 Shipping Unit에 포함할 Unit Item를 선택하세요.</value>
+    <value>출하 묶음에 담을 단위 품목을 선택하세요.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>1단계에서 수량을 입력하면 여기에 부품이 보입니다.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Boxes" xml:space="preserve">
-    <value>1단계에서 수량을 입력하면 여기에 Unit Item가 보입니다.</value>
+    <value>1단계에서 수량을 입력하면 여기에 단위 품목이 보입니다.</value>
   </data>
   <data name="Portal.Create.SelectedFmt" xml:space="preserve">
     <value>선택 {0} / {1} · 총 납품 수량 {2}</value>
@@ -11745,34 +11745,34 @@
     <value>완료</value>
   </data>
   <data name="Portal.Create.Err.Load" xml:space="preserve">
-    <value>발주 품목과 Shipping Unit를 불러오지 못했습니다.</value>
+    <value>발주 품목과 출하 묶음을 불러오지 못했습니다.</value>
   </data>
   <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
     <value>발주 품목을 불러오지 못했습니다.</value>
   </data>
   <data name="Portal.Create.Err.BoxQty" xml:space="preserve">
-    <value>Unit Item당 수량은 양의 정수로 입력하세요.</value>
+    <value>단위 품목당 수량은 양의 정수로 입력하세요.</value>
   </data>
   <data name="Portal.Create.Err.PackingChanged" xml:space="preserve">
     <value>적입량이 바뀌었거나 품목 설정이 덜 됐습니다. 새로고침한 뒤 적입량 관리를 확인하세요.</value>
   </data>
   <data name="Portal.Create.Ok.BoxQtyFmt" xml:space="preserve">
-    <value>{0} Unit Item당 수량을 저장했습니다.</value>
+    <value>{0} 단위 품목당 수량을 저장했습니다.</value>
   </data>
   <data name="Portal.Create.Err.SaveBoxQty" xml:space="preserve">
-    <value>Unit Item당 수량을 저장하지 못했습니다.</value>
+    <value>단위 품목당 수량을 저장하지 못했습니다.</value>
   </data>
   <data name="Portal.Create.Err.Quantities" xml:space="preserve">
     <value>보낼 수 있는 수량 안에서 정수로 입력하고 적입량을 확인하세요.</value>
   </data>
   <data name="Portal.Create.Err.MaxBoxes" xml:space="preserve">
-    <value>한 번에 Unit Item는 1,000개까지 만들 수 있습니다.</value>
+    <value>한 번에 단위 품목은 1,000개까지 만들 수 있습니다.</value>
   </data>
   <data name="Portal.Create.Ok.CreatedFmt" xml:space="preserve">
     <value>{0} 납품서를 만들었습니다.</value>
   </data>
   <data name="Portal.Create.Err.Create" xml:space="preserve">
-    <value>납품서를 만들지 못했습니다. 날짜·발주 잔량·선택한 Shipping Unit를 확인하세요.</value>
+    <value>납품서를 만들지 못했습니다. 날짜·발주 잔량·선택한 출하 묶음을 확인하세요.</value>
   </data>
   <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
     <value>협력업체 목록을 불러오지 못했습니다. 새로고침해 다시 시도하세요.</value>
@@ -13687,7 +13687,7 @@
   <data name="SCM.Supplier.Name" xml:space="preserve"><value>업체명</value></data>
   <data name="SCM.Import.Title" xml:space="preserve"><value>발주 품목 불러오기</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>엑셀 양식</value></data>
-  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>적입량 설정</value></data>
+  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>적입량 관리로 이동</value></data>
   <data name="WH.Picking.Releases" xml:space="preserve"><value>불출 내역</value></data>
   <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>불출 일시</value></data>
   <data name="WH.Picking.Operator" xml:space="preserve"><value>작업자</value></data>
@@ -13710,4 +13710,17 @@
   <data name="SCM.Label.DefaultPrinter" xml:space="preserve"><value>기본 프린터</value></data>
   <data name="SCM.Label.BluetoothFind" xml:space="preserve"><value>Bluetooth 검색</value></data>
   <data name="SCM.Label.BluetoothHelp" xml:space="preserve"><value>Bluetooth 프린터는 PC에서 먼저 페어링한 후 선택하세요. 선택한 프린터는 이 브라우저의 기본 프린터로 저장됩니다.</value></data>
+  <data name="Portal.Create.Err.UnitCount" xml:space="preserve"><value>묶음 수량은 정수로 입력하고 남은 발주 수량을 초과할 수 없습니다.</value></data>
+  <data name="Portal.Create.SelectionDone" xml:space="preserve"><value>납품서 선택 완료</value></data>
+  <data name="Portal.Create.SelectPurchaseOrders" xml:space="preserve"><value>납품할 PO를 체크해 주세요.</value></data>
+  <data name="Portal.Create.CompletedUnits" xml:space="preserve"><value>완료한 출하 묶음 {0}개 · 단위 품목 {1}개</value></data>
+  <data name="Portal.Create.PackingSetupRequired" xml:space="preserve"><value>납품서 생성을 위해 적입량 설정이 필요한 파트가 있습니다.</value></data>
+  <data name="Portal.Create.Err.SameDestination" xml:space="preserve"><value>같은 협력업체와 납품장소의 품목을 선택하세요.</value></data>
+  <data name="Portal.Create.Err.Unavailable" xml:space="preserve"><value>품목을 납품할 수 없거나 발주 잔량이 변경되었습니다. 목록을 새로고침하세요.</value></data>
+  <data name="Portal.Create.AlarmTitle" xml:space="preserve"><value>알림</value></data>
+  <data name="FG.ShipOrders.Ph.Search" xml:space="preserve"><value>출하오더 / 고객사 / DCR / 품번…</value></data>
+  <data name="FG.ShipOrders.Selection.Shipped" xml:space="preserve"><value>출하 완료 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR 배정됨 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>조회 전용 · 선택 불가</value></data>
+  <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>선택 불가</value></data>
 </root>

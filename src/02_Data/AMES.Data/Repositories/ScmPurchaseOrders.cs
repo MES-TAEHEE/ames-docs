@@ -142,13 +142,13 @@ public sealed partial class ScmRepository
             using var cmd = new SqlCommand("""
                 UPDATE dbo.WH_PurchaseOrder
                 SET VendorID=@Vendor,ItemNo=@Item,OrderQty=@Qty,UnitCode=@Unit,UnitPrice=@Price,
-                    OrderDate=@Ordered,DueDate=@Due,DeliveryDestination=@Destination,
+                    OrderDate=@Ordered,DueDate=@Due,DeliveryDestination=@Destination,Status='Open',
                     ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
                 WHERE PoNumber=@Number AND PoLineNo=@Line;
                 IF @@ROWCOUNT=0
                     INSERT dbo.WH_PurchaseOrder(PoNumber,PoLineNo,VendorID,ItemNo,OrderQty,ReceivedQty,
                         UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS)
-                    SELECT @Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME()
+                    SELECT @Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Open',@Destination,@Actor,SYSDATETIME()
                     FROM dbo.MD_Item i WHERE i.ItemNo=@Item;
                 """, conn, tx);
             Add(cmd, ("@Number", "WH_PurchaseOrder.PoNumber",number),("@Line", "WH_PurchaseOrder.PoLineNo",line.Id),("@Vendor", "WH_PurchaseOrder.VendorID",order.Vendor),("@Item", "WH_PurchaseOrder.ItemNo",line.Item),

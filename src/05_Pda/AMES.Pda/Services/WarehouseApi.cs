@@ -408,17 +408,17 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         }
     }
 
-    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode, IEnumerable<string> scannedBoxes)
+    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode, IEnumerable<string> scannedBoxes, bool isDeliveryNote=false)
     {
         try
         {
             Authorize();
-            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-case", new { Mode = mode, Barcode = barcode, ScannedBoxes = scannedBoxes.ToArray() });
+            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-document", new { Mode = mode, Barcode = barcode, ScannedBoxes = scannedBoxes.ToArray(), IsDeliveryNote=isDeliveryNote });
             return await ReadInboundReceiveResultAsync(response);
         }
         catch
         {
-            return new(false, "Warehouse case receive service is unavailable.", null);
+            return new(false, "Delivery receipt service is unavailable.", null);
         }
     }
 

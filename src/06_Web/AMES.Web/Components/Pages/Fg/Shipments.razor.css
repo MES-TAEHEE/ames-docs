@@ -1,7 +1,2 @@
-.shipment-items {max-height:320px;overflow:auto;}
 .shipment-lots-modal {width:min(900px,95vw);max-height:90vh;overflow:auto;}
-.shipments-page ::deep .rz-expanded-row-content {padding:0 !important;background:transparent !important;}
-.shipments-page ::deep .rz-expanded-row-content > td {height:auto !important;padding:0 !important;background:transparent !important;}
-.shipments-page ::deep .shipment-items-grid {flex:0 0 auto !important;}
-.shipments-page ::deep .shipment-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
-.shipments-page ::deep .shipment-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}
+.shipment-part-name {display:block;max-width:50ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

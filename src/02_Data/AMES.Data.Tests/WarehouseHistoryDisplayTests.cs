@@ -141,6 +141,18 @@ public sealed class WarehouseHistoryDisplayTests
     }
 
     [Fact]
+    public void Flat_pallet_parts_have_unique_row_keys_but_count_as_one_shipment_event()
+    {
+        var shipment=Row("SHIPPED") with {HistoryKey="DCR:7",DeliveryId=7,ShipmentId=10,PalletNo="PAL-A:B",PartNo="C",Qty=4};
+        var other=shipment with {PalletNo="PAL-A",PartNo="B:C",Qty=5};
+        Assert.Equal(shipment.EventKey,other.EventKey);
+        Assert.NotEqual(shipment.RowKey,other.RowKey);
+        Assert.Equal(1,HistoryPage.CountEvents([shipment,other],"OUTBOUND"));
+        Assert.Equal(1,HistoryPage.CountEvents([shipment,other,Row("RECEIVE")],"INBOUND"));
+        Assert.Equal(9,shipment.Qty+other.Qty);
+    }
+
+    [Fact]
     public void History_deduplicates_header_backed_shipments_and_returns_but_preserves_orphan_transactions()
     {
         var sql=WarehouseRepository.OperationHistorySql;
@@ -193,11 +205,20 @@ public sealed class WarehouseHistoryDisplayTests
         var fg=new FinishedGoodsRepository(factory);
         foreach(var shipment in fg.ListShipmentHistory(limit:1000))
         {
-            var row=Assert.Single(repo.ListOperationLogs(shipment.ReferenceNo,"OUTBOUND"),r=>r.RowKey==shipment.Key);
-            Assert.True(row.HasShipmentDetails);
-            Assert.Equal(shipment.Qty,row.Qty);
-            Assert.Equal(shipment.ItemCount,row.ItemCount);
-            Assert.Equal(row.Qty,fg.ListShipmentHistoryParts(row.DeliveryId,row.ShipmentId!.Value).Sum(x=>x.Qty));
+            var parts=repo.ListOperationLogs(shipment.ReferenceNo,"OUTBOUND").Where(row=>row.EventKey==shipment.Key).ToList();
+            Assert.NotEmpty(parts);
+            Assert.All(parts,row=>Assert.True(row.HasShipmentDetails));
+            Assert.Equal(shipment.Qty,parts.Sum(row=>row.Qty??0));
+            Assert.Equal(shipment.ItemCount,parts.Sum(row=>row.ItemCount));
+            Assert.Equal(1,HistoryPage.CountEvents(parts,"OUTBOUND"));
+            var expected=fg.ListShipmentHistoryParts(shipment.DeliveryId,shipment.ShipmentId);
+            Assert.Equal(expected.Count,parts.Count);
+            foreach(var part in expected)
+            {
+                var row=Assert.Single(parts,row=>row.PalletNo==part.PalletNo && row.PartNo==part.PartNo);
+                Assert.Equal(part.Qty,row.Qty);
+                Assert.Equal(part.Unit,row.Unit);
+            }
         }
         Assert.Empty(repo.ListOperationLogs("no-match-history-42e60bd2"));
     }
@@ -310,7 +331,7 @@ public sealed class WarehouseHistoryDisplayTests
         Assert.Equal("—",HistoryPage.PartNamePreview(null));
         var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
         Assert.Contains("title=\"@item.PartName\">@PartNamePreview(item.PartName)",page);
-        Assert.Contains("Width=\"400px\" MinWidth=\"260px\"",page);
+        Assert.Contains("Width=\"300px\" MinWidth=\"220px\"",page);
     }
 
     [Fact]

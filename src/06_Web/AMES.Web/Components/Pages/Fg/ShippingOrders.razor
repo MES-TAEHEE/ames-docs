@@ -17,27 +17,32 @@
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(ShipmentPlanRows.IsUnshipped)</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.DeliveryId is not null)</div></div>
 </div>
-<section class="ames-card shipping-orders-page">
+<section class="ames-card shipping-orders-page inventory-history-list" data-no-busy>
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ @L["FG.ShipOrders.List"] · @VisibleOrders.Count()</span>
+        <span>▼ @L["FG.ShipOrders.List"] · @VisibleOrders.Count() @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-            <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenTextBox @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem">
                 <RadzenCheckBox TValue="bool" Value="@_includeShipped" Change="@(value=>SetIncludeShipped(value))" Name="includeShipped" />
                 <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
             </RadzenStack>
-            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Reload" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"]" Icon="close" Click="Clear" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
-    <RadzenDataGrid @ref="_grid" TItem="ShippingOrderDto" Data="@VisibleOrders" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid @ref="_grid" TItem="ShippingOrderDto" Data="@VisibleOrders" IsLoading="_loading" RowRender="OrderRowRender" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
         <Template Context="order">
             <ShipmentOrderLines Lines="order.Lines" />
         </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" MinWidth="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="55px" MinWidth="55px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">
+                @if(CanSelect(r)){<RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" aria-label='@(L["Scm.Text.Select"]+" "+r.OrderNo)' />}
+                else{<RadzenIcon Icon="block" class="shipping-order-unavailable-icon" title="@SelectionUnavailableReason(r)" aria-label="@SelectionUnavailableReason(r)" />}
+            </Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" MinWidth="220px" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="@L["Col.Customer"]" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["FG.ShipOrders.Col.PartQty"]"><Template Context="r">
@@ -103,7 +108,9 @@
 @code {
     bool _includeShipped=true;
     RadzenDataGrid<ShippingOrderDto>? _grid;
-    IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase));
+    IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase))
+        .Where(order=>string.IsNullOrWhiteSpace(_search) || string.Join(" ",order.OrderNo,order.CustomerId,order.DeliveryNo,
+            string.Join(" ",order.Lines.Select(l=>$"{l.PartNo} {l.PartName}"))).Contains(_search,StringComparison.OrdinalIgnoreCase));
     async Task SetIncludeShipped(bool value){_includeShipped=value;_selected.Clear();if(_grid is not null)await _grid.FirstPage(true);}
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
     List<ShippingOrderDto> SelectedDeliveryOrders => _orders.Where(o=>_selected.Contains(o.OrderId)).OrderBy(o=>o.OrderId).ToList();
@@ -114,8 +121,17 @@
     ShippingDeliveryDto? _printDelivery;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
-    bool _canEdit,_creating,_createBusy,_deliveryModal,_busy,_allowed;
-    string _actor="",_message="",_deliveryError="";
+    bool _canEdit,_creating,_createBusy,_deliveryModal,_busy,_allowed,_loading;
+    string _actor="",_message="",_deliveryError="",_search="";
+    bool CanSelect(ShippingOrderDto order)=>_canEdit && !_loading && !_busy && order.DeliveryId is null && order.Status=="Open";
+    string SelectionUnavailableReason(ShippingOrderDto order)=>L[order.Status=="Shipped" ? "FG.ShipOrders.Selection.Shipped"
+        : order.DeliveryId is not null ? "FG.ShipOrders.Selection.Assigned"
+        : !_canEdit ? "FG.ShipOrders.Selection.ReadOnly"
+        : "FG.ShipOrders.Selection.Unavailable"];
+    void OrderRowRender(RowRenderEventArgs<ShippingOrderDto> args)
+    {
+        if(args.Data is {} order)args.Attributes["class"]=!CanSelect(order)?"shipping-order-unavailable":_selected.Contains(order.OrderId)?"shipping-order-selected":"shipping-order-selectable";
+    }
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);_allowed=PermSvc.CanOpen("fg/shipping-orders");
@@ -124,8 +140,9 @@
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
-    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
-    void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
+    async Task Reload(){if(!_allowed||_loading)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}_loading=true;try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();_message="";}catch(Exception ex){_message=ex.Message;}finally{_loading=false;}}
+    async Task Clear(){_search="";_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);await Reload();}
+    void Select(int id,bool value){if(!value){_selected.Remove(id);return;}if(_orders.FirstOrDefault(o=>o.OrderId==id) is {} order && CanSelect(order))_selected.Add(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {
         _creating=false;

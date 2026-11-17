@@ -8,7 +8,8 @@ public partial class LogHistory
         => name is { Length: > 50 } ? name[..50] + "…" : name ?? "—";
 
     internal static int CountEvents(IEnumerable<WarehouseRepository.OperationLogRow> rows, string type)
-        => rows.Count(row => type switch
+        => rows.Where(row=>!row.HasShipmentDetails)
+            .Concat(rows.Where(row=>row.HasShipmentDetails).DistinctBy(row=>row.EventKey)).Count(row => type switch
         {
             // Cancellation stays in the inbound activity filter, but is not a receipt.
             "INBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Inbound" or "WH.LogHistory.Lbl.Received" or "WH.LogHistory.Lbl.Stored" or "WH.LogHistory.Lbl.ReturnReceived",

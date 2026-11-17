@@ -10,7 +10,7 @@
 @if(!Embedded)
 {
 <PageTitle>@L["Portal.Text.BoxBarcodePrinting"] · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-003" Title='@L["Portal.Text.BoxBarcodePrinting"]' />
+<AmesPageHeader Code="PORTAL-002" Title='@L["Portal.Text.BoxBarcodePrinting"]' />
 <div class="box-toolbar"><RadzenButton Text='@L["Portal.Text.BackToDeliveryManagement"]' Icon="arrow_back" Click="BackToDeliveries" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /><RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
 }
 @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_error</RadzenAlert>}

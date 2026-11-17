@@ -214,9 +214,13 @@ public sealed partial class WarehouseRepository
         int PalletCount = 0,
         int ItemCount = 0,
         string? Customer = null,
-        string? Unit = null)
+        string? Unit = null,
+        string? PalletNo = null,
+        string? PartName = null)
     {
-        public string RowKey => HistoryKey ?? $"TX:{OperationLogId}";
+        public string EventKey => HistoryKey ?? $"TX:{OperationLogId}";
+        public string RowKey => HasShipmentDetails && (PalletNo is not null || PartNo is not null)
+            ? $"{EventKey}:PART:{System.Text.Json.JsonSerializer.Serialize(new[]{PalletNo,PartNo})}" : EventKey;
         public bool HasShipmentDetails => EventType == "SHIPPED" && ShipmentId.HasValue;
     }
 

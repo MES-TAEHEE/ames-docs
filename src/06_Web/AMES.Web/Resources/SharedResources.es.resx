@@ -11571,7 +11571,7 @@
     <value>Deshacer</value>
   </data>
   <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
-    <value>Cantidad de empaque sin definir. Introduzca la cantidad por caja y guarde.</value>
+    <value>Introduzca la cantidad que se enviará por unidad.</value>
   </data>
   <data name="Portal.PackingQty.Issue.ItemMissing" xml:space="preserve">
     <value>Falta en el maestro de artículos. Pida a EOS que registre esta pieza en el maestro de materiales.</value>
@@ -13687,7 +13687,7 @@
   <data name="SCM.Supplier.Name" xml:space="preserve"><value>Nombre del proveedor</value></data>
   <data name="SCM.Import.Title" xml:space="preserve"><value>Importar partidas del pedido</value></data>
   <data name="SCM.Import.Template" xml:space="preserve"><value>Plantilla Excel</value></data>
-  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Configurar cantidad por unidad</value></data>
+  <data name="Portal.Create.OpenPacking" xml:space="preserve"><value>Ir a cantidades de embalaje</value></data>
   <data name="WH.Picking.Releases" xml:space="preserve"><value>Materiales entregados</value></data>
   <data name="WH.Picking.ReleasedAt" xml:space="preserve"><value>Fecha de entrega</value></data>
   <data name="WH.Picking.Operator" xml:space="preserve"><value>Operador</value></data>
@@ -13710,4 +13710,17 @@
   <data name="SCM.Label.DefaultPrinter" xml:space="preserve"><value>Impresora predeterminada</value></data>
   <data name="SCM.Label.BluetoothFind" xml:space="preserve"><value>Buscar Bluetooth</value></data>
   <data name="SCM.Label.BluetoothHelp" xml:space="preserve"><value>Empareje la impresora Bluetooth en el equipo y selecciónela. La selección se guarda como predeterminada en este navegador.</value></data>
+  <data name="Portal.Create.Err.UnitCount" xml:space="preserve"><value>Introduzca una cantidad entera de unidades que no supere el saldo del pedido.</value></data>
+  <data name="Portal.Create.SelectionDone" xml:space="preserve"><value>Completar selección de pedidos</value></data>
+  <data name="Portal.Create.SelectPurchaseOrders" xml:space="preserve"><value>Marque los pedidos que desea entregar.</value></data>
+  <data name="Portal.Create.CompletedUnits" xml:space="preserve"><value>Unidades de envío completadas: {0} · Artículos: {1}</value></data>
+  <data name="Portal.Create.PackingSetupRequired" xml:space="preserve"><value>Algunas piezas requieren cantidades de embalaje antes de crear una nota de entrega.</value></data>
+  <data name="Portal.Create.Err.SameDestination" xml:space="preserve"><value>Seleccione artículos del mismo proveedor y destino de entrega.</value></data>
+  <data name="Portal.Create.Err.Unavailable" xml:space="preserve"><value>Un artículo no está disponible o cambió la cantidad restante del pedido. Actualice la lista.</value></data>
+  <data name="Portal.Create.AlarmTitle" xml:space="preserve"><value>Alerta</value></data>
+  <data name="FG.ShipOrders.Ph.Search" xml:space="preserve"><value>Orden / cliente / DCR / pieza…</value></data>
+  <data name="FG.ShipOrders.Selection.Shipped" xml:space="preserve"><value>Enviado · no disponible</value></data>
+  <data name="FG.ShipOrders.Selection.Assigned" xml:space="preserve"><value>DCR asignado · no disponible</value></data>
+  <data name="FG.ShipOrders.Selection.ReadOnly" xml:space="preserve"><value>Solo lectura · no disponible</value></data>
+  <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>No disponible para seleccionar</value></data>
 </root>

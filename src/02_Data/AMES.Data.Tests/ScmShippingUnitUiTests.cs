@@ -33,7 +33,7 @@ public sealed class ScmShippingUnitUiTests
         Assert.Contains("Click=\"AddShippingUnit\"", page);
         foreach (var removed in new[] { "Portal.Create.AddBox", "Portal.Create.AddPart", "_editingKind", "LooseDraft", "_loose", "KindLabel" })
             Assert.DoesNotContain(removed, page);
-        Assert.Contains("_activeCase=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(_activeCase)", page);
+        Assert.Contains("var completed=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(completed)", page);
         Assert.Contains("row.Part.PackingQty", page);
         Assert.Contains("row.Part.Issue.Length==0", page);
         Assert.Contains("p.Quantity<=Available(p)", page);
@@ -123,17 +123,21 @@ public sealed class ScmShippingUnitUiTests
     {
         var xml = XDocument.Parse(Read("src/06_Web/AMES.Web/Resources/" + file));
         var values = xml.Root!.Elements("data").ToDictionary(x => x.Attribute("name")!.Value, x => x.Element("value")!.Value);
-        Assert.Equal("Shipping Unit", values["SCM.Preview.Lbl.Case"]);
+        var korean=file is "SharedResources.ko.resx" or "SharedResources.resx";
+        Assert.Equal(korean ? "출하 묶음" : "Shipping Unit", values["SCM.Preview.Lbl.Case"]);
         Assert.Equal("Unit Item Barcode", values["SCM.Preview.Print.BoxBarcode"]);
         Assert.Equal("Unit Item Barcode Printing", values["Portal.Text.BoxBarcodePrinting"]);
         Assert.Equal("Unit Item Labels", values["Portal.Text.BoxLabels"]);
         Assert.Equal("Unit Items", values["Portal.Boxes.Title"]);
         Assert.Equal("Unit Item Barcode", values["Portal.Boxes.Col.Barcode"]);
-        Assert.Equal("Unit Item", values["Portal.Create.Box"]);
-        Assert.Equal("Unit Items", values["Portal.Create.Col.BoxesParts"]);
-        Assert.Equal("Unit Items Needed", values["Portal.Create.Col.BoxesNeeded"]);
-        Assert.Equal("Select Unit Items", values["Portal.Create.Step2.Boxes"]);
-        Assert.Contains("Shipping Unit", values["Portal.Create.AddCase"]);
+        Assert.Equal(korean ? "단위 품목" : "Unit Item", values["Portal.Create.Box"]);
+        Assert.Equal(korean ? "단위 품목" : "Unit Items", values["Portal.Create.Col.BoxesParts"]);
+        Assert.Equal(korean ? "필요 단위 품목 수" : "Unit Items Needed", values["Portal.Create.Col.BoxesNeeded"]);
+        Assert.Equal(korean ? "단위 품목 선택" : "Select Unit Items", values["Portal.Create.Step2.Boxes"]);
+        Assert.Contains(korean ? "출하 묶음" : "Shipping Unit", values["Portal.Create.AddCase"]);
+        if(korean)
+            foreach(var text in values.Where(p=>p.Key.StartsWith("Portal.Create.")).Select(p=>p.Value))
+                Assert.DoesNotMatch(@"Shipping Units?|Unit Items?|Select Unit Items",text);
         Assert.Contains("{0}", values["Portal.Create.ReviewFmt"]);
         Assert.Contains("{1}", values["Portal.Create.ReviewFmt"]);
         Assert.DoesNotContain("{2}", values["Portal.Create.ReviewFmt"]);

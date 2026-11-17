@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\06_Web\AMES.Web\Services\PackingUnitQuantity.cs" Link="Web\PackingUnitQuantity.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\ShippingLabel.cs" Link="Web\ShippingLabel.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\EnglishPrint.cs" Link="Web\EnglishPrint.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\DeliveryPrintBundle.cs" Link="Web\DeliveryPrintBundle.cs" />

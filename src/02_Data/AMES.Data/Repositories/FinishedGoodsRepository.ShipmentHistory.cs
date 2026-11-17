@@ -57,6 +57,33 @@ public sealed partial class FinishedGoodsRepository
 
     public record ShipmentPalletPartRow(string? PalletNo,string? PartNo,string? PartName,decimal Qty,string? Unit);
 
+    public record ShipmentHistoryPartRow(ShipmentHistoryRow Shipment,string? PalletNo,string? PartNo,
+        string? PartName,int LotCount,decimal Qty,string? Unit);
+
+    public List<ShipmentHistoryPartRow> ListShipmentHistoryRows(string? search=null,DateTime? from=null,DateTime? to=null,int limit=500)
+    {
+        var history=ListShipmentHistory(search,from,to,limit);
+        if(history.Count==0)return [];
+        var references=System.Text.Json.JsonSerializer.Serialize(history.Select(row=>new{row.DeliveryId,row.ShipmentId}));
+        const string sql="""
+            SELECT CONVERT(int,H.[key]) ParentIndex,S.PalletNo,T.PartNo,M.ItemName PartName,
+                COUNT(T.TransactionID) LotCount,COALESCE(SUM(-T.QtyChange),0) Qty,M.DefaultUOM Unit
+            FROM OPENJSON(@History) H
+            CROSS APPLY OPENJSON(H.value) WITH(DeliveryID int '$.DeliveryId',ShipmentID int '$.ShipmentId') R
+            JOIN dbo.FG_Shipment S ON (R.DeliveryID IS NULL AND S.ShipmentID=R.ShipmentID)
+                OR (R.DeliveryID IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad L
+                    WHERE L.DeliveryID=R.DeliveryID AND L.ShipmentID=S.ShipmentID))
+            LEFT JOIN dbo.WH_InventoryTransaction T ON T.SourceType='FG_OUTBOUND'
+                AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
+            LEFT JOIN dbo.MD_Item M ON M.ItemNo=T.PartNo
+            GROUP BY H.[key],S.PalletNo,T.PartNo,M.ItemName,M.DefaultUOM
+            ORDER BY CONVERT(int,H.[key]),S.PalletNo,T.PartNo;
+            """;
+        return Query(sql,r=>new ShipmentHistoryPartRow(history[GetInt(r,"ParentIndex")],GetString(r,"PalletNo"),
+            GetString(r,"PartNo"),GetString(r,"PartName"),GetInt(r,"LotCount"),GetDecimal(r,"Qty"),GetString(r,"Unit")),
+            ("@History",null,references));
+    }
+
     public List<ShipmentItemRow> ListShipmentHistoryLots(int? deliveryId, int shipmentId, string? palletNo, string? partNo)
     {
         const string sql = """
