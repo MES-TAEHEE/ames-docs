@@ -242,6 +242,16 @@
             __b.CloseComponent();
         }
         else __b.AddContent(13, q.ToString("#,0"));
+        if (_qtyMode == QtyNet && l.FgOnHand > 0 && l.NetReq < l.RemainQty)
+        {
+            __b.OpenElement(40, "div");
+            __b.OpenComponent<FgStockLink>(41);
+            __b.AddAttribute(42, "ItemNo", l.ItemNo);
+            __b.AddAttribute(43, "Qty", l.FgOnHand);
+            __b.AddAttribute(44, "Covered", true);
+            __b.CloseComponent();
+            __b.CloseElement();
+        }
         if (q > l.RemainQty)
         {
             __b.OpenElement(14, "div"); __b.OpenElement(15, "span"); __b.AddAttribute(16, "class", "pill warn");

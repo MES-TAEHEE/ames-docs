@@ -659,6 +659,39 @@ public sealed partial class PpRepository
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
+    /// <summary>완제품 재고 한 묶음 — 같은 팔레트·위치·수주·작업지시로 만들어진 재고의 합. 수주·작업지시를 모르는 재고(수동 입고 등)는 SoId·WoNumber 가 null.</summary>
+    public sealed record FgStockOriginRow(string? PalletNo, string? LocationNo, decimal Qty, int LotCount,
+        int? SoId, string? SoNumber, int? SoLineNo, string? WoNumber, string? WoStatus);
+
+    /// <summary>
+    /// PP-003 순수요의 완제품 재고 내역 — 재고 행(WH_Inventory, 위치 무관·양수·반품 검사 대기 제외: 순수요와 같은 기준)을
+    /// LOT(tbl_Lot)→작업지시→수주로 이어 어떤 수주·작업지시로 만든 재고인지 보인다.
+    /// </summary>
+    public List<FgStockOriginRow> ListFgStockOrigins(string itemNo)
+    {
+        const string sql = """
+            SELECT i.PalletNo, i.LocationNo, SUM(i.Qty) AS Qty, COUNT(*) AS LotCount,
+                   o.SoID, o.SoNumber, o.SoLineNo, w.WoNumber, w.Status AS WoStatus
+            FROM   dbo.WH_Inventory i
+            LEFT JOIN dbo.tbl_Lot l ON l.LotCode = i.LotNo
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            LEFT JOIN dbo.PP_CustomerOrder o ON o.SoID = w.SoID
+            WHERE  i.PartNo COLLATE DATABASE_DEFAULT = @Item COLLATE DATABASE_DEFAULT AND i.Qty > 0
+              AND  NOT EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo = i.LotNo AND R.Status IN ('Open','Inspecting'))
+            GROUP  BY i.PalletNo, i.LocationNo, o.SoID, o.SoNumber, o.SoLineNo, w.WoNumber, w.Status
+            ORDER  BY MIN(i.ReceivedAt) DESC, i.PalletNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Item", "WH_Inventory.PartNo", itemNo ?? "");
+        using var r = cmd.ExecuteReader();
+        var list = new List<FgStockOriginRow>();
+        while (r.Read())
+            list.Add(new(r["PalletNo"] as string, r["LocationNo"] as string, r.GetDecimal(2), r.GetInt32(3),
+                r["SoID"] as int?, r["SoNumber"] as string, r["SoLineNo"] as int?, r["WoNumber"] as string, r["WoStatus"] as string));
+        return list;
+    }
+
     // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
     // includeIssued = 수주 수량만큼 WO 가 다 발행된 확정 수주도 함께 (조회용, 선택 불가)
     public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false, bool includeHeld = false)

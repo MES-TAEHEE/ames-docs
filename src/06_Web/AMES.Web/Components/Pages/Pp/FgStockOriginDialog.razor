@@ -1,0 +1,61 @@
+@* 완제품 재고 내역 팝업 — 그 품번의 재고가 어느 팔레트·위치에 얼마나 있고, 어떤 수주·작업지시로 만들어진 것인지 보인다.
+   재고 합계는 PP-003 순수요 계산과 같은 기준(위치 무관, 반품 검사 대기 제외)이다. *@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="min-width:640px;">
+    <div style="margin-bottom:8px;">
+        <span class="code" data-item="@ItemNo">@ItemNo</span>
+        <span class="dim"> · @L["PP.PlanConfirm.Stock.Title"]</span>
+        <b style="margin-left:10px;">@_rows.Sum(r => r.Qty).ToString("#,0") EA</b>
+    </div>
+    <div class="dim" style="font-size:.85em;margin-bottom:8px;">@L["PP.PlanConfirm.Stock.Note"]</div>
+    @if (_error is not null)
+    {
+        <div class="ames-alert bad">@_error</div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="dim" style="padding:12px;">@L["PP.PlanConfirm.Stock.Empty"]</div>
+    }
+    else
+    {
+        <div class="ipk-tree" style="max-height:360px;margin-bottom:12px;">
+            <div class="ipk-row ipk-head" style="grid-template-columns: 190px 130px 90px 150px minmax(0,1fr);">
+                <span>@L["PP.PlanConfirm.Stock.Col.Pallet"]</span><span>@L["PP.PlanConfirm.Stock.Col.Location"]</span><span class="r">@L["Col.Qty"]</span><span>@L["Col.SoNo"]</span><span>@L["PP.WorkOrder.Trace.Wo"]</span>
+            </div>
+            @foreach (var r in _rows)
+            {
+                <div class="ipk-row" style="grid-template-columns: 190px 130px 90px 150px minmax(0,1fr);">
+                    <span class="code">@(r.PalletNo ?? "—")</span>
+                    <span>@(string.IsNullOrEmpty(r.LocationNo) ? L["PP.PlanConfirm.Stock.Unassigned"].Value : r.LocationNo)</span>
+                    <span class="r">@r.Qty.ToString("#,0")</span>
+                    <span>
+                        @if (r.SoId is int sid) { <SoLink SoId="@sid" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" /> }
+                        else { <span class="dim">@L["PP.PlanConfirm.Stock.NoSource"]</span> }
+                    </span>
+                    <span>
+                        @if (!string.IsNullOrEmpty(r.WoNumber)) { <WoLink WoNumber="@r.WoNumber" /> <span class="pill info">@r.WoStatus</span> }
+                        else { <span class="dim">—</span> }
+                    </span>
+                </div>
+            }
+        </div>
+    }
+    <div style="display:flex;justify-content:flex-end;">
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string ItemNo { get; set; } = "";
+    List<AMES.Data.Repositories.PpRepository.FgStockOriginRow> _rows = new();
+    string? _error;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Pp.ListFgStockOrigins(ItemNo); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+}

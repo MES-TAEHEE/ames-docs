@@ -127,12 +127,13 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="110px" Property="FgOnHand" Title="@L["PP.PlanConfirm.Col.FgStock"].Value"
                                   TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="r"><span style="color:var(--ames-tx-green-300);">@r.FgOnHand.ToString("#,0")</span></Template>
+                <Template Context="r">@if (r.FgOnHand > 0) { <FgStockLink ItemNo="@r.ItemNo" Qty="@r.FgOnHand" /> } else { <span class="dim">0</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="110px" Property="NetReq" Title="@L["PP.PlanConfirm.Col.NetReq"].Value"
                                   TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">
-                    <span style="font-weight:700;color:@(r.Blocked ? "var(--ames-tx-red-400)" : "var(--ames-tx-blue-300)");">@r.NetReq.ToString("#,0")</span>
+                    <span style="font-weight:700;color:@(r.Blocked ? "var(--ames-tx-red-400)" : "var(--ames-tx-blue-300)");" title="@NetReqTip(r)">@r.NetReq.ToString("#,0")</span>
+                    @if (r.FgOnHand > 0 && r.NetReq < r.RemainQty) { <FgStockLink ItemNo="@r.ItemNo" Qty="@r.FgOnHand" Covered="true" /> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="170px" Property="LineLoadPct" Title="@L["PP.PlanConfirm.Col.LineLoad"].Value"
@@ -316,6 +317,9 @@ else
     }
 
     string PartialTip(PpRepository.PlanLineRow r) => $"{r.IssuedQty:#,0} / {r.OrderQty:#,0} · {L["PP.PlanConfirm.Tip.CreateWo"].Value}";
+
+    // 순수요 = 수주 − 완제품 재고 − 기발행 WO — 숫자가 왜 그렇게 나왔는지 풀어 보인다
+    string NetReqTip(PpRepository.PlanLineRow r) => $"{r.OrderQty:#,0} − {r.FgOnHand:#,0} ({L["PP.PlanConfirm.Col.FgStock"].Value}) − {r.IssuedQty:#,0} ({L["PP.PlanConfirm.Col.Issued"].Value}) = {r.NetReq:#,0}";
 
     // 상태 배지(검토 대기·부분 발행)를 누르면 그 수주 하나만 골라 바로 WO 생성 창으로 간다 — 다음 순서로 이동
     async Task CreateFor(PpRepository.PlanLineRow r)

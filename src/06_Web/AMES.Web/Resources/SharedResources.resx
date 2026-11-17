@@ -2703,6 +2703,33 @@
   <data name="PP.PlanConfirm.Tip.CreateWo" xml:space="preserve">
     <value>눌러서 이 수주의 WO 를 만듭니다</value>
   </data>
+  <data name="PP.PlanConfirm.Stock.Title" xml:space="preserve">
+    <value>완제품 재고 내역</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Note" xml:space="preserve">
+    <value>순수요 = 수주량 − 완제품 재고 − 기발행 WO. 아래는 이 재고가 어느 팔레트·위치에 있고 어떤 수주·작업지시로 만들어졌는지입니다. 위치 미배정 재고도 재고로 셉니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Empty" xml:space="preserve">
+    <value>이 품번의 완제품 재고가 없습니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Col.Pallet" xml:space="preserve">
+    <value>팔레트</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Col.Location" xml:space="preserve">
+    <value>위치</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Unassigned" xml:space="preserve">
+    <value>미배정</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.NoSource" xml:space="preserve">
+    <value>수주·작업지시 없음</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Covered" xml:space="preserve">
+    <value>재고 충당</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.CoveredTip" xml:space="preserve">
+    <value>눌러서 재고 내역과 어떤 수주·작업지시로 만든 재고인지 보기</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

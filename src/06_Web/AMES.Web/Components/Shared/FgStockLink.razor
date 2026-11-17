@@ -1,0 +1,28 @@
+@* 완제품 재고 링크 — 누르면 그 품번의 재고 내역(팔레트·위치·수량)과 어떤 수주·작업지시로 만들어진 재고인지를 팝업(Pp/FgStockOriginDialog)으로 보인다.
+   PP-003 의 순수요가 재고 때문에 줄거나 0 이 될 때 작업자가 이유를 바로 찾게 하려는 용도.
+   사용: <FgStockLink ItemNo="@r.ItemNo" Qty="@r.FgOnHand" />  /  Covered="true" 면 「재고 충당」 배지로 보인다. *@
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+@if (string.IsNullOrWhiteSpace(ItemNo))
+{
+    <span class="dim">—</span>
+}
+else if (Covered)
+{
+    <a href="javascript:void(0)" class="pill ok wo-link" title="@L["PP.PlanConfirm.Stock.CoveredTip"]" @onclick="Open" @onclick:stopPropagation="true">@L["PP.PlanConfirm.Stock.Covered"] @Qty.ToString("#,0")</a>
+}
+else
+{
+    <a href="javascript:void(0)" class="wo-link" style="color:var(--ames-tx-green-300);" title="@L["PP.PlanConfirm.Stock.CoveredTip"]" @onclick="Open" @onclick:stopPropagation="true">@Qty.ToString("#,0")</a>
+}
+
+@code {
+    [Parameter] public string? ItemNo { get; set; }
+    [Parameter] public decimal Qty { get; set; }
+    [Parameter] public bool Covered { get; set; }
+
+    async Task Open()
+        => await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.FgStockOriginDialog>(ItemNo!, new Dictionary<string, object?> { ["ItemNo"] = ItemNo },
+               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
+}

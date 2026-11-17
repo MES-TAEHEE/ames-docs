@@ -2700,6 +2700,33 @@
   <data name="PP.PlanConfirm.Tip.CreateWo" xml:space="preserve">
     <value>Pulse para crear la OT de este pedido</value>
   </data>
+  <data name="PP.PlanConfirm.Stock.Title" xml:space="preserve">
+    <value>Stock de producto terminado</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Note" xml:space="preserve">
+    <value>Necesidad neta = cantidad del pedido − stock − OT emitidas. Abajo: dónde está el stock y qué pedido / OT lo produjo. El stock sin ubicación también cuenta.</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Empty" xml:space="preserve">
+    <value>No hay stock de este artículo.</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Col.Pallet" xml:space="preserve">
+    <value>Palé</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Col.Location" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Unassigned" xml:space="preserve">
+    <value>Sin asignar</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.NoSource" xml:space="preserve">
+    <value>Sin pedido / OT</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.Covered" xml:space="preserve">
+    <value>Cubierto por stock</value>
+  </data>
+  <data name="PP.PlanConfirm.Stock.CoveredTip" xml:space="preserve">
+    <value>Pulse para ver el stock y qué pedido / OT lo produjo</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>
