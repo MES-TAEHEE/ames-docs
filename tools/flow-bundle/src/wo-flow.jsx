@@ -44,6 +44,18 @@ const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ..
 function WoNode({ id, data, selected }) {
   const { updateNodeData } = useReactFlow();
   const [chipsOpen, setChipsOpen] = useState(false);
+  // 노드 높이가 내용보다 작아 본문이 스크롤될 때만 휠이 캔버스 확대가 아니라 본문 스크롤로 가게 한다(nowheel)
+  const bodyRef = useRef(null);
+  const [scrollable, setScrollable] = useState(false);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const check = () => setScrollable(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
   const cur = data.status === 'cur';
   return (
@@ -55,7 +67,7 @@ function WoNode({ id, data, selected }) {
                    onResizeEnd={(e, p) => updateNodeData(id, { userW: p.width, userH: p.height })} />
       <Handle type="target" position={Position.Left} style={{ background: accent }} />
       <Handle id="t" type="target" position={Position.Top} style={{ background: accent }} />
-      <div className="ames-flow-body">
+      <div ref={bodyRef} className={'ames-flow-body' + (scrollable ? ' nowheel' : '')}>
       <div className="ames-flow-head">
         <span className="ames-flow-kind" style={{ color: accent }}>{data.kindLabel}</span>
         {data.statusLabel ? <span className={'ames-flow-badge ames-flow-badge-' + data.status}>{cur ? '● ' : data.status === 'done' ? '✓ ' : ''}{data.statusLabel}</span> : null}
@@ -76,7 +88,7 @@ function WoNode({ id, data, selected }) {
         </div>
       ) : null}
       {data.chips && data.chips.length ? (
-        <div className={'ames-flow-chips nodrag nopan nowheel' + (chipsOpen ? ' ames-flow-chips-open' : '')}>
+        <div className="ames-flow-chips nodrag nopan">
           {(chipsOpen ? data.chips : data.chips.slice(0, CHIPS_SHOWN)).map((c, i) => c.key ? (
             <button key={c.key} type="button" className="ames-flow-chip" title={c.key}
                     onClick={() => dotnetRefs.get(data.hostId)?.invokeMethodAsync('OpenLot', c.key)}>{c.text}</button>

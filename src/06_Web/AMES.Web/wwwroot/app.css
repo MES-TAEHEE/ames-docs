@@ -5979,7 +5979,6 @@ input[data-ames-x] {
 .ames-flow-op-more { margin-top: 2px; font-weight: 400; opacity: .9; }
 .wod-op-live { font-weight: 700; color: var(--ames-tx-green-400, #22c55e); }
 .ames-flow-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.ames-flow-chips-open { max-height: 150px; overflow-y: auto; }
 .ames-flow-chip { padding: 2px 10px; border: 1px solid var(--flow-accent, currentColor); border-radius: 999px; background: none; color: inherit; font-size: 12px; font-weight: 600; font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: .02em; cursor: pointer; line-height: 1.5; }   /* LOT 번호 — 고정폭 글꼴 대신 화면 글꼴(숫자 폭은 같게) */
 .ames-flow-chip:hover { background: rgba(96,165,250,.18); }
 .ames-flow-chip-group { width: 100%; margin-top: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; opacity: .7; }
