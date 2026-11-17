@@ -61,7 +61,7 @@ public static class WhEndpoints
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
-        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false);
+        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false, string? ShippingUnitNo = null);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
@@ -2608,7 +2608,7 @@ public static class WhEndpoints
                     g.Sum(b => b.Quantity), g.Where(b => b.Received).Sum(b => b.Quantity),
                     g.Where(b => !b.Received).Sum(b => b.Quantity), g.Key.Unit, g.All(b => b.Received) ? "Y" : "N")).ToList();
             var caseBoxes = package.Boxes.Select(b => new InboundDocumentBoxRow(
-                b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N")).ToList();
+                b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N", ShippingUnitNo:b.CaseNo??package.Number)).ToList();
             return new(caseDocument, caseLines, ApplyCaseReceivePolicy(factory, caseBoxes));
         }
         using var conn = factory.OpenConnection();
@@ -3163,7 +3163,7 @@ public static class WhEndpoints
             GetString(rdr, "LOTNO"),
             GetDecimal(rdr, "QTY"),
             GetString(rdr, "UNIT"),
-            GetString(rdr, "YN"));
+            GetString(rdr, "YN"),ShippingUnitNo:GetString(rdr,"SHIPPING_UNIT_NO"));
     }
 
     private static LocationRow ReadLocationRow(SqlDataReader rdr)

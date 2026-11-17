@@ -65,6 +65,41 @@ public sealed class WhInboundShippingUnitTests
         Assert.Equal(3,client.TotalBoxes);
     }
 
+    [Fact]
+    public void Shipping_unit_number_survives_the_box_contract_and_legacy_payloads()
+    {
+        var options=new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        var box=new AMES.Api.Endpoints.WhEndpoints.InboundDocumentBoxRow("PART","UIT-1","LOT",10,"EA","N",ShippingUnitNo:"SHU-1");
+        var client=System.Text.Json.JsonSerializer.Deserialize<AMES.Pda.Services.PdaApi.InboundDocumentBoxRow>(
+            System.Text.Json.JsonSerializer.Serialize(box,options),options)!;
+        Assert.Equal("SHU-1",client.ShippingUnitNo);
+        var legacy=System.Text.Json.JsonSerializer.Deserialize<AMES.Pda.Services.PdaApi.InboundDocumentBoxRow>(
+            """{"partNo":"PART","boxBarcode":"UIT-1","qty":10} """,options)!;
+        Assert.Null(legacy.ShippingUnitNo);
+    }
+
+    [Fact]
+    public void Delivery_sections_keep_the_same_part_in_different_shipping_units_separate()
+    {
+        AMES.Pda.Services.PdaApi.InboundDocumentLineRow[] lines=[new("PART","Part name",3,1,60,10,50,"EA","N")];
+        AMES.Pda.Services.PdaApi.InboundDocumentBoxRow[] boxes=
+        [new("PART","UIT-1",null,10,"EA","Y",ShippingUnitNo:"SHU-1"),
+         new("PART","UIT-2",null,20,"EA","N",ShippingUnitNo:"SHU-1"),
+         new("PART","UIT-3",null,30,"EA","N",ShippingUnitNo:"SHU-2")];
+        var sections=AMES.Pda.Services.InboundDocumentSections.Build(true,lines,boxes);
+        Assert.Equal(2,sections.Count);
+        var first=Assert.Single(sections,unit=>unit.ShippingUnitNo=="SHU-1");
+        Assert.Equal(2,first.Boxes.Count);
+        Assert.Equal(30,Assert.Single(first.Lines).DeliveredQty);
+        Assert.Equal(10,Assert.Single(first.Lines).ReceivedQty);
+        Assert.Equal(20,Assert.Single(first.Lines).RemainingQty);
+        var second=Assert.Single(sections,unit=>unit.ShippingUnitNo=="SHU-2");
+        Assert.Equal(30,Assert.Single(second.Lines).RemainingQty);
+        var singleUnit=Assert.Single(AMES.Pda.Services.InboundDocumentSections.Build(false,lines,boxes));
+        Assert.Same(lines,singleUnit.Lines);
+        Assert.Same(boxes,singleUnit.Boxes);
+    }
+
     static string Page() => Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh02PdaInbound.razor");
     static string Read(string path, [CallerFilePath] string source = "")
         => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "../../..", path)));

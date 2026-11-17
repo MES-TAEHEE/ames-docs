@@ -194,7 +194,7 @@ public static class PdaWarehouseSql
             ORDER BY B.ItemNo;
 
             SELECT
-                B.ItemNo AS PARTNO, B.BoxNumber AS BOX_BARCODE,
+                B.ItemNo AS PARTNO, B.BoxNumber AS BOX_BARCODE, B.CaseNo AS SHIPPING_UNIT_NO,
                 COALESCE(NULLIF(DL.VendorLotNo, N''), B.BoxNumber) AS LOTNO,
                 B.Quantity AS QTY, B.UnitCode AS UNIT,
                 CASE WHEN W.LotNo IS NULL THEN N'N' ELSE N'Y' END AS YN

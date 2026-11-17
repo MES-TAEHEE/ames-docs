@@ -10856,6 +10856,11 @@ html body .rz-popup .rz-state-highlight span {
     border-top: 1px solid rgba(255, 255, 255, .08);
 }
 
+.pda-shell.wh.wh02-shell .wh02-shipping-unit {
+    margin:10px 0;padding:8px;border:1px solid rgba(255,255,255,.16);border-radius:4px;
+}
+.pda-shell.wh.wh02-shell .wh02-shipping-unit-head {padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.10);}
+
 .pda-shell.wh.wh02-shell .wh02-document-part {
     padding: 7px 0 9px;
     border-bottom: 1px solid rgba(255, 255, 255, .10);
