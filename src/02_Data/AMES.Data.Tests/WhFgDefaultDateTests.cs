@@ -23,13 +23,13 @@ public sealed class WhFgDefaultDateTests
     }
 
     [Fact]
-    public void Web_resets_restore_the_range_and_plan_links_keep_explicit_dates()
+    public void Web_refresh_preserves_filters_and_plan_links_keep_explicit_dates()
     {
         foreach(var component in new[]{"Wh/LogHistory", "Fg/Shipments", "Fg/CustomerReturns"})
         {
             var source=Read("src/06_Web/AMES.Web/Components/Pages/"+component+".razor");
-            Assert.Equal(2,source.Split("DbClock.Today.AddMonths(-1)").Length-1);
-            Assert.Equal(2,source.Split("DbClock.Today.AddMonths(1)").Length-1);
+            Assert.Equal(1,source.Split("DbClock.Today.AddMonths(-1)").Length-1);
+            Assert.Equal(1,source.Split("DbClock.Today.AddMonths(1)").Length-1);
         }
         var plan=Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentPlan.razor");
         Assert.Contains("From?.Date??DbClock.Today.AddMonths(-1)",plan);

@@ -57,7 +57,7 @@ public sealed class ScmSupplierDeliveryProgressTests
         Assert.Contains("if(args.Data?.Item.Received==true)args.Attributes[\"class\"]=\"scm-received-row\"",page);
         Assert.Contains("row.Item.Received?\"check_circle\":\"schedule\"",page);
         Assert.Contains("row.Item.Quantity,row.Line.Unit",page);
-        Assert.Contains("if(args.Data?.Complete==true)args.Attributes[\"class\"]=\"scm-received-row\"",page);
+        Assert.Contains("if(args.Data?.Item.Received==true) args.Attributes[\"class\"]=\"ames-row-link scm-received-row\"",page);
         var css=Read("src/06_Web/AMES.Web/Components/Pages/Scm/DeliveryProgress.razor.css");
         Assert.Contains("tr.scm-received-row > td",css);
         Assert.Contains("var(--ames-tx-green-300)",css);

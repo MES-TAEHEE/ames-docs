@@ -32,7 +32,7 @@
             <RadzenDatePicker TValue="DateTime?" @bind-Value="_shipTo" @bind-Value:after="Load" Disabled="_loading"
                 NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"]" Icon="close" Click="Clear" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="@L["FG.ShipPlan.Btn.TrailerPreview"]" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
@@ -151,7 +151,6 @@
         var draft=new TrailerLoadDraft();
         if(draft.Build(TrailerLoadDraft.FromOrders(_view.SelectMany(d=>d.Orders)),out _error))_draft=draft;
     }
-    async Task Clear(){_search="";_customer=null;_shipFrom=DbClock.Today.AddMonths(-1);_shipTo=DbClock.Today.AddMonths(1);await Load();}
     string DeliveryQuantity(ShipmentPlanRows.Delivery delivery)=>string.Join(" · ",delivery.Lines.GroupBy(l=>l.Unit)
         .Select(g=>UomFmt.QtyUnit(g.Sum(l=>l.Qty),g.Key)));
     async Task PrintDelivery(ShipmentPlanRows.Delivery delivery)
