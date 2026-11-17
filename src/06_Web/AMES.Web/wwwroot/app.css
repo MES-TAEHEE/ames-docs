@@ -5983,5 +5983,8 @@ input[data-ames-x] {
 .ames-flow-chip { padding: 1px 8px; border: 1px solid var(--flow-accent, currentColor); border-radius: 999px; background: none; color: inherit; font-size: 11px; font-family: var(--ames-mono, monospace); cursor: pointer; line-height: 1.5; }
 .ames-flow-chip:hover { background: rgba(96,165,250,.18); }
 .ames-flow-chip-group { width: 100%; margin-top: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; opacity: .7; }
-.ames-flow-resize { background: transparent !important; border: 0 !important; width: 8px !important; cursor: ew-resize; }
-.ames-flow-resize:hover { background: rgba(96,165,250,.35) !important; }
+/* 노드 폭 조절 — 선택한 노드의 좌·우 변에 보이는 선(끌어서 폭 변경) */
+.react-flow__resize-control.line.ames-flow-resize { border-color: rgba(96,165,250,.85); border-width: 3px; cursor: ew-resize; z-index: 20; }
+.react-flow__resize-control.line.ames-flow-resize:hover { border-color: #60a5fa; }
+.ames-flow-linkbtn { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.ames-flow-linkbtn:hover { color: #60a5fa; text-decoration-style: solid; }

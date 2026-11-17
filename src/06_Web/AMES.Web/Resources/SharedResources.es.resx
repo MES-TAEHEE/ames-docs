@@ -2766,6 +2766,24 @@
   <data name="PP.Lot.HistoryNote" xml:space="preserve">
     <value>Línea, estación y operario por proceso de la OT de este LOT. La fila en negrita (◀) incluye este LOT. Cada proceso crea sus propios LOT.</value>
   </data>
+  <data name="PP.WoLots.Title" xml:space="preserve">
+    <value>Productos de la OT (todos los LOT)</value>
+  </data>
+  <data name="PP.WoLots.Kpi.Total" xml:space="preserve">
+    <value>LOT totales</value>
+  </data>
+  <data name="PP.WoLots.Ph.Search" xml:space="preserve">
+    <value>LOT/Operario/Estación</value>
+  </data>
+  <data name="PP.WoLots.Btn.Export" xml:space="preserve">
+    <value>Exportar CSV</value>
+  </data>
+  <data name="PP.WoLots.Btn.Back" xml:space="preserve">
+    <value>Órdenes de trabajo</value>
+  </data>
+  <data name="PP.WoLots.Empty" xml:space="preserve">
+    <value>No hay LOT vinculados a esta OT.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

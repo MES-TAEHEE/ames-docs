@@ -38,4 +38,19 @@ public class LotDetailTests
         Assert.True(detail!.ProcessHistory!.Select(h => h.ProcessCode).Distinct().Count() >= 2);
         Assert.Contains(detail.ProcessHistory!, h => h.HasThisLot);
     }
+
+    [SkippableFact]
+    public void Full_lot_list_has_every_lot_with_operator_and_station()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, "set AMES_TEST_CONN to run");
+        var f = TryFactory(); Skip.If(f is null, "no dev db");
+        var woId = Scalar(f!, "SELECT TOP 1 l.WoID FROM dbo.tbl_Lot l WHERE l.WoID IS NOT NULL GROUP BY l.WoID ORDER BY COUNT(*) DESC") as int?;
+        Skip.If(woId is null, "no work order with lots");
+        var repo = new WorkOrderRepository(f!);
+        var full = repo.ListWoLotsFull(woId!.Value);
+        var chips = repo.ListWoLots(woId.Value);
+        Assert.True(full.Count >= chips.Count);                       // 칩 목록(최대 300)보다 많거나 같다
+        Assert.Contains(full, r => !string.IsNullOrEmpty(r.OperatorId));
+        Assert.Equal(full.Select(r => r.LotCode).Distinct().Count(), full.Count);   // LOT 번호 중복 없음
+    }
 }

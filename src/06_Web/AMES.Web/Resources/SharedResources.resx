@@ -2769,6 +2769,24 @@
   <data name="PP.Lot.HistoryNote" xml:space="preserve">
     <value>이 LOT 이 속한 작업지시의 공정별 라인·스테이션·작업자입니다. 굵은 줄(◀)에 이 LOT 이 포함됩니다. 공정마다 LOT 번호는 따로 만들어집니다.</value>
   </data>
+  <data name="PP.WoLots.Title" xml:space="preserve">
+    <value>작업지시 생산품(LOT) 전체</value>
+  </data>
+  <data name="PP.WoLots.Kpi.Total" xml:space="preserve">
+    <value>전체 LOT</value>
+  </data>
+  <data name="PP.WoLots.Ph.Search" xml:space="preserve">
+    <value>LOT/작업자/스테이션</value>
+  </data>
+  <data name="PP.WoLots.Btn.Export" xml:space="preserve">
+    <value>CSV 내보내기</value>
+  </data>
+  <data name="PP.WoLots.Btn.Back" xml:space="preserve">
+    <value>작업지시 목록</value>
+  </data>
+  <data name="PP.WoLots.Empty" xml:space="preserve">
+    <value>이 작업지시에 연결된 LOT 이 없습니다.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

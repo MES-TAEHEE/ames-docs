@@ -10,7 +10,8 @@ namespace AMES.Data.Services;
 public static class WoFlowGraph
 {
     public sealed record Node(string Id, string Kind, string KindLabel, string Title, IReadOnlyList<string> Lines,
-        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, IReadOnlyList<OperatorRow>? OperatorRows = null, IReadOnlyList<Chip>? Chips = null);
+        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, IReadOnlyList<OperatorRow>? OperatorRows = null, IReadOnlyList<Chip>? Chips = null,
+        string? TitleKey = null, IReadOnlyList<string?>? LineKeys = null);
     /// <summary>노드 안의 눌러 볼 수 있는 칩 — 흐름 보기의 LOT 번호(Key = LOT 번호). 누르면 화면이 LOT 팝업을 연다.</summary>
     public sealed record Chip(string Text, string Key);
     /// <summary>공정 담당자 한 줄 — 담당자마다 한 줄씩 보인다. Live = 지금 작업 중(강조).</summary>
@@ -89,6 +90,8 @@ public static class WoFlowGraph
             var resultLines = stepLines
                 ? stepTrace!.Select(s => $"{s.ProcessCode} · {x.Good} {s.GoodQty:#,0} · {x.Defect} {s.DefectCount} · LOT {s.LotCount}").ToList()
                 : new List<string> { $"{x.Defect} {t.DefectCount}", $"LOT {Math.Max(t.LotCount, lots?.Count ?? 0)}" };
+            // 「양품」(제목)과 공정별 줄을 누르면 그 작업지시의 생산품(LOT) 전체 화면으로 넘어간다 — 키 lots / lots:공정
+            var lineKeys = stepLines ? stepTrace!.Select(s => (string?)("lots:" + s.ProcessCode)).ToList() : null;
             // LOT 칩은 공정마다 묶어 앞에 공정 이름 칩(Key 없음)을 둔다
             List<Chip>? chips = null;
             if (lots is { Count: > 0 })
@@ -100,7 +103,7 @@ public static class WoFlowGraph
                     chips.AddRange(g.Select(l => new Chip(l.LotCode, l.LotCode)));
                 }
             }
-            nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {finalGood:#,0}", resultLines, finalGood > 0 ? "done" : null, null, null, 3 * ColW, RowH, Chips: chips));
+            nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {finalGood:#,0}", resultLines, finalGood > 0 ? "done" : null, null, null, 3 * ColW, RowH, Chips: chips, TitleKey: "lots", LineKeys: lineKeys));
             edges.Add(new Edge("slots-result", "slots", "result", false, null));
         }
         return new Graph(nodes, edges);

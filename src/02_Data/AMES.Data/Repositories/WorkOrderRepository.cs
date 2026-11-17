@@ -371,6 +371,44 @@ public sealed class WorkOrderRepository
         return list;
     }
 
+    /// <summary>LOT 전체 목록 한 줄 — 작업지시의 생산품 전체 화면(Pp/WoLots). OperatorText 는 화면이 이름으로 채운다.</summary>
+    public sealed record WoLotListRow(string LotCode, string? ProcessCode, string? LineId, string? Station, string? ItemNo, string? Status,
+        string? OperatorId, decimal GoodQty, DateTime? At, string? ParentLotCode)
+    {
+        public string OperatorText { get; init; } = "";
+    }
+
+    /// <summary>
+    /// 작업지시의 LOT 전체(수백~수천 건) — LOT 마다 첫 실적의 작업자·스테이션과 양품 합계를 붙인다. 공정·시간순.
+    /// 확정 전(RAW) LOT 은 작업지시에 묶이지 않아 나오지 않는다.
+    /// </summary>
+    public List<WoLotListRow> ListWoLotsFull(int woId, int take = 50000)
+    {
+        const string sql = """
+            SELECT TOP (@Take) l.LotCode, l.ProcessCode, l.LineID, l.ItemNo, l.Status, COALESCE(l.ProducedAt, l.CreatedTS) AS At,
+                   p.LotCode AS ParentLotCode, f.OperatorID, f.Station, ISNULL(f.GoodQty, 0) AS GoodQty
+            FROM   dbo.tbl_Lot l
+            LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
+                                (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
+                         FROM   dbo.PR_ProductionResult r
+                         LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
+                         WHERE  r.LotID = l.LotID ORDER BY r.EntryAt, r.ResultID) f
+            WHERE  l.WoID = @Wo OR l.LotID IN (SELECT r3.LotID FROM dbo.PR_ProductionResult r3 WHERE r3.WoID = @Wo AND r3.LotID IS NOT NULL)
+            ORDER  BY l.ProcessCode, COALESCE(l.ProducedAt, l.CreatedTS), l.LotID;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 120 };
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoLotListRow>();
+        while (r.Read())
+            list.Add(new((string)r["LotCode"], r["ProcessCode"] as string, r["LineID"] as string, r["Station"] as string, r["ItemNo"] as string, r["Status"] as string,
+                r["OperatorID"] as string, Convert.ToDecimal(r["GoodQty"]), r["At"] as DateTime?, r["ParentLotCode"] as string));
+        return list;
+    }
+
     public sealed record LotResultRow(DateTime? At, string? ProcessCode, string? LineId, decimal GoodQty, string? OperatorId, string? MoldId, string? WoNumber, string? Station = null);
     /// <summary>작업지시의 공정별 작업 이력 한 줄 — 같은 공정·라인·스테이션·작업자의 실적 묶음. HasThisLot = 조회한 LOT 이 이 줄에 포함됨.</summary>
     public sealed record LotProcessRow(string? ProcessCode, string? LineId, string? Station, string? OperatorId, decimal GoodQty, DateTime FirstAt, DateTime LastAt, bool HasThisLot);

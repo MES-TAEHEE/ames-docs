@@ -261,6 +261,16 @@ else
         }
     };
 
+    // 흐름 화면의 「양품」·공정별 줄을 누르면 JS 가 부른다 — 팝업을 닫고 그 작업지시의 생산품(LOT) 전체 화면으로 넘어간다
+    [JSInvokable]
+    public async Task OpenLotList(string key)
+        => await InvokeAsync(() =>
+        {
+            var process = key.StartsWith("lots:", StringComparison.Ordinal) ? key[5..] : null;
+            Dialog.Close();
+            Nav.NavigateTo($"/pp/work-order/lots/{Uri.EscapeDataString(WoNumber)}" + (string.IsNullOrEmpty(process) ? "" : $"?process={Uri.EscapeDataString(process)}"));
+        });
+
     // 흐름 화면의 LOT 칩을 누르면 JS 가 부른다 — 그 LOT 의 내용을 팝업으로 연다
     [JSInvokable]
     public async Task OpenLot(string lotCode)

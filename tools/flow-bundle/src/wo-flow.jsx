@@ -51,7 +51,7 @@ function WoNode({ id, data, selected }) {
          style={{ borderColor: accent, '--flow-accent': accent }}>
       {/* 폭만 조절한다 — 높이는 내용(담당자 줄·LOT 칩 펼침)에 따라 저절로 늘어나야 하므로 고정하지 않는다 */}
       {selected ? ['left', 'right'].map(pos => (
-        <NodeResizeControl key={pos} position={pos} resizeDirection="horizontal" minWidth={NODE_MIN_W} maxWidth={NODE_MAX_W}
+        <NodeResizeControl key={pos} position={pos} variant="line" resizeDirection="horizontal" minWidth={NODE_MIN_W} maxWidth={NODE_MAX_W}
                            className="ames-flow-resize" onResizeEnd={(e, p) => updateNodeData(id, { userW: p.width })} />
       )) : null}
       <Handle type="target" position={Position.Left} style={{ background: accent }} />
@@ -60,8 +60,14 @@ function WoNode({ id, data, selected }) {
         <span className="ames-flow-kind" style={{ color: accent }}>{data.kindLabel}</span>
         {data.statusLabel ? <span className={'ames-flow-badge ames-flow-badge-' + data.status}>{cur ? '● ' : data.status === 'done' ? '✓ ' : ''}{data.statusLabel}</span> : null}
       </div>
-      <div className="ames-flow-title">{data.title}</div>
-      {(data.lines || []).map((l, i) => <div key={i} className="ames-flow-line">{l}</div>)}
+      {data.titleKey ? (
+        <div className="ames-flow-title"><button type="button" className="ames-flow-linkbtn nodrag nopan" title="전체 보기"
+             onClick={() => dotnetRefs.get(data.hostId)?.invokeMethodAsync('OpenLotList', data.titleKey)}>{data.title} →</button></div>
+      ) : <div className="ames-flow-title">{data.title}</div>}
+      {(data.lines || []).map((l, i) => data.lineKeys && data.lineKeys[i] ? (
+        <div key={i} className="ames-flow-line"><button type="button" className="ames-flow-linkbtn nodrag nopan"
+             onClick={() => dotnetRefs.get(data.hostId)?.invokeMethodAsync('OpenLotList', data.lineKeys[i])}>{l}</button></div>
+      ) : <div key={i} className="ames-flow-line">{l}</div>)}
       {data.operatorRows && data.operatorRows.length ? (
         <div className="ames-flow-ops">
           {data.operatorRows.map((o, i) => (
@@ -98,7 +104,7 @@ function theme() { return document.documentElement.getAttribute('data-theme') ==
 const toNode = (n, prev, hostId) => ({
   id: n.id, type: 'wo', position: prev ? prev.position : { x: n.x, y: n.y },   // 사용자가 옮긴 자리를 유지
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
-          progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, hostId, userW: prev?.data?.userW, href: n.href, linkText: n.linkText },
+          progress: n.progress, operatorRows: n.operatorRows, chips: n.chips, titleKey: n.titleKey, lineKeys: n.lineKeys, hostId, userW: prev?.data?.userW, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
   // 사용자가 조절한 폭(userW)만 실시간 갱신에도 유지한다 — 측정된 폭·높이를 붙들면 내용이 늘어나도 노드가 커지지 않는다
   style: { width: prev?.data?.userW ?? (n.kind === 'step' ? NODE_W.step : NODE_W.default) },

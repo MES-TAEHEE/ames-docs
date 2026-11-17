@@ -2769,6 +2769,24 @@
   <data name="PP.Lot.HistoryNote" xml:space="preserve">
     <value>Line, station and operator per process of the work order this LOT belongs to. The bold row (◀) includes this LOT. Each process creates its own LOT numbers.</value>
   </data>
+  <data name="PP.WoLots.Title" xml:space="preserve">
+    <value>Work order products (all LOTs)</value>
+  </data>
+  <data name="PP.WoLots.Kpi.Total" xml:space="preserve">
+    <value>Total LOTs</value>
+  </data>
+  <data name="PP.WoLots.Ph.Search" xml:space="preserve">
+    <value>LOT/Operator/Station</value>
+  </data>
+  <data name="PP.WoLots.Btn.Export" xml:space="preserve">
+    <value>Export CSV</value>
+  </data>
+  <data name="PP.WoLots.Btn.Back" xml:space="preserve">
+    <value>Work orders</value>
+  </data>
+  <data name="PP.WoLots.Empty" xml:space="preserve">
+    <value>No LOTs are linked to this work order.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>
