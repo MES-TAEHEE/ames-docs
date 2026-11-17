@@ -2158,7 +2158,7 @@
     <value>No confirmed orders are pending work-order creation.</value>
   </data>
   <data name="PP.PlanConfirm.Btn.Batch" xml:space="preserve">
-    <value>Batch Create WO ({0})</value>
+    <value>Create WO ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Col.Due" xml:space="preserve">
     <value>Due</value>
@@ -2659,16 +2659,16 @@
     <value>No work orders are linked to this order.</value>
   </data>
   <data name="PP.PlanConfirm.Btn.ShowHeld" xml:space="preserve">
-    <value>View on hold ({0})</value>
+    <value>Show held ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Btn.HideHeld" xml:space="preserve">
     <value>Back to plan confirm</value>
   </data>
   <data name="PP.PlanConfirm.Btn.Hold" xml:space="preserve">
-    <value>Put on hold ({0})</value>
+    <value>Hold ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Btn.HoldRelease" xml:space="preserve">
-    <value>Release hold ({0})</value>
+    <value>Release ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Btn.HoldDo" xml:space="preserve">
     <value>Hold</value>

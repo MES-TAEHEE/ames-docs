@@ -2155,7 +2155,7 @@
     <value>No hay pedidos confirmados pendientes de crear orden.</value>
   </data>
   <data name="PP.PlanConfirm.Btn.Batch" xml:space="preserve">
-    <value>Crear OT en Lote ({0})</value>
+    <value>Crear OT ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Col.Due" xml:space="preserve">
     <value>Vence</value>
@@ -2662,10 +2662,10 @@
     <value>Volver a confirmación</value>
   </data>
   <data name="PP.PlanConfirm.Btn.Hold" xml:space="preserve">
-    <value>Poner en espera ({0})</value>
+    <value>En espera ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Btn.HoldRelease" xml:space="preserve">
-    <value>Quitar espera ({0})</value>
+    <value>Liberar ({0})</value>
   </data>
   <data name="PP.PlanConfirm.Btn.HoldDo" xml:space="preserve">
     <value>En espera</value>
