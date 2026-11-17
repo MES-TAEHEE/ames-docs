@@ -59,15 +59,13 @@
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
             @if (_canEdit)
             {
+                <span class="dim">|</span>
                 <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Hold"].Value, SelectedToHold)"
                               Icon="pause" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn"
                               Disabled="@(SelectedToHold == 0)" Click="HoldSelected" />
-                @if (_showHeld)
-                {
-                    <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.HoldRelease"].Value, SelectedHeld)"
-                                  Icon="play_circle" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn"
-                                  Disabled="@(SelectedHeld == 0)" Click="ReleaseSelected" />
-                }
+                <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.HoldRelease"].Value, SelectedHeld)"
+                              Icon="play_circle" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(SelectedHeld == 0)" Click="ReleaseSelected" />
                 <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, SelectedToCreate)"
                               Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
                               Disabled="@(SelectedToCreate == 0)" Click="OpenBatch" />
