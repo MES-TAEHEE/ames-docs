@@ -2784,6 +2784,30 @@
   <data name="PP.WoLots.Empty" xml:space="preserve">
     <value>이 작업지시에 연결된 LOT 이 없습니다.</value>
   </data>
+  <data name="PP.LotLookup.Title" xml:space="preserve">
+    <value>LOT 조회</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Lot" xml:space="preserve">
+    <value>LOT 번호</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Wo" xml:space="preserve">
+    <value>작업지시 번호</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Item" xml:space="preserve">
+    <value>품번</value>
+  </data>
+  <data name="PP.LotLookup.From" xml:space="preserve">
+    <value>시작일</value>
+  </data>
+  <data name="PP.LotLookup.To" xml:space="preserve">
+    <value>종료일</value>
+  </data>
+  <data name="PP.LotLookup.Empty" xml:space="preserve">
+    <value>조건에 맞는 LOT 이 없습니다.</value>
+  </data>
+  <data name="PP.LotLookup.Truncated" xml:space="preserve">
+    <value>조건에 맞는 LOT 이 {0}건을 넘어 최신 {0}건만 보입니다. 조건을 좁혀 주세요.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

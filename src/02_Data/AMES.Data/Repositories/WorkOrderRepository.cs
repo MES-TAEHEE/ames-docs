@@ -376,6 +376,8 @@ public sealed class WorkOrderRepository
         string? OperatorId, decimal GoodQty, DateTime? At, string? ParentLotCode)
     {
         public string OperatorText { get; init; } = "";
+        /// <summary>LOT 조회(PP-LOT)에서만 채운다 — 이 LOT 이 묶인 작업지시.</summary>
+        public string? WoNumber { get; init; }
     }
 
     /// <summary>
@@ -406,6 +408,61 @@ public sealed class WorkOrderRepository
         while (r.Read())
             list.Add(new((string)r["LotCode"], r["ProcessCode"] as string, r["LineID"] as string, r["Station"] as string, r["ItemNo"] as string, r["Status"] as string,
                 r["OperatorID"] as string, Convert.ToDecimal(r["GoodQty"]), r["At"] as DateTime?, r["ParentLotCode"] as string));
+        return list;
+    }
+
+    /// <summary>PP-LOT 검색 조건의 공정·상태 선택지 — 실제 LOT 에 있는 값만.</summary>
+    public (List<string> Processes, List<string> Statuses) ListLotFilterOptions()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT DISTINCT ProcessCode, Status FROM dbo.tbl_Lot;", conn);
+        using var r = cmd.ExecuteReader();
+        var p = new SortedSet<string>(); var st = new SortedSet<string>();
+        while (r.Read()) { if (r["ProcessCode"] is string a && a != "") p.Add(a); if (r["Status"] is string b && b != "") st.Add(b); }
+        return (p.ToList(), st.ToList());
+    }
+
+    /// <summary>
+    /// PP-LOT LOT 조회 — LOT 번호·작업지시 번호·품번(모두 부분 일치, 대소문자·와일드카드 문자 무관)·공정·상태·생산 기간으로 찾는다. 최신순.
+    /// 작업지시에 묶이지 않은 확정 전(RAW) LOT 도 찾는다. take 를 넘기면 호출자가 잘림을 알 수 있게 한 건 더 읽는다.
+    /// </summary>
+    public List<WoLotListRow> SearchLots(string? lot, string? wo, string? item, string? process, string? status, DateTime? from, DateTime? to, int take = 5001)
+    {
+        const string sql = """
+            SELECT TOP (@Take) l.LotCode, l.ProcessCode, l.LineID, l.ItemNo, l.Status, COALESCE(l.ProducedAt, l.CreatedTS) AS At,
+                   p.LotCode AS ParentLotCode, w.WoNumber, f.OperatorID, f.Station, ISNULL(f.GoodQty, 0) AS GoodQty
+            FROM   dbo.tbl_Lot l
+            LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
+                                (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
+                         FROM   dbo.PR_ProductionResult r
+                         LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
+                         WHERE  r.LotID = l.LotID ORDER BY r.EntryAt, r.ResultID) f
+            WHERE  (@Lot  = N'' OR CHARINDEX(@Lot,  l.LotCode) > 0)
+              AND  (@Wo   = N'' OR CHARINDEX(@Wo,   ISNULL(w.WoNumber, N'')) > 0)
+              AND  (@Item = N'' OR CHARINDEX(@Item, ISNULL(l.ItemNo, N'')) > 0)
+              AND  (@Proc = N'' OR l.ProcessCode = @Proc)
+              AND  (@Stat = N'' OR l.Status = @Stat)
+              AND  (@From IS NULL OR COALESCE(l.ProducedAt, l.CreatedTS) >= @From)
+              AND  (@To   IS NULL OR COALESCE(l.ProducedAt, l.CreatedTS) <  DATEADD(day, 1, @To))
+            ORDER  BY COALESCE(l.ProducedAt, l.CreatedTS) DESC, l.LotID DESC;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 120 };
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+        ColumnParams.AddFilter(cmd, "@Lot", null, (lot ?? "").Trim());
+        ColumnParams.AddFilter(cmd, "@Wo", null, (wo ?? "").Trim());
+        ColumnParams.AddFilter(cmd, "@Item", null, (item ?? "").Trim());
+        ColumnParams.AddFilter(cmd, "@Proc", "tbl_Lot.ProcessCode", (process ?? "").Trim());
+        ColumnParams.AddFilter(cmd, "@Stat", "tbl_Lot.Status", (status ?? "").Trim());
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)from?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@To", SqlDbType.Date).Value = (object?)to?.Date ?? DBNull.Value;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoLotListRow>();
+        while (r.Read())
+            list.Add(new((string)r["LotCode"], r["ProcessCode"] as string, r["LineID"] as string, r["Station"] as string, r["ItemNo"] as string, r["Status"] as string,
+                r["OperatorID"] as string, Convert.ToDecimal(r["GoodQty"]), r["At"] as DateTime?, r["ParentLotCode"] as string) { WoNumber = r["WoNumber"] as string });
         return list;
     }
 

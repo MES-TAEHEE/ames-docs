@@ -53,4 +53,24 @@ public class LotDetailTests
         Assert.Contains(full, r => !string.IsNullOrEmpty(r.OperatorId));
         Assert.Equal(full.Select(r => r.LotCode).Distinct().Count(), full.Count);   // LOT 번호 중복 없음
     }
+
+    [SkippableFact]
+    public void Lot_search_finds_by_number_work_order_item_and_process()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, "set AMES_TEST_CONN to run");
+        var f = TryFactory(); Skip.If(f is null, "no dev db");
+        var pick = Scalar(f!, "SELECT TOP 1 l.LotCode + '|' + w.WoNumber + '|' + l.ItemNo + '|' + l.ProcessCode FROM dbo.tbl_Lot l JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID WHERE l.ItemNo IS NOT NULL AND l.ProcessCode IS NOT NULL ORDER BY l.LotID DESC") as string;
+        Skip.If(pick is null, "no LOT with a work order");
+        var (lot, wo, item, proc) = (pick!.Split('|')[0], pick.Split('|')[1], pick.Split('|')[2], pick.Split('|')[3]);
+        var repo = new WorkOrderRepository(f!);
+
+        Assert.Contains(repo.SearchLots(lot, null, null, null, null, null, null), r => r.LotCode == lot);
+        Assert.Contains(repo.SearchLots(lot.ToLowerInvariant(), null, null, null, null, null, null), r => r.LotCode == lot);   // 대소문자 무관
+        Assert.All(repo.SearchLots(null, wo, null, null, null, null, null), r => Assert.Equal(wo, r.WoNumber));
+        Assert.All(repo.SearchLots(null, null, item, proc, null, null, null), r => { Assert.Equal(proc, r.ProcessCode); Assert.Contains(item, r.ItemNo!, StringComparison.OrdinalIgnoreCase); });
+        Assert.Empty(repo.SearchLots("NO-SUCH-LOT-ZZZ", null, null, null, null, null, null));
+        Assert.Equal(1, repo.SearchLots(null, null, null, null, null, null, null, take: 1).Count);                              // take 제한
+        var (procs, stats) = repo.ListLotFilterOptions();
+        Assert.Contains(proc, procs); Assert.NotEmpty(stats);
+    }
 }

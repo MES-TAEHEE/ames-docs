@@ -2784,6 +2784,30 @@
   <data name="PP.WoLots.Empty" xml:space="preserve">
     <value>No hay LOT vinculados a esta OT.</value>
   </data>
+  <data name="PP.LotLookup.Title" xml:space="preserve">
+    <value>Consulta de LOT</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Lot" xml:space="preserve">
+    <value>N.º de LOT</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Wo" xml:space="preserve">
+    <value>N.º de OT</value>
+  </data>
+  <data name="PP.LotLookup.Ph.Item" xml:space="preserve">
+    <value>N.º artículo</value>
+  </data>
+  <data name="PP.LotLookup.From" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="PP.LotLookup.To" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="PP.LotLookup.Empty" xml:space="preserve">
+    <value>Ningún LOT cumple las condiciones.</value>
+  </data>
+  <data name="PP.LotLookup.Truncated" xml:space="preserve">
+    <value>Más de {0} LOT coinciden: solo se muestran los {0} más recientes. Reduzca las condiciones.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

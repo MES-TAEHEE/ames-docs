@@ -1,0 +1,177 @@
+@page "/pp/lot"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Web.Services.ActorNames Actors
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
+
+@* PP-LOT LOT 조회 — LOT 번호·작업지시·품번·공정·상태·기간으로 찾는다. 작업지시를 몰라도 LOT 번호만으로 찾고, LOT 을 누르면 LOT 팝업(공정별 스테이션·작업자 이력)을 연다.
+   조회 전용(권한은 읽기). 확정 전(RAW) LOT 도 찾는다. *@
+<PageTitle>PP-LOT @L["PP.LotLookup.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="PP-LOT" TitleKey="PP.LotLookup.Title" />
+
+<div class="ames-page-fill">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Warning)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
+}
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WoLots.Kpi.Total"]</div><div class="ames-kpi-v">@_rows.Count.ToString("#,0")@(_truncated ? "+" : "")</div></div>
+    @foreach (var g in _rows.GroupBy(r => r.ProcessCode ?? "—").OrderBy(g => g.Key))
+    {
+        <div class="ames-kpi info"><div class="ames-kpi-l">@g.Key · LOT</div><div class="ames-kpi-v">@g.Count().ToString("#,0")</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@g.Key · @L["PP.WorkOrder.Trace.Good"]</div><div class="ames-kpi-v">@g.Sum(r => r.GoodQty).ToString("#,0")</div></div>
+    }
+</div>
+
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ LOT · @_rows.Count.ToString("#,0")@(_truncated ? "+" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fLot" Placeholder="@L["PP.LotLookup.Ph.Lot"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+            <RadzenTextBox @bind-Value="_fWo" Placeholder="@L["PP.LotLookup.Ph.Wo"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+            <RadzenTextBox @bind-Value="_fItem" Placeholder="@L["PP.LotLookup.Ph.Item"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenDropDown Data="_processes" @bind-Value="_fProcess" AllowClear="true" Placeholder="@L["PP.Lot.Process"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px" />
+            <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
+            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="@L["PP.LotLookup.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <span class="dim">~</span>
+            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="@L["PP.LotLookup.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
+            <RadzenButton Text="@L["PP.WoLots.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+        </RadzenStack>
+    </div>
+
+<div class="ames-grid-virtual">
+@if (_rows.Count == 0)
+{
+    <div class="ames-empty">@L["PP.LotLookup.Empty"]</div>
+}
+else
+{
+    <RadzenDataGrid @ref="_grid" Data="_rows" TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" AllowVirtualization="true" Style="height:100%"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
+                    AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="LotCode" Title="LOT" MinWidth="150px" Width="170px" Frozen="true">
+                <Template Context="r"><LotLink LotCode="@r.LotCode" /></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="WoNumber" Title="@L["PP.WorkOrder.Trace.Wo"].Value" MinWidth="160px" Width="180px">
+                <Template Context="r"><WoLink WoNumber="@r.WoNumber" /></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ProcessCode" Title="@L["PP.Lot.Process"].Value" MinWidth="80px" Width="90px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="LineId" Title="@L["Col.Line"].Value" MinWidth="120px" Width="140px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="Station" Title="@L["PP.Lot.Station"].Value" MinWidth="110px" Width="130px">
+                <Template Context="r">@(r.Station ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" MinWidth="130px" Width="150px">
+                <Template Context="r"><span class="code" data-item="@r.ItemNo">@r.ItemNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="Status" Title="@L["Col.Status"].Value" MinWidth="110px" Width="120px">
+                <Template Context="r"><span class="pill info">@r.Status</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="OperatorText" Title="@L["PP.WoDetail.Operator"].Value" MinWidth="150px" Width="180px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="GoodQty" Title="@L["PP.WorkOrder.Trace.Good"].Value" TextAlign="TextAlign.Right" MinWidth="80px" Width="90px" Filterable="false">
+                <Template Context="r">@r.GoodQty.ToString("#,0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="At" Title="@L["PP.Lot.ProducedAt"].Value" MinWidth="150px" Width="160px" Filterable="false">
+                <Template Context="r">@(r.At?.ToString(DateFmt.DateTime) ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ParentLotCode" Title="@L["PP.Lot.Parent"].Value" MinWidth="150px" Width="170px" Filterable="false">
+                <Template Context="r"><LotLink LotCode="@r.ParentLotCode" /></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Title="No." MinWidth="70px" Width="80px" TextAlign="TextAlign.Right" Sortable="false" Filterable="false">
+                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? n.ToString("#,0") : "")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+</div>
+</div>
+</div>
+
+@code {
+    const string Href = "pp/lot";
+    const int Take = 5000;
+
+    List<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow> _rows = new();
+    List<string> _processes = new(), _statuses = new();
+    string _fLot = "", _fWo = "", _fItem = "";
+    string? _fProcess, _fStatus;
+    DateTime? _fFrom, _fTo;
+    bool _truncated, _isErr;
+    string _msg = "";
+    RadzenDataGrid<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow>? _grid;
+    object? _noKey;
+    Dictionary<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow, int> _noMap = new(ReferenceEqualityComparer.Instance);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        try { (_processes, _statuses) = Wos.ListLotFilterOptions(); } catch { }
+        await Search();
+    }
+
+    // 표 참조(@ref)는 첫 그리기 뒤에야 생기므로, 번호를 그리려면 한 번 더 그려야 한다
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_grid is not null && _noKey is null) StateHasChanged();
+    }
+
+    // 지금 정렬·필터로 보이는 순서의 번호 — 표가 보기(View)를 바꿀 때만 한 번 다시 만든다
+    int RowNo(AMES.Data.Repositories.WorkOrderRepository.WoLotListRow r)
+    {
+        var v = _grid?.View;
+        if (v is null) return 0;
+        if (!ReferenceEquals(_noKey, v))
+        {
+            _noMap = new(ReferenceEqualityComparer.Instance);
+            var i = 0;
+            foreach (var x in v) _noMap[x] = ++i;
+            _noKey = v;
+        }
+        return _noMap.GetValueOrDefault(r);
+    }
+
+    async Task OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+
+    async Task Search()
+    {
+        _msg = ""; _isErr = false; _noKey = null;
+        try
+        {
+            var found = await Task.Run(() => Wos.SearchLots(_fLot, _fWo, _fItem, _fProcess, _fStatus, _fFrom, _fTo, Take + 1));
+            _truncated = found.Count > Take;
+            _rows = found.Take(Take).Select(r => r with { OperatorText = r.OperatorId is null ? "" : Actors.Display(r.OperatorId) }).ToList();
+            if (_truncated) _msg = string.Format(L["PP.LotLookup.Truncated"].Value, Take.ToString("#,0"));
+        }
+        catch (Exception ex) { _msg = ex.Message; _isErr = true; _rows = new(); }
+    }
+
+    async Task Reset()
+    {
+        _fLot = _fWo = _fItem = ""; _fProcess = _fStatus = null; _fFrom = _fTo = null;
+        await Search();
+    }
+
+    static string Csv(string? v) => AMES.Contracts.Formatting.CsvCell.Escape(v);
+
+    async Task ExportCsv()
+    {
+        if (_rows.Count == 0) return;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Join(",", new[] { "LOT", L["PP.WorkOrder.Trace.Wo"].Value, L["PP.Lot.Process"].Value, L["Col.Line"].Value, L["PP.Lot.Station"].Value, L["Col.PartNo"].Value,
+            L["Col.Status"].Value, L["PP.WoDetail.Operator"].Value, L["PP.WorkOrder.Trace.Good"].Value, L["PP.Lot.ProducedAt"].Value, L["PP.Lot.Parent"].Value }.Select(Csv)));
+        foreach (var r in (_grid?.View ?? _rows.AsQueryable()))
+            sb.AppendLine(string.Join(",", new[] { r.LotCode, r.WoNumber, r.ProcessCode, r.LineId, r.Station, r.ItemNo, r.Status, r.OperatorText, r.GoodQty.ToString("0.###"),
+                r.At?.ToString("yyyy-MM-dd HH:mm:ss"), r.ParentLotCode }.Select(Csv)));
+        var bytes = new System.Text.UTF8Encoding(true).GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        await JS.InvokeVoidAsync("amesDownload", $"LOT_{DbClock.Now:yyyyMMdd_HHmmss}.csv", Convert.ToBase64String(bytes), "text/csv;charset=utf-8");
+    }
+}

@@ -82,6 +82,7 @@ public sealed class MenuCatalog
         new("pp", "pp/downtime",         "DTL",    "비가동 이력",      "Downtime Log"),
         new("pp", "pp/downtime-monitor", "ODM",    "비가동 모니터",    "Downtime Monitor"),
         new("pp", "pp/delivery",         "OTD",    "납기 준수율",      "On-Time Delivery"),
+        new("pp", "pp/lot",              "PP-LOT", "LOT 조회",        "LOT Lookup"),
 
         // ── MNT ──
         new("mnt", "mnt/equipment-card", "MNT-001", "설비 카드",   "Equipment Card"),
@@ -319,6 +320,7 @@ public sealed class MenuCatalog
         ["pp/downtime"] = "Registro de Paradas",
         ["pp/downtime-monitor"] = "Monitor de Paradas",
         ["pp/delivery"] = "Entrega a Tiempo",
+        ["pp/lot"] = "Consulta de LOT",
         // MNT
         ["mnt/equipment-card"] = "Ficha de Equipo",
         ["mnt/failure"] = "Registro de Fallos",
