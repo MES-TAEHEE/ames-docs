@@ -46,4 +46,14 @@ public class WoFlowGraphTests
         Assert.Equal("None", legacy.Nodes.Single(n => n.Id == "plan").Title);
         Assert.DoesNotContain(legacy.Nodes, n => n.Id is "slots" or "result");  // 추적 정보가 없으면 슬롯·실적 노드는 없다
     }
+
+    [Fact]
+    public void Result_node_carries_the_lot_numbers_as_chips()
+    {
+        var lots = new[] { new WorkOrderRepository.WoLotRow("LOT-A1", "INJ", "CONFIRMED", "I", null), new WorkOrderRepository.WoLotRow("LOT-A2", "INJ", "CONFIRMED", "I", null) };
+        var g = WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T, null, lots);
+        var chips = g.Nodes.Single(n => n.Id == "result").Chips!;
+        Assert.Equal(["LOT-A1", "LOT-A2"], chips.Select(c => c.Key));
+        Assert.Null(WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T).Nodes.Single(n => n.Id == "result").Chips);   // LOT 이 없으면 칩 없음
+    }
 }

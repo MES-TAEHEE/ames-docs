@@ -2724,6 +2724,30 @@
   <data name="MD.MoldItem.Ph.Search" xml:space="preserve">
     <value>ID de molde/Nombre/N.º artículo</value>
   </data>
+  <data name="PP.Lot.NotFound" xml:space="preserve">
+    <value>No se encontró el LOT.</value>
+  </data>
+  <data name="PP.Lot.Process" xml:space="preserve">
+    <value>Proceso</value>
+  </data>
+  <data name="PP.Lot.ProducedAt" xml:space="preserve">
+    <value>Producido</value>
+  </data>
+  <data name="PP.Lot.Parent" xml:space="preserve">
+    <value>LOT padre</value>
+  </data>
+  <data name="PP.Lot.Children" xml:space="preserve">
+    <value>LOT hijos</value>
+  </data>
+  <data name="PP.Lot.At" xml:space="preserve">
+    <value>Hora</value>
+  </data>
+  <data name="PP.Lot.Stock" xml:space="preserve">
+    <value>Stock actual</value>
+  </data>
+  <data name="PP.Lot.NoStock" xml:space="preserve">
+    <value>No está en stock (enviado, consumido o desechado).</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

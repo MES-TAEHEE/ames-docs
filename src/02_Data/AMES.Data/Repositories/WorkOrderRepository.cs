@@ -340,6 +340,90 @@ public sealed class WorkOrderRepository
             workers.TryGetValue(line, out var ws) ? ws : [])).ToList();
     }
 
+    /// <summary>작업지시에 연결된 LOT 한 건 — 흐름 보기의 LOT 칩.</summary>
+    public sealed record WoLotRow(string LotCode, string? ProcessCode, string? Status, string? ItemNo, DateTime? At);
+
+    /// <summary>
+    /// 작업지시의 LOT — LOT 이 WO 에 묶였거나(tbl_Lot.WoID) 그 WO 의 실적을 올린 LOT. 확정 전(RAW) LOT 은 WO 에 아직 묶이지 않아 나오지 않는다.
+    /// 공정·생성 순.
+    /// </summary>
+    public List<WoLotRow> ListWoLots(int woId, int take = 300)
+    {
+        const string sql = """
+            SELECT TOP (@Take) l.LotCode, l.ProcessCode, l.Status, l.ItemNo, COALESCE(l.ProducedAt, l.CreatedTS) AS At
+            FROM   dbo.tbl_Lot l
+            WHERE  l.WoID = @Wo OR l.LotID IN (SELECT r.LotID FROM dbo.PR_ProductionResult r WHERE r.WoID = @Wo AND r.LotID IS NOT NULL)
+            ORDER  BY l.ProcessCode, COALESCE(l.ProducedAt, l.CreatedTS), l.LotID;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoLotRow>();
+        while (r.Read())
+            list.Add(new((string)r["LotCode"], r["ProcessCode"] as string, r["Status"] as string, r["ItemNo"] as string, r["At"] as DateTime?));
+        return list;
+    }
+
+    public sealed record LotResultRow(DateTime? At, string? ProcessCode, string? LineId, decimal GoodQty, string? OperatorId, string? MoldId, string? WoNumber);
+    public sealed record LotDefectRow(DateTime? At, string? DefectCode, decimal Qty, string? Disposition, string? CauseCode);
+    public sealed record LotStockRow(string? PalletNo, string? LocationNo, decimal Qty, string? PartNo);
+    public sealed record LotDetail(int LotId, string LotCode, string? ItemNo, string? ItemName, string? ProcessCode, string? LineId, string? Status,
+        DateTime? ProducedAt, string? WoNumber, string? ParentLotCode, IReadOnlyList<string> ChildLotCodes,
+        IReadOnlyList<LotResultRow> Results, IReadOnlyList<LotDefectRow> Defects, IReadOnlyList<LotStockRow> Stock);
+
+    /// <summary>LOT 번호 한 건의 내용 — 기본 정보·부모/자식 LOT·실적·불량·현재 재고(팔레트·위치). 없는 번호는 null.</summary>
+    public LotDetail? GetLotDetail(string lotCode)
+    {
+        const string sql = """
+            SELECT l.LotID, l.LotCode, l.ItemNo, i.ItemName, l.ProcessCode, l.LineID, l.Status, COALESCE(l.ProducedAt, l.CreatedTS) AS At,
+                   w.WoNumber, p.LotCode AS ParentLotCode
+            FROM   dbo.tbl_Lot l
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = l.ItemNo
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+            WHERE  l.LotCode = @Lot;
+
+            SELECT c.LotCode FROM dbo.tbl_Lot c JOIN dbo.tbl_Lot l ON l.LotID = c.ParentLotID WHERE l.LotCode = @Lot ORDER BY c.LotID;
+
+            SELECT r.EntryAt, r.ProcessCode, r.LineID, r.GoodQty, r.OperatorID, r.MoldID, w.WoNumber
+            FROM   dbo.PR_ProductionResult r
+            JOIN   dbo.tbl_Lot l ON l.LotID = r.LotID
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+            WHERE  l.LotCode = @Lot ORDER BY r.EntryAt, r.ResultID;
+
+            SELECT d.DetectedAt, d.DefectCode, d.Qty, d.Disposition, d.CauseCode
+            FROM   dbo.PR_DefectDetail d JOIN dbo.tbl_Lot l ON l.LotID = d.LotID
+            WHERE  l.LotCode = @Lot ORDER BY d.DetectedAt, d.DefectID;
+
+            SELECT x.PalletNo, x.LocationNo, x.Qty, x.PartNo FROM dbo.WH_Inventory x WHERE x.LotNo = @Lot AND x.Qty > 0;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Lot", "tbl_Lot.LotCode", lotCode ?? "");
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+        var id = (int)r["LotID"];
+        var code = (string)r["LotCode"];
+        var item = r["ItemNo"] as string; var name = r["ItemName"] as string; var proc = r["ProcessCode"] as string;
+        var line = r["LineID"] as string; var status = r["Status"] as string; var at = r["At"] as DateTime?;
+        var wo = r["WoNumber"] as string; var parent = r["ParentLotCode"] as string;
+        var children = new List<string>(); var results = new List<LotResultRow>(); var defects = new List<LotDefectRow>(); var stock = new List<LotStockRow>();
+        r.NextResult();
+        while (r.Read()) children.Add((string)r["LotCode"]);
+        r.NextResult();
+        while (r.Read())
+            results.Add(new(r["EntryAt"] as DateTime?, r["ProcessCode"] as string, r["LineID"] as string, Convert.ToDecimal(r["GoodQty"]), r["OperatorID"] as string, r["MoldID"] as string, r["WoNumber"] as string));
+        r.NextResult();
+        while (r.Read())
+            defects.Add(new(r["DetectedAt"] as DateTime?, r["DefectCode"] as string, Convert.ToDecimal(r["Qty"]), r["Disposition"] as string, r["CauseCode"] as string));
+        r.NextResult();
+        while (r.Read())
+            stock.Add(new(r["PalletNo"] as string, r["LocationNo"] as string, Convert.ToDecimal(r["Qty"]), r["PartNo"] as string));
+        return new LotDetail(id, code, item, name, proc, line, status, at, wo, parent, children, results, defects, stock);
+    }
+
     /// <summary>작업지시 하나의 계획 → 실행 연결(수주 · 생성 경로 · 슬롯 · 실적). 화면 상세와 재무 자료의 기준.</summary>
     public sealed record WoTraceRow(
         string WoNumber, string? SourceType, string? SourceRef,

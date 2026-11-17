@@ -144,7 +144,7 @@ else
         {
             _mod ??= await JS.InvokeAsync<IJSObjectReference>("import", $"{Nav.BaseUri}js/wo-flow/wo-flow.js");
             var graph = BuildGraph();
-            await _mod.InvokeVoidAsync("render", _flowId, graph, new { fit = L["PP.WoDetail.Flow.Fit"].Value, running = L["PP.WoDetail.Flow.ShowRunning"].Value, hint = L["PP.WoDetail.Flow.Hint"].Value, fullscreen = L["PP.WoDetail.Flow.Fullscreen"].Value, exitFullscreen = L["PP.WoDetail.Flow.ExitFullscreen"].Value });
+            await _mod.InvokeVoidAsync("render", _flowId, graph, new { fit = L["PP.WoDetail.Flow.Fit"].Value, running = L["PP.WoDetail.Flow.ShowRunning"].Value, hint = L["PP.WoDetail.Flow.Hint"].Value, fullscreen = L["PP.WoDetail.Flow.Fullscreen"].Value, exitFullscreen = L["PP.WoDetail.Flow.ExitFullscreen"].Value }, _self ??= DotNetObjectReference.Create(this));
             StartLive();
         }
         catch (Exception ex) { _flowError = ex.Message; StateHasChanged(); }
@@ -186,6 +186,7 @@ else
             _steps = Wos.ListSteps(wo.WoId);
             _trace = Wos.GetTrace(wo.WoId);
             _ops = Wos.ListStepOperators(wo.WoId);
+            _lots = Wos.ListWoLots(wo.WoId);
             _updatedAt = DateTime.Now;
             _live = _steps.Any(s => s.Status == "In Progress") || wo.Status == "In Progress";
             if (_mode == "flow" && _mod is not null)
@@ -201,7 +202,7 @@ else
         L["PP.WorkOrder.Trace.Defect"].Value, L["PP.WorkOrder.Trace.SlotUnit"].Value, L["PP.WorkOrder.Trace.Run"].Value,
         L["PP.WoDetail.OpenLink"].Value, L["PP.WorkOrder.Src.Plan003"].Value, L["PP.WorkOrder.Src.Manual"].Value, L["PP.WorkOrder.Src.None"].Value,
         L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value),
-        OperatorTexts());
+        OperatorTexts(), _lots);
 
     // 라인별 작업자 — 진행 중 공정은 열린 POP 세션(없으면 Logout), 끝난 공정은 당시 실적을 올린 사람(들). 3명을 넘으면 나머지는 눌러서 펼친다
     const int OpShown = 3;
@@ -266,8 +267,15 @@ else
         builder.CloseElement();
     };
 
+    // 흐름 화면의 LOT 칩을 누르면 JS 가 부른다 — 그 LOT 의 내용을 팝업으로 연다
+    [JSInvokable]
+    public async Task OpenLot(string lotCode)
+        => await InvokeAsync(() => Dialog.OpenAsync<LotDetailDialog>(lotCode, new Dictionary<string, object?> { ["LotCode"] = lotCode },
+               new DialogOptions { Width = "62vw", Height = "auto", Resizable = true, CloseDialogOnOverlayClick = true }));
+
     public async ValueTask DisposeAsync()
     {
+        _self?.Dispose();
         _cts?.Cancel();
         _cts?.Dispose();
         if (_mod is null) return;
@@ -278,6 +286,8 @@ else
     List<AMES.Data.Repositories.WorkOrderRepository.StepRow> _steps = new();
     AMES.Data.Repositories.WorkOrderRepository.WoTraceRow? _trace;
     List<AMES.Data.Repositories.WorkOrderRepository.StepOperators> _ops = new();
+    List<AMES.Data.Repositories.WorkOrderRepository.WoLotRow> _lots = new();   // 흐름 보기 LOT 칩
+    DotNetObjectReference<WoDetailDialog>? _self;                                // 흐름 화면의 LOT 칩 클릭을 받는다
 
     protected override void OnInitialized()
     {
@@ -288,6 +298,7 @@ else
             _steps = Wos.ListSteps(_wo.WoId);
             _trace = Wos.GetTrace(_wo.WoId);
             _ops = Wos.ListStepOperators(_wo.WoId);
+            _lots = Wos.ListWoLots(_wo.WoId);
             _live = _steps.Any(s => s.Status == "In Progress") || _wo.Status == "In Progress";
         }
         catch { _wo = null; }

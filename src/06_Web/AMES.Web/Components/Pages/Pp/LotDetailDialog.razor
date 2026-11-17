@@ -1,0 +1,99 @@
+@* LOT 번호 한 건의 내용 팝업 — 기본 정보, 부모/자식 LOT(눌러서 이동), 작업지시, 실적, 불량, 현재 재고(팔레트·위치).
+   WO 흐름 보기의 LOT 칩·LOT 링크가 연다. *@
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Web.Services.ActorNames Actors
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="min-width:640px;">
+    @if (_lot is null)
+    {
+        <div class="dim" style="padding:12px;">@(_error ?? L["PP.Lot.NotFound"].Value)</div>
+    }
+    else
+    {
+        <div class="ipk-info" style="margin-bottom:12px;">
+            <div class="ipk-k">LOT</div><div class="ipk-v code">@_lot.LotCode</div>
+            <div class="ipk-k">@L["Col.Status"]</div><div class="ipk-v"><span class="pill info">@_lot.Status</span></div>
+            <div class="ipk-k">@L["Col.PartNo"]</div><div class="ipk-v code" data-item="@_lot.ItemNo">@_lot.ItemNo</div>
+            <div class="ipk-k">@L["PP.Lot.Process"]</div><div class="ipk-v">@_lot.ProcessCode · @_lot.LineId</div>
+            <div class="ipk-k"></div><div class="ipk-v dim" style="font-weight:400;">@_lot.ItemName</div>
+            <div class="ipk-k">@L["PP.Lot.ProducedAt"]</div><div class="ipk-v">@(_lot.ProducedAt?.ToString(DateFmt.DateTime) ?? "—")</div>
+            <div class="ipk-k">@L["PP.WorkOrder.Trace.Wo"]</div><div class="ipk-v"><WoLink WoNumber="@_lot.WoNumber" /></div>
+            <div class="ipk-k">@L["PP.Lot.Parent"]</div><div class="ipk-v"><LotLink LotCode="@_lot.ParentLotCode" /></div>
+        </div>
+
+        @if (_lot.ChildLotCodes.Count > 0)
+        {
+            <div class="ipk-sub">@L["PP.Lot.Children"] · @_lot.ChildLotCodes.Count</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px;">
+                @foreach (var c in _lot.ChildLotCodes) { <span class="ipk-chip"><LotLink LotCode="@c" /></span> }
+            </div>
+        }
+
+        <div class="ipk-sub">@L["PP.WorkOrder.Trace.Result"] · @_lot.Results.Count</div>
+        @if (_lot.Results.Count == 0)
+        {
+            <div class="dim" style="margin:4px 0 12px;">—</div>
+        }
+        else
+        {
+            <div class="ipk-tree" style="max-height:170px;margin:4px 0 12px;">
+                <div class="ipk-row ipk-head" style="grid-template-columns: 160px 80px 130px 70px 150px minmax(0,1fr);">
+                    <span>@L["PP.Lot.At"]</span><span>@L["PP.Lot.Process"]</span><span>@L["Col.Line"]</span><span class="r">@L["PP.WorkOrder.Trace.Good"]</span><span>@L["PP.WoDetail.Operator"]</span><span>@L["PP.WoDetail.Mold"]</span>
+                </div>
+                @foreach (var r in _lot.Results)
+                {
+                    <div class="ipk-row" style="grid-template-columns: 160px 80px 130px 70px 150px minmax(0,1fr);">
+                        <span>@(r.At?.ToString(DateFmt.DateTime) ?? "—")</span><span>@r.ProcessCode</span><span>@r.LineId</span>
+                        <span class="r">@r.GoodQty.ToString("#,0")</span><span>@(string.IsNullOrEmpty(r.OperatorId) ? "—" : Actors.Display(r.OperatorId))</span><span>@(r.MoldId ?? "—")</span>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_lot.Defects.Count > 0)
+        {
+            <div class="ipk-sub">@L["PP.WorkOrder.Trace.Defect"] · @_lot.Defects.Count</div>
+            <div class="ipk-tree" style="max-height:120px;margin:4px 0 12px;">
+                @foreach (var d in _lot.Defects)
+                {
+                    <div class="ipk-row" style="grid-template-columns: 160px 120px 60px 130px minmax(0,1fr);">
+                        <span>@(d.At?.ToString(DateFmt.DateTime) ?? "—")</span><span class="code">@d.DefectCode</span><span class="r">@d.Qty.ToString("#,0")</span>
+                        <span><span class="pill warn">@(d.Disposition ?? "—")</span></span><span class="dim">@d.CauseCode</span>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="ipk-sub">@L["PP.Lot.Stock"]</div>
+        @if (_lot.Stock.Count == 0)
+        {
+            <div class="dim" style="margin:4px 0 12px;">@L["PP.Lot.NoStock"]</div>
+        }
+        else
+        {
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px;">
+                @foreach (var s in _lot.Stock)
+                {
+                    <span class="ipk-chip"><span class="code">@(s.PalletNo ?? "—")</span> · @(string.IsNullOrEmpty(s.LocationNo) ? L["PP.PlanConfirm.Stock.Unassigned"].Value : s.LocationNo) · <b>@s.Qty.ToString("#,0")</b></span>
+                }
+            </div>
+        }
+    }
+    <div style="display:flex;justify-content:flex-end;">
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string LotCode { get; set; } = "";
+    AMES.Data.Repositories.WorkOrderRepository.LotDetail? _lot;
+    string? _error;
+
+    protected override void OnInitialized()
+    {
+        try { _lot = Wos.GetLotDetail(LotCode); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+}

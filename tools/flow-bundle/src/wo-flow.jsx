@@ -39,6 +39,7 @@ const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ..
 
 function WoNode({ data }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [chipsOpen, setChipsOpen] = useState(false);
   const accent = data.status ? (STATUS_COLOR[data.status] ?? KIND_COLOR[data.kind]) : KIND_COLOR[data.kind];
   const cur = data.status === 'cur';
   return (
@@ -61,6 +62,17 @@ function WoNode({ data }) {
           {moreOpen && data.operatorMore ? data.operatorMore.map((m, i) => <div key={i} className="ames-flow-op-more">{m}</div>) : null}
         </div>
       ) : null}
+      {data.chips && data.chips.length ? (
+        <div className={'ames-flow-chips nodrag nopan nowheel' + (chipsOpen ? ' ames-flow-chips-open' : '')}>
+          {(chipsOpen ? data.chips : data.chips.slice(0, CHIPS_SHOWN)).map(c => (
+            <button key={c.key} type="button" className="ames-flow-chip" title={c.key}
+                    onClick={() => dotnetRefs.get(data.hostId)?.invokeMethodAsync('OpenLot', c.key)}>{c.text}</button>
+          ))}
+          {data.chips.length > CHIPS_SHOWN ? (
+            <button type="button" className="ames-flow-more" onClick={() => setChipsOpen(v => !v)}>{chipsOpen ? '▲' : '+' + (data.chips.length - CHIPS_SHOWN)}</button>
+          ) : null}
+        </div>
+      ) : null}
       {typeof data.progress === 'number' ? (
         <div className="ames-flow-bar" title={Math.round(data.progress) + '%'}>
           <div className="ames-flow-bar-fill" style={{ width: Math.max(0, Math.min(100, data.progress)) + '%', background: accent }} />
@@ -76,10 +88,10 @@ const nodeTypes = { wo: WoNode };
 
 function theme() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
 
-const toNode = (n, prev) => ({
+const toNode = (n, prev, hostId) => ({
   id: n.id, type: 'wo', position: prev ? prev.position : { x: n.x, y: n.y },   // 사용자가 옮긴 자리를 유지
   data: { kind: n.kind, kindLabel: n.kindLabel, title: n.title, lines: n.lines, status: n.status, statusLabel: n.statusLabel,
-          progress: n.progress, operator: n.operator, operatorLive: n.operatorLive, operatorMore: n.operatorMore, href: n.href, linkText: n.linkText },
+          progress: n.progress, operator: n.operator, operatorLive: n.operatorLive, operatorMore: n.operatorMore, chips: n.chips, hostId, href: n.href, linkText: n.linkText },
   zIndex: n.status === 'cur' ? 10 : 0,
 });
 const toEdge = e => ({
@@ -91,9 +103,11 @@ const toEdge = e => ({
 });
 
 const handles = new Map();   // elementId -> { setGraph }
+const dotnetRefs = new Map();   // elementId -> Blazor DotNetObjectReference — LOT 칩을 누르면 OpenLot(lotCode) 를 부른다
+const CHIPS_SHOWN = 6;          // LOT 칩을 처음 몇 개까지 보일지(나머지는 +n 으로 펼침)
 
 function Flow({ elementId, graph, labels }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes.map(n => toNode(n)));
+  const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes.map(n => toNode(n, undefined, elementId)));
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges.map(toEdge));
   const { fitView } = useReactFlow();
   const [fs, setFs] = useState(false);
@@ -103,7 +117,7 @@ function Flow({ elementId, graph, labels }) {
   useEffect(() => {
     handles.set(elementId, {
       setGraph: g => {
-        setNodes(prev => g.nodes.map(n => toNode(n, prev.find(p => p.id === n.id))));
+        setNodes(prev => g.nodes.map(n => toNode(n, prev.find(p => p.id === n.id), elementId)));
         setEdges(g.edges.map(toEdge));
       },
     });
@@ -191,7 +205,8 @@ function Flow({ elementId, graph, labels }) {
 
 const roots = new Map();
 
-export function render(elementId, graph, labels) {
+export function render(elementId, graph, labels, dotnetRef) {
+  if (dotnetRef) dotnetRefs.set(elementId, dotnetRef);
   const el = document.getElementById(elementId);
   if (!el) return;
   dispose(elementId);
@@ -210,4 +225,5 @@ export function dispose(elementId) {
   const r = roots.get(elementId);
   if (r) { try { r.unmount(); } catch { /* 이미 사라진 요소 */ } roots.delete(elementId); }
   handles.delete(elementId);
+  dotnetRefs.delete(elementId);
 }

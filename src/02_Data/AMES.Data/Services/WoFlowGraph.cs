@@ -10,7 +10,9 @@ namespace AMES.Data.Services;
 public static class WoFlowGraph
 {
     public sealed record Node(string Id, string Kind, string KindLabel, string Title, IReadOnlyList<string> Lines,
-        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, string? Operator = null, bool OperatorLive = false, IReadOnlyList<string>? OperatorMore = null);
+        string? Status, string? Href, string? LinkText, int X, int Y, string? StatusLabel = null, double? Progress = null, string? Operator = null, bool OperatorLive = false, IReadOnlyList<string>? OperatorMore = null, IReadOnlyList<Chip>? Chips = null);
+    /// <summary>노드 안의 눌러 볼 수 있는 칩 — 흐름 보기의 LOT 번호(Key = LOT 번호). 누르면 화면이 LOT 팝업을 연다.</summary>
+    public sealed record Chip(string Text, string Key);
     /// <summary>공정 작업자 표시 — Text 는 처음 몇 명, More 는 나머지(눌러서 펼친다).</summary>
     public sealed record OperatorInfo(string Text, bool Live, IReadOnlyList<string>? More = null);
     public sealed record Edge(string Id, string Source, string Target, bool Animated, string? Label, string? SourceHandle = null, string? TargetHandle = null);
@@ -29,7 +31,7 @@ public static class WoFlowGraph
     static double Pct(decimal done, decimal total) => total <= 0 ? 0 : (double)Math.Min(100m, done * 100m / total);
 
     public static Graph Build(WorkOrderDto wo, IReadOnlyList<WorkOrderRepository.StepRow> steps, WorkOrderRepository.WoTraceRow? t, Texts x,
-        IReadOnlyDictionary<string, OperatorInfo>? operators = null)
+        IReadOnlyDictionary<string, OperatorInfo>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null)
     {
         var nodes = new List<Node>();
         var edges = new List<Edge>();
@@ -78,7 +80,8 @@ public static class WoFlowGraph
             // 작업지시 아래(b)에서 나와 슬롯 위(t)로 들어간다 — 슬롯이 작업지시 바로 아래 줄에 놓인다
             edges.Add(new Edge("wo-slots", "wo", "slots", false, null, "b", "t"));
             nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {t.GoodQty:#,0}",
-                [$"{x.Defect} {t.DefectCount}", $"LOT {t.LotCount}"], t.GoodQty > 0 ? "done" : null, null, null, 3 * ColW, RowH));
+                [$"{x.Defect} {t.DefectCount}", $"LOT {Math.Max(t.LotCount, lots?.Count ?? 0)}"], t.GoodQty > 0 ? "done" : null, null, null, 3 * ColW, RowH,
+                Chips: lots is { Count: > 0 } ? lots.Select(l => new Chip(l.LotCode, l.LotCode)).ToList() : null));
             edges.Add(new Edge("slots-result", "slots", "result", false, null));
         }
         return new Graph(nodes, edges);

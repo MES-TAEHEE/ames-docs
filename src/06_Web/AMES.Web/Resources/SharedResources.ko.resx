@@ -2724,6 +2724,30 @@
   <data name="MD.MoldItem.Ph.Search" xml:space="preserve">
     <value>금형 ID/명칭/품번</value>
   </data>
+  <data name="PP.Lot.NotFound" xml:space="preserve">
+    <value>LOT 정보를 찾을 수 없습니다.</value>
+  </data>
+  <data name="PP.Lot.Process" xml:space="preserve">
+    <value>공정</value>
+  </data>
+  <data name="PP.Lot.ProducedAt" xml:space="preserve">
+    <value>생산 시각</value>
+  </data>
+  <data name="PP.Lot.Parent" xml:space="preserve">
+    <value>부모 LOT</value>
+  </data>
+  <data name="PP.Lot.Children" xml:space="preserve">
+    <value>자식 LOT</value>
+  </data>
+  <data name="PP.Lot.At" xml:space="preserve">
+    <value>시각</value>
+  </data>
+  <data name="PP.Lot.Stock" xml:space="preserve">
+    <value>현재 재고</value>
+  </data>
+  <data name="PP.Lot.NoStock" xml:space="preserve">
+    <value>재고에 남아 있지 않습니다(출하·소진·불량 처리).</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>
