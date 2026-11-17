@@ -46,6 +46,27 @@ public class SrmParsersTests
         Assert.Equal("310471", po.VendorCode);
     }
 
+    [Theory]
+    [InlineData("46343", 2026, 11, 17)]        // 엑셀 날짜 셀(일련번호)
+    [InlineData("46343.0", 2026, 11, 17)]
+    [InlineData("2026/11/17", 2026, 11, 17)]
+    [InlineData("20261117", 2026, 11, 17)]
+    [InlineData("11/17/2026", 2026, 11, 17)]
+    [InlineData("2026-11-17 00:00:00", 2026, 11, 17)]
+    public void Po_list_reads_excel_serial_and_other_date_formats(string cell, int y, int m, int d)
+    {
+        var rows = new[]
+        {
+            new[] { "발주번호", "PART NO", "납기일자", "발주일자", "발주량" },
+            new[] { "SO-TST-007-10", "TST-A-001", cell, cell, "10" },
+        };
+
+        var po = Assert.Single(PoListGrid.Parse(rows));
+
+        Assert.Equal(new DateTime(y, m, d), po.RequestedDeliveryDate);
+        Assert.Equal(new DateTime(y, m, d), po.OrderDate);
+    }
+
     [Fact]
     public void Po_list_names_every_missing_required_column_instead_of_guessing_positions()
     {

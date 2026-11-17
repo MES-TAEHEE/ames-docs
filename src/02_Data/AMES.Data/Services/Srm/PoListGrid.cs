@@ -88,10 +88,22 @@ public static class PoListGrid
             ? (head, n) : (s, null);
     }
 
-    static DateTime? ParseDate(string s)
+    static readonly string[] DateFormats =
     {
+        "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd", "yyyyMMdd", "yyyy-M-d", "yyyy/M/d",
+        "MM/dd/yyyy", "M/d/yyyy", "MM-dd-yyyy", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy/MM/dd HH:mm:ss",
+    };
+
+    // 텍스트 날짜뿐 아니라 엑셀 날짜 셀(일련번호 "46343" 또는 소수 포함)도 읽는다 — xlsx 리더는 날짜 셀 값을 변환하지 않고 넘긴다.
+    internal static DateTime? ParseDate(string s)
+    {
+        s = s.Trim();
         if (s.Length == 0 || s.StartsWith("0000")) return null;
-        return DateTime.TryParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
+        if (DateTime.TryParseExact(s, DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) return d.Date;
+        // yyyyMMdd(8자리)는 위 형식이 먼저 받으므로, 여기 오는 숫자는 일련번호 — 1900-01 ~ 2173 범위만 날짜로 본다
+        if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var serial) && serial >= 1 && serial < 100000)
+            return DateTime.FromOADate(serial).Date;
+        return null;
     }
 
     static decimal Qty(string s, string col, int row)
