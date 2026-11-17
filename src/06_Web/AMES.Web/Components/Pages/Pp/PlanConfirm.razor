@@ -7,6 +7,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject NavigationManager Nav
 @inject DialogService Dialog
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.PlanConfirm.Title"] · AMES</PageTitle>
@@ -54,11 +55,23 @@
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
-            @if (_canEdit)
+            <RadzenButton Text="@(_showHeld ? L["PP.PlanConfirm.Btn.HideHeld"].Value : string.Format(L["PP.PlanConfirm.Btn.ShowHeld"].Value, _heldCount))"
+                          Icon="@(_showHeld ? "arrow_back" : "pause_circle")" ButtonStyle="@(_showHeld ? ButtonStyle.Warning : ButtonStyle.Light)" Size="ButtonSize.Small" class="ames-rz-btn"
+                          Click="ToggleHeld" />
+            @if (_canEdit && !_showHeld)
             {
+                <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Hold"].Value, _selected.Count)"
+                              Icon="pause" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_selected.Count == 0)" Click="HoldSelected" />
                 <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
                               Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
                               Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
+            }
+            @if (_canEdit && _showHeld)
+            {
+                <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.HoldRelease"].Value, _selected.Count)"
+                              Icon="play_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_selected.Count == 0)" Click="ReleaseSelected" />
             }
         </RadzenStack>
     </div>
@@ -82,7 +95,7 @@ else
                            @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
                 <Template Context="r">
-                    <input type="checkbox" class="pc-ck" disabled="@(r.Blocked || r.FullyIssued)"
+                    <input type="checkbox" class="pc-ck" disabled="@(!_showHeld && (r.Blocked || r.FullyIssued))"
                            checked="@_selected.Contains(r.SoId)"
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
@@ -145,10 +158,15 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="190px" Title="@L["Col.Status"].Value"
-                                  Sortable="false" Filterable="false" Width="190px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="260px" Title="@L["Col.Status"].Value"
+                                  Sortable="false" Filterable="false" Width="260px">
                 <Template Context="r">
-                    @if (r.FullyIssued)
+                    @if (r.PlanHold)
+                    {
+                        <span class="pill warn" title="@(r.PlanHoldReason ?? "")">@L["PP.PlanConfirm.Status.Held"]</span>
+                        @if (!string.IsNullOrEmpty(r.PlanHoldReason)) { <span class="dim" style="font-size:.85em;"> · @r.PlanHoldReason</span> }
+                    }
+                    else if (r.FullyIssued)
                     {
                         <span class="pill ok" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Issued"]</span>
                     }
@@ -182,6 +200,8 @@ else
     DateTime? _fFrom = DbClock.Today.AddDays(-7);
     DateTime? _fTo   = DbClock.Today.AddDays(7);
     bool      _showIssued;
+    bool      _showHeld;     // 검토 대기(보류) 보기
+    int       _heldCount;    // 같은 고객·납기 조건의 보류 수주 수
 
     List<PpRepository.PlanLineRow> _rows = new();   // 조회 결과
     List<PpRepository.PlanLineRow> _view = new();   // 텍스트 필터 적용 표시용
@@ -192,7 +212,8 @@ else
     bool   _isErr;
 
     int BlockedCount => _rows.Count(r => r.Blocked);
-    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => !r.Blocked && !r.FullyIssued);
+    // 검토 대기 보기에서는 보류를 풀 수주를 고르므로 막힘·발행 여부와 무관하게 전부 고를 수 있다
+    IEnumerable<PpRepository.PlanLineRow> Selectable => _showHeld ? _view : _view.Where(r => !r.Blocked && !r.FullyIssued);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = WO 일괄 생성
@@ -212,7 +233,11 @@ else
 
     void Search()
     {
-        try   { _rows = Pp.ListPlanCandidates(_fCustomer ?? "", _fFrom, _fTo, includeIssued: _showIssued); }
+        try
+        {
+            _rows = Pp.ListPlanCandidates(_fCustomer ?? "", _fFrom, _fTo, includeIssued: _showIssued, onlyHeld: _showHeld);
+            _heldCount = Pp.CountPlanHeld(_fCustomer ?? "", _fFrom, _fTo);
+        }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
         _selected.RemoveWhere(id => _rows.All(r => r.SoId != id));
         ApplyFilters();
@@ -232,7 +257,7 @@ else
 
     void Reset()
     {
-        _fCustomer = ""; _fText = ""; _showIssued = false;
+        _fCustomer = ""; _fText = ""; _showIssued = false; _showHeld = false;
         _fFrom = DbClock.Today.AddDays(-7); _fTo = DbClock.Today.AddDays(7);
         Search();
     }
@@ -243,6 +268,49 @@ else
         _fFrom = (_fFrom ?? DbClock.Today.AddDays(-7)).AddDays(7 * dir);
         _fTo   = (_fTo   ?? DbClock.Today.AddDays(7)).AddDays(7 * dir);
         Search();
+    }
+
+    void ToggleHeld()
+    {
+        _showHeld = !_showHeld;
+        _selected.Clear();
+        Search();
+    }
+
+    // 선택한 수주를 검토 대기로 보류 — 목록에서 숨기고 「검토 대기 보기」에서만 보인다(사유는 선택)
+    async Task HoldSelected()
+    {
+        if (!_canEdit) return;
+        var ids = _rows.Where(r => _selected.Contains(r.SoId)).Select(r => r.SoId).ToList();
+        if (ids.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
+        var res = await Dialog.OpenAsync<PlanHoldDialog>(L["PP.PlanConfirm.Dlg.HoldTitle"].Value,
+            new Dictionary<string, object?> { ["Count"] = ids.Count }, new DialogOptions { Width = "480px" });
+        if (res is not PlanHoldDialog.Result r) return;
+        await ApplyHold(ids, true, r.Reason, "PP.PlanConfirm.Ok.Held");
+    }
+
+    async Task ReleaseSelected()
+    {
+        if (!_canEdit) return;
+        var ids = _rows.Where(r => _selected.Contains(r.SoId)).Select(r => r.SoId).ToList();
+        if (ids.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
+        await ApplyHold(ids, false, null, "PP.PlanConfirm.Ok.HoldReleased");
+    }
+
+    async Task ApplyHold(List<int> ids, bool hold, string? reason, string okKey)
+    {
+        try
+        {
+            var auth = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+            var n = await Task.Run(() => Pp.SetPlanHold(ids, hold, reason, actor));
+            var keys = _rows.Where(r => ids.Contains(r.SoId)).Select(r => $"{r.SoNumber}-{r.SoLineNo}").ToList();
+            Audit.Log("PP-003", hold ? "HOLD" : "HOLD_RELEASE", "PP_CustomerOrder", string.Join(",", keys.Take(10)), null, new { Count = n, Reason = reason, Orders = keys });
+            _selected.Clear();
+            ShowMsg(string.Format(L[okKey].Value, n), false);
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
     }
 
     void ToggleRow(int soId, bool on)

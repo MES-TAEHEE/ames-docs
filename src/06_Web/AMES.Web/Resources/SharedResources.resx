@@ -2658,6 +2658,45 @@
   <data name="SoLink.None" xml:space="preserve">
     <value>이 수주에 연결된 작업지시가 없습니다.</value>
   </data>
+  <data name="PP.PlanConfirm.Btn.ShowHeld" xml:space="preserve">
+    <value>검토 대기 보기 ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HideHeld" xml:space="preserve">
+    <value>계획 확정 목록으로</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.Hold" xml:space="preserve">
+    <value>검토 대기로 보류 ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldRelease" xml:space="preserve">
+    <value>보류 해제 ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldDo" xml:space="preserve">
+    <value>보류</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Held" xml:space="preserve">
+    <value>검토 대기</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldTitle" xml:space="preserve">
+    <value>검토 대기로 보류</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldCount" xml:space="preserve">
+    <value>선택한 수주 {0}건을 검토 대기로 보류합니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReason" xml:space="preserve">
+    <value>사유 (선택)</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReasonPh" xml:space="preserve">
+    <value>예: 고객 확인 대기, 재고로 충당</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldHint" xml:space="preserve">
+    <value>보류하면 계획 확정 목록에서 숨겨집니다. 고객이 수량·납기를 바꿔 다시 들어오면 자동으로 풀립니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Held" xml:space="preserve">
+    <value>{0}건을 검토 대기로 보류했습니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.HoldReleased" xml:space="preserve">
+    <value>{0}건의 보류를 풀었습니다.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>자재 예약</value>
   </data>

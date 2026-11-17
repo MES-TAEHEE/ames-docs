@@ -68,7 +68,7 @@ public sealed partial class PpRepository
     // LineLoadPct = 그 라인의 앞으로 7일(근무일만) PP_LineSchedule WO 슬롯 분 ÷ 가동 분 — 스케줄러가 실제로 채운 시간 기준.
     public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
-        string? LineId, int? LineLoadPct, string? RoutingType, decimal IssuedQty = 0)
+        string? LineId, int? LineLoadPct, string? RoutingType, decimal IssuedQty = 0, bool PlanHold = false, string? PlanHoldReason = null)
     {
         /// <summary>아직 WO 로 발행되지 않은 수량. 분할 발행(같은 수주에 WO 여러 개) 뒤에도 후보에 남는 기준.</summary>
         public decimal RemainQty => Math.Max(0m, OrderQty - IssuedQty);
@@ -509,7 +509,11 @@ public sealed partial class PpRepository
     {
         const string updSql = """
             UPDATE S
-            SET    ItemNo = @Item, OrderQty = @OrderQty,
+            SET    PlanHold = CASE WHEN ISNULL(S.OrderQty,-1) <> @OrderQty OR ISNULL(S.RequestedDeliveryDate,'19000101') <> ISNULL(@ReqDate,'19000101') THEN 0 ELSE S.PlanHold END,   -- 수량·납기가 바뀌어 다시 들어오면 검토 대기를 푼다
+                   PlanHoldReason = CASE WHEN ISNULL(S.OrderQty,-1) <> @OrderQty OR ISNULL(S.RequestedDeliveryDate,'19000101') <> ISNULL(@ReqDate,'19000101') THEN NULL ELSE S.PlanHoldReason END,
+                   PlanHoldBy = CASE WHEN ISNULL(S.OrderQty,-1) <> @OrderQty OR ISNULL(S.RequestedDeliveryDate,'19000101') <> ISNULL(@ReqDate,'19000101') THEN NULL ELSE S.PlanHoldBy END,
+                   PlanHoldAt = CASE WHEN ISNULL(S.OrderQty,-1) <> @OrderQty OR ISNULL(S.RequestedDeliveryDate,'19000101') <> ISNULL(@ReqDate,'19000101') THEN NULL ELSE S.PlanHoldAt END,
+                   ItemNo = @Item, OrderQty = @OrderQty,
                    ShippedQty = CASE WHEN @ShippedQty IS NULL THEN S.ShippedQty
                        WHEN @ShippedQty < COALESCE(S.ShippedQty,0)
                        AND EXISTS (SELECT 1 FROM dbo.FG_ShippingOrderLine L
@@ -611,9 +615,53 @@ public sealed partial class PpRepository
             r.GetDecimal(r.GetOrdinal("TotalPlannedQty"))));
     }
 
+    /// <summary>
+    /// PP-003 검토 대기 — 확정 수주를 보류(hold=true)하거나 풀어(false) 계획 확정 목록에서 숨기거나 되살린다.
+    /// 수주 상태는 그대로이고 확정(Confirmed) 수주만 바뀐다. 바뀐 줄 수를 돌려준다.
+    /// </summary>
+    public int SetPlanHold(IReadOnlyList<int> soIds, bool hold, string? reason, string actor)
+    {
+        if (soIds.Count == 0) return 0;
+        const string sql = """
+            UPDATE dbo.PP_CustomerOrder
+            SET    PlanHold = @Hold,
+                   PlanHoldReason = CASE WHEN @Hold = 1 THEN @Reason ELSE NULL END,
+                   PlanHoldBy = CASE WHEN @Hold = 1 THEN @Actor ELSE NULL END,
+                   PlanHoldAt = CASE WHEN @Hold = 1 THEN SYSDATETIME() ELSE NULL END,
+                   ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  Status = 'Confirmed' AND PlanHold <> @Hold
+              AND  SoID IN (SELECT CAST(value AS int) FROM STRING_SPLIT(@Ids, ','));
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Hold", SqlDbType.Bit).Value = hold;
+        ColumnParams.Add(cmd, "@Reason", "PP_CustomerOrder.PlanHoldReason", string.IsNullOrWhiteSpace(reason) ? null : reason.Trim());
+        ColumnParams.Add(cmd, "@Actor", "PP_CustomerOrder.PlanHoldBy", actor);
+        ColumnParams.AddFilter(cmd, "@Ids", null, string.Join(",", soIds.Distinct()));
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>PP-003 「검토 대기 보기」 버튼의 건수 — 같은 고객·납기 조건의 보류 수주 수.</summary>
+    public int CountPlanHeld(string customerId, DateTime? dueFrom, DateTime? dueTo)
+    {
+        const string sql = """
+            SELECT COUNT(*) FROM dbo.PP_CustomerOrder s
+            WHERE  s.Status = 'Confirmed' AND s.PlanHold = 1
+              AND (@Cust = '' OR s.CustomerID = @Cust)
+              AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
+              AND (@To   IS NULL OR s.RequestedDeliveryDate <= @To);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = customerId ?? "";
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)dueFrom ?? DBNull.Value;
+        cmd.Parameters.Add("@To", SqlDbType.Date).Value = (object?)dueTo ?? DBNull.Value;
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
     // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
     // includeIssued = 수주 수량만큼 WO 가 다 발행된 확정 수주도 함께 (조회용, 선택 불가)
-    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false)
+    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false, bool onlyHeld = false)
     {
         var sql = $$"""
             SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
@@ -624,7 +672,7 @@ public sealed partial class PpRepository
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
                    i.RoutingType,
                    ln.LineID AS LineId,
-                   ISNULL(iss.Qty,0) AS IssuedQty
+                   ISNULL(iss.Qty,0) AS IssuedQty, s.PlanHold, s.PlanHoldReason
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
@@ -638,7 +686,9 @@ public sealed partial class PpRepository
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
                          ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
-            WHERE  s.Status = 'Confirmed' AND (@All = 1 OR ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0)   -- 잔량 있는 수주(분할 발행 가능), @All 이면 발행 완료 수주도
+            WHERE  s.Status = 'Confirmed'
+               AND (   (@Held = 1 AND s.PlanHold = 1)                                                       -- 검토 대기 보기: 보류한 수주만
+                    OR (@Held = 0 AND s.PlanHold = 0 AND (@All = 1 OR ISNULL(s.OrderQty,0) - ISNULL(iss.Qty,0) > 0)))   -- 기본: 보류 아닌 잔량 있는 수주(분할 발행 가능), @All 이면 발행 완료 수주도
                AND (@Cust = '' OR s.CustomerID = @Cust)
                AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
                AND (@To   IS NULL OR s.RequestedDeliveryDate <= @To)
@@ -650,6 +700,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)dueFrom ?? DBNull.Value;
         cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)dueTo   ?? DBNull.Value;
         cmd.Parameters.Add("@All",  SqlDbType.Bit).Value  = includeIssued;
+        cmd.Parameters.Add("@Held", SqlDbType.Bit).Value  = onlyHeld;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PlanLineRow>();
         while (rdr.Read())
@@ -661,7 +712,8 @@ public sealed partial class PpRepository
                 rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
                 rdr["LineId"] as string, null,
                 rdr["RoutingType"] as string,
-                rdr.GetDecimal(rdr.GetOrdinal("IssuedQty"))));
+                rdr.GetDecimal(rdr.GetOrdinal("IssuedQty")),
+            Convert.ToBoolean(rdr["PlanHold"]), rdr["PlanHoldReason"] as string));
         rdr.Close();
 
         var load = ReadWeekLoad(conn, list.Select(r => r.LineId).OfType<string>().Distinct());

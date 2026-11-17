@@ -2655,6 +2655,45 @@
   <data name="SoLink.None" xml:space="preserve">
     <value>Este pedido no tiene órdenes de trabajo vinculadas.</value>
   </data>
+  <data name="PP.PlanConfirm.Btn.ShowHeld" xml:space="preserve">
+    <value>Ver en espera ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HideHeld" xml:space="preserve">
+    <value>Volver a confirmación</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.Hold" xml:space="preserve">
+    <value>Poner en espera ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldRelease" xml:space="preserve">
+    <value>Quitar espera ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldDo" xml:space="preserve">
+    <value>En espera</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Held" xml:space="preserve">
+    <value>En espera</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldTitle" xml:space="preserve">
+    <value>Poner en espera</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldCount" xml:space="preserve">
+    <value>Se pondrán en espera {0} pedido(s) seleccionados.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReason" xml:space="preserve">
+    <value>Motivo (opcional)</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReasonPh" xml:space="preserve">
+    <value>p. ej. espera del cliente, cubierto con stock</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldHint" xml:space="preserve">
+    <value>Los pedidos en espera se ocultan de la lista. Se liberan automáticamente si el cliente cambia cantidad o fecha.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Held" xml:space="preserve">
+    <value>{0} pedido(s) puestos en espera.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.HoldReleased" xml:space="preserve">
+    <value>Se liberaron {0} espera(s).</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
   </data>

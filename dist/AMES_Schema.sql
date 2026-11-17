@@ -4680,6 +4680,10 @@ CREATE TABLE [dbo].[PP_CustomerOrder](
 	[PromisedDate] [date] NULL,
 	[Status] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[SapSyncedAt] [datetime2](7) NULL,
+	[PlanHold] [bit] NOT NULL,
+	[PlanHoldReason] [nvarchar](200) COLLATE DATABASE_DEFAULT NULL,
+	[PlanHoldBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[PlanHoldAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -4689,6 +4693,8 @@ CREATE TABLE [dbo].[PP_CustomerOrder](
 	[SoID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_CustomerOrder] ADD  CONSTRAINT [DF_PP_CustomerOrder_PlanHold]  DEFAULT ((0)) FOR [PlanHold]
 GO
 ALTER TABLE [dbo].[PP_CustomerOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -4715,6 +4721,14 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'Status'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sap Synced At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'SapSyncedAt'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PP-003 계획 확정 보류(검토 대기) · bit · 1 = 보류' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'PlanHold'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'보류 사유(선택) · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'PlanHoldReason'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'보류한 사번 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'PlanHoldBy'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'보류한 시각 · datetime2(7)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'PlanHoldAt'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO

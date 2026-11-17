@@ -2658,6 +2658,45 @@
   <data name="SoLink.None" xml:space="preserve">
     <value>No work orders are linked to this order.</value>
   </data>
+  <data name="PP.PlanConfirm.Btn.ShowHeld" xml:space="preserve">
+    <value>View on hold ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HideHeld" xml:space="preserve">
+    <value>Back to plan confirm</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.Hold" xml:space="preserve">
+    <value>Put on hold ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldRelease" xml:space="preserve">
+    <value>Release hold ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.HoldDo" xml:space="preserve">
+    <value>Hold</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Held" xml:space="preserve">
+    <value>On hold</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldTitle" xml:space="preserve">
+    <value>Put on hold for review</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldCount" xml:space="preserve">
+    <value>{0} selected order(s) will be put on hold.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReason" xml:space="preserve">
+    <value>Reason (optional)</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldReasonPh" xml:space="preserve">
+    <value>e.g. waiting for customer, covered by stock</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.HoldHint" xml:space="preserve">
+    <value>Held orders are hidden from this list. They are released automatically when the customer changes quantity or due date.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Held" xml:space="preserve">
+    <value>{0} order(s) put on hold.</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.HoldReleased" xml:space="preserve">
+    <value>{0} hold(s) released.</value>
+  </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
   </data>
