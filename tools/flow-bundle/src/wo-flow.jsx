@@ -206,10 +206,10 @@ function Flow({ elementId, graph, labels }) {
 const roots = new Map();
 
 export function render(elementId, graph, labels, dotnetRef) {
-  if (dotnetRef) dotnetRefs.set(elementId, dotnetRef);
   const el = document.getElementById(elementId);
   if (!el) return;
-  dispose(elementId);
+  dispose(elementId);   // dispose 가 참조도 지우므로 그 다음에 Blazor 참조를 등록한다
+  if (dotnetRef) dotnetRefs.set(elementId, dotnetRef);
   const root = createRoot(el);
   roots.set(elementId, root);
   root.render(<ReactFlowProvider><Flow elementId={elementId} graph={graph} labels={labels || {}} /></ReactFlowProvider>);

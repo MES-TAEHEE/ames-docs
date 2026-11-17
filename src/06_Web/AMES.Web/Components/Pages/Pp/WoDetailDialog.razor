@@ -142,7 +142,7 @@ else
         _flowPending = false;
         try
         {
-            _mod ??= await JS.InvokeAsync<IJSObjectReference>("import", $"{Nav.BaseUri}js/wo-flow/wo-flow.js");
+            _mod ??= await JS.InvokeAsync<IJSObjectReference>("import", $"{Nav.BaseUri}js/wo-flow/wo-flow.js?v=20261117b");
             var graph = BuildGraph();
             await _mod.InvokeVoidAsync("render", _flowId, graph, new { fit = L["PP.WoDetail.Flow.Fit"].Value, running = L["PP.WoDetail.Flow.ShowRunning"].Value, hint = L["PP.WoDetail.Flow.Hint"].Value, fullscreen = L["PP.WoDetail.Flow.Fullscreen"].Value, exitFullscreen = L["PP.WoDetail.Flow.ExitFullscreen"].Value }, _self ??= DotNetObjectReference.Create(this));
             StartLive();
