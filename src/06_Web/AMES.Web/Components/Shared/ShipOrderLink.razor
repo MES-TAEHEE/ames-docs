@@ -15,5 +15,5 @@ else
 
     async Task Open()
         => await Dialog.OpenAsync<AMES.Web.Components.Pages.Fg.ShippingOrderDialog>(OrderNo!, new Dictionary<string, object?> { ["OrderNo"] = OrderNo },
-               new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
+               new DialogOptions { Width = "65vw", Height = "auto", Resizable = true, CloseDialogOnOverlayClick = true });
 }

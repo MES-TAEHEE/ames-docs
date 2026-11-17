@@ -5888,12 +5888,15 @@ input[data-ames-x] {
 .ipk-tool:disabled { opacity: .5; cursor: default; }
 .ipk-tool.on { color: var(--ames-tx-blue-300); border-color: currentColor; }
 .ipk-name { margin-left: 8px; font-weight: 400; font-size: .9em; }
-.ipk > .ames-modal-h { cursor: move; user-select: none; touch-action: none; }
+.ipk > .ames-modal-h { cursor: move; touch-action: none; }
 .ipk { will-change: transform; }
 .ipk.ipk-dragging { box-shadow: 0 12px 40px rgba(0,0,0,.45); }
 .ipk.ipk-dragging * { cursor: move !important; }
 /* 움직이는 팝업(js/modal-drag.js) — 모든 팝업(.ames-modal 머리·Radzen 대화상자 제목줄)을 잡고 끈다. 끄는 동안만 will-change 를 켠다 */
-.ames-modal > .ames-modal-h, .rz-dialog .rz-dialog-titlebar { cursor: move; user-select: none; touch-action: none; }
+.ames-modal > .ames-modal-h, .rz-dialog .rz-dialog-titlebar { cursor: move; touch-action: none; }
+/* 머리의 글자는 선택·복사할 수 있다 — 글자가 없는 빈 자리를 잡아야 끌린다(js/modal-drag.js) */
+.ames-modal-h, .rz-dialog-title { user-select: text; }
+.ames-modal-dragging, .ames-modal-dragging * { user-select: none; }
 .ames-modal-dragging { will-change: transform; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
 .ames-modal-dragging * { cursor: move !important; }
 .ipk-top { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 12px; align-items: stretch; }

@@ -1,6 +1,20 @@
 // 움직일 수 있는 팝업 — 모든 팝업(.ames-modal 의 머리 .ames-modal-h, Radzen 대화상자의 제목줄 .rz-dialog-titlebar)을 잡고 끌어 옮긴다.
 // 화면마다 따로 붙이지 않도록 전역에 한 번만 불러 쓴다(App.razor). 팝업을 닫았다 다시 열면 요소를 새로 그리므로 가운데로 돌아온다.
 // 품번 BOM 미리보기(.ipk)는 item-peek.js 가 따로 끈다. 움직임은 transform 만 바꾸고 프레임마다 한 번만 그린다(requestAnimationFrame).
+// 머리의 글자 위에서 누르면 끌기가 아니라 글자 선택이다 — 글자를 복사할 수 있게 하고, 글자가 없는 머리의 빈 자리를 잡아 끈다.
+// 글자 칸 위인지는 머리 안의 글자 조각들의 화면 사각형으로 판정한다(item-peek.js 의 BOM 팝업도 같이 쓴다).
+window.amesOverText = (root, x, y) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!n.nodeValue || !n.nodeValue.trim()) continue;
+        range.selectNodeContents(n);
+        for (const r of range.getClientRects())
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return true;
+    }
+    return false;
+};
+
 (() => {
     const HEAD = '.ames-modal:not(.ipk) > .ames-modal-h, .rz-dialog .rz-dialog-titlebar';
     let drag = null;
@@ -23,6 +37,7 @@
         const head = e.target.closest ? e.target.closest(HEAD) : null;
         // 머리 안의 버튼·링크·입력은 끌기로 보지 않는다
         if (!head || e.target.closest('button, a, input, select, textarea, .rz-dialog-titlebar-close')) return;
+        if (window.amesOverText(head, e.clientX, e.clientY)) return;   // 글자 위 — 선택·복사
         const box = head.closest('.ames-modal, .rz-dialog');
         if (!box) return;
         const m = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(box.style.transform || '');

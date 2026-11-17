@@ -31,11 +31,11 @@ else
         List<AMES.Data.Repositories.PpRepository.SoWorkOrderRow> rows;
         try { rows = Pp.ListWorkOrdersBySo(SoId, SoNumber!, SoLineNo); }
         catch { rows = new(); }
-        var opts = new DialogOptions { Width = "65vw", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true };
+        var opts = new DialogOptions { Width = "65vw", Height = "auto", Resizable = true, CloseDialogOnOverlayClick = true };
         if (rows.Count == 1)
             await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.WoDetailDialog>(rows[0].WoNumber, new Dictionary<string, object?> { ["WoNumber"] = rows[0].WoNumber }, opts);
         else
             await Dialog.OpenAsync<AMES.Web.Components.Pages.Pp.SoWorkOrdersDialog>(SoNumber + (SoLineNo is int l ? "-" + l : ""),
-                new Dictionary<string, object?> { ["Rows"] = rows }, new DialogOptions { Width = "720px", Height = "auto", Draggable = true, Resizable = true, CloseDialogOnOverlayClick = true });
+                new Dictionary<string, object?> { ["Rows"] = rows }, new DialogOptions { Width = "720px", Height = "auto", Resizable = true, CloseDialogOnOverlayClick = true });
     }
 }

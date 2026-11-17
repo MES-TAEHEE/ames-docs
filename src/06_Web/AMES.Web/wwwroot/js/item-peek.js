@@ -30,6 +30,7 @@
         if (e.button !== 0) return;
         const head = e.target.closest ? e.target.closest('.ipk > .ames-modal-h') : null;
         if (!head || e.target.closest('button, a, [data-item]')) return;
+        if (window.amesOverText && window.amesOverText(head, e.clientX, e.clientY)) return;   // 글자 위 — 선택·복사
         const box = head.parentElement;
         const m = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(box.style.transform || '');
         const r = box.getBoundingClientRect();
