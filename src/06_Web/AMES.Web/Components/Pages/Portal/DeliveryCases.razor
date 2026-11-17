@@ -319,7 +319,7 @@
     }
     void ChangeUnitCount(PartEdit row,decimal? count)
     {
-        try { ChangeQuantity(row,count is null ? "" : PackingUnitQuantity.FromCount(count.Value,PackSize(row),Available(row)).ToString(System.Globalization.CultureInfo.InvariantCulture)); }
+        try { ChangeQuantity(row,count is null ? "" : PackingUnitQuantity.FromCount(count.Value,PackSize(row),Available(row)).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture)); }
         catch(ArgumentException) { row.UnitInputValid=false;RebuildBoxes(); }
     }
     void RebuildBoxes()
