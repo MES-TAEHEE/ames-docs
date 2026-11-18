@@ -318,19 +318,24 @@ public sealed partial class FinishedGoodsRepository
     {
         using var conn=_factory.OpenConnection();return ReadDelivery(conn,null,barcode);
     }
-    private static ShippingDeliveryDto ReadDelivery(SqlConnection conn,SqlTransaction? tx,string barcode)
+    public ShippingDeliveryDto GetShippingDeliveryForPrint(string barcode)
+    {
+        using var conn=_factory.OpenConnection();return ReadDeliveryHeader(conn,null,barcode);
+    }
+    private static ShippingDeliveryDto ReadDeliveryHeader(SqlConnection conn,SqlTransaction? tx,string barcode)
     {
         if(string.IsNullOrWhiteSpace(barcode) || barcode.Length>30)throw new ArgumentException("Scan a DCR or shipment order barcode.");
         using var cmd=new SqlCommand("""
             SELECT D.* FROM dbo.FG_Delivery D
             WHERE D.DeliveryNo=@No OR D.DeliveryID=(SELECT O.DeliveryID FROM dbo.FG_ShippingOrder O WHERE O.OrderNo=@No);
             """,conn,tx);Add(cmd,"@No",SqlDbType.VarChar,30,barcode.Trim());
-        ShippingDeliveryDto result;
-        using(var r=cmd.ExecuteReader())
-        {
-            if(!r.Read()) throw new InvalidOperationException("Delivery not found. Assign the shipment order to a DCR trailer delivery on the web first.");
-            result=new(GetInt(r,"DeliveryID"),GetString(r,"DeliveryNo")!,GetString(r,"CustomerID")!,r.GetDateTime(r.GetOrdinal("ShipDate")),GetString(r,"TrailerNo"),GetString(r,"Status")!,[],[],[],[],true);
-        }
+        using var r=cmd.ExecuteReader();
+        if(!r.Read()) throw new InvalidOperationException("Delivery not found. Assign the shipment order to a DCR trailer delivery on the web first.");
+        return new(GetInt(r,"DeliveryID"),GetString(r,"DeliveryNo")!,GetString(r,"CustomerID")!,r.GetDateTime(r.GetOrdinal("ShipDate")),GetString(r,"TrailerNo"),GetString(r,"Status")!,[],[],[]);
+    }
+    private static ShippingDeliveryDto ReadDelivery(SqlConnection conn,SqlTransaction? tx,string barcode)
+    {
+        var result=ReadDeliveryHeader(conn,tx,barcode) with{Preparations=[],SupportsPreparation=true};
         using var items=new SqlCommand("""
             SELECT OrderNo FROM dbo.FG_ShippingOrder WHERE DeliveryID=@Id ORDER BY OrderID;
             SELECT L.PartNo,I.ItemName,SUM(L.Qty) RequiredQty,
