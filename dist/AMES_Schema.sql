@@ -699,9 +699,12 @@ CREATE TABLE [dbo].[FG_DeliveryLoad](
 	[LotNo] [nvarchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
 	[PartNo] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[Qty] [decimal](18, 3) NOT NULL,
-	[LoadedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
-	[LoadedAt] [datetime2](7) NOT NULL,
+	[LoadedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[LoadedAt] [datetime2](7) NULL,
 	[ShipmentID] [int] NULL,
+	[LoadState] [varchar](10) NOT NULL CONSTRAINT [DF_FG_DeliveryLoad_LoadState] DEFAULT 'Loaded',
+	[PreparedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[PreparedAt] [datetime2](7) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[LoadID] ASC

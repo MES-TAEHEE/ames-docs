@@ -191,6 +191,7 @@ FILES=(
   migrate_md_uom_sap_flag.sql        # MD_Uom.SAPFlag — 단위 SAP 수신 데이터 표시(10-22)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
   migrate_line_locations_shipping_orders.sql # Location minima, actual shipment LOT naming, shipment orders and DCR loads
+  migrate_fg_dispatch_preparation.sql # Outbound preparation is separate from trailer loading
   migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations
   migrate_line_locations_eos.sql # Production line areas and locations belong to EOS
   migrate_md_location_parent.sql     # MD_Location.ParentLocationID·LocationLevel — 1차(SAP·MES)/상세 2단계 로케이션(10-22) — sap_flag_rename·line_locations 뒤

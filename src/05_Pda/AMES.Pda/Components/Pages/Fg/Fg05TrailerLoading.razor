@@ -9,11 +9,11 @@
     <div class="pda-tbar"><button class="pda-tbar-back" @onclick='@(()=>Nav.NavigateTo("/fg"))'>&lt;</button><span class="pda-tbar-brand">TRAILER LOADING</span></div>
     <div class="pda-bd wh02-body">
         <RadzenCard class="wh02-panel hardware-scan-panel"><div class="pda-fld">
-            <label>@(_delivery is null?"DCR BARCODE":_removing?"REMOVE PALLET BARCODE":"PALLET BARCODE")</label>
+            <label>@(_delivery is null?"DCR BARCODE":_removing?"REMOVE BARCODE":"INVENTORY BARCODE")</label>
             <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input pda-barcode-input" />
             @if(_delivery is {Status:"Open" or "Loading",Loads.Count:>0})
             {
-                <RadzenButton Text="@(_removing?"CANCEL REMOVE":"REMOVE PALLET")" Click="ToggleRemove" Disabled="_busy" Size="ButtonSize.Small" class="wh02-clear-btn" />
+                <RadzenButton Text="@(_removing?"CANCEL REMOVE":"REMOVE ITEM")" Click="ToggleRemove" Disabled="_busy" Size="ButtonSize.Small" class="wh02-clear-btn" />
             }
         </div></RadzenCard>
         @if(_delivery is null)
@@ -47,7 +47,7 @@
         @if(_delivery is {} delivery)
         {
             <section class="load-summary"><strong>@delivery.DeliveryNo</strong><div>@delivery.CustomerId · @delivery.ShipDate.ToString("MM/dd/yyyy")</div><div>TRAILER: @(delivery.TrailerNo??"—") · @delivery.Status</div>
-                <div>LOADED PALLETS: @delivery.Loads.Select(x=>x.RootLotNo).Distinct().Count()</div>
+                <div>LOADED UNITS: @delivery.Loads.Select(x=>x.RootLotNo).Distinct().Count()</div>
                 @foreach(var order in delivery.OrderNos){<div class="load-order">@order</div>}
             </section>
             <section class="load-parts">
@@ -117,7 +117,7 @@
             _scanMessage="";
             if(_delivery is null&&!value.StartsWith("DCR-",StringComparison.OrdinalIgnoreCase))
             {
-                Show("DCR Required","Scan or select a DCR first, then scan the pallet barcode.");return;
+                Show("DCR Required","Scan or select a DCR first, then scan the inventory barcode.");return;
             }
             var opening=_delivery is null;
             if(!opening&&_delivery!.Status is not ("Open" or "Loading"))
@@ -127,8 +127,8 @@
             if(!opening)
             {
                 var loaded=_delivery!.Loads.Any(x=>string.Equals(x.RootLotNo,value,StringComparison.OrdinalIgnoreCase));
-                if(_removing&&!loaded){Show("Pallet Not Loaded","This pallet is not loaded on the selected DCR.");return;}
-                if(!_removing&&loaded){Show("Already Loaded","This pallet is already loaded. No quantity was added.");return;}
+                if(_removing&&!loaded){Show("Item Not Loaded","This barcode is not loaded on the selected DCR.");return;}
+                if(!_removing&&loaded){Show("Already Loaded","This barcode is already loaded. No quantity was added.");return;}
             }
             var result=opening?await Api.ShippingDeliveryAsync(value):_removing
                 ?await Api.UnloadShippingDeliveryAsync(_delivery!.DeliveryNo,value)
@@ -136,12 +136,13 @@
             if(result.FifoWarnings is {Count:>0} warnings)
             {
                 _fifoAction="load";_fifoBarcode=value;_fifoWarnings=warnings;
-                Show("FIFO Warning","Continue loading the scanned pallet instead?");return;
+                Show("FIFO Warning","Continue loading the scanned inventory instead?");return;
             }
             if(!result.Success||result.Delivery is null)Show("Loading Failed",result.Message);
             else
             {
-                _scanMessage=opening?"DCR opened. Scan a pallet barcode.":_removing?$"Removed pallet: {value}":$"Loaded pallet: {value}";
+                if(!result.Delivery.SupportsPreparation){Show("Loading Unavailable","Shipment preparation is unavailable. Please contact an administrator.");return;}
+                _scanMessage=opening?"DCR opened. Scan an inventory barcode.":_removing?$"Removed: {value}":$"Loaded: {value}";
                 _delivery=result.Delivery;_barcode="";_removing=false;
             }
         }
@@ -153,10 +154,10 @@
     {
         if(_busy||_delivery is null)return;
         _removing=!_removing;_barcode="";
-        _scanMessage=_removing?"Scan a loaded pallet to remove it from this DCR.":"Scan a pallet barcode.";
+        _scanMessage=_removing?"Scan a loaded barcode to remove it from this DCR.":"Scan an inventory barcode.";
         await Focus();
     }
-    void AskComplete(){if(!Ready)return;_confirm=true;Show("Confirm Shipment","Ship all loaded pallets? Inventory will be deducted and the customer SO shipped quantity will be updated.");}
+    void AskComplete(){if(!Ready)return;_confirm=true;Show("Confirm Shipment","Ship all loaded items? Inventory will be deducted and the customer SO shipped quantity will be updated.");}
     Task ConfirmShipment()=>Complete(false);
     async Task ContinueNonFifo()
     {
@@ -175,7 +176,7 @@
             if(result.FifoWarnings is {Count:>0} warnings)
             {
                 _fifoAction="complete";_fifoWarnings=warnings;
-                Show("FIFO Warning","Continue shipping the loaded pallets instead?");return;
+                Show("FIFO Warning","Continue shipping the loaded items instead?");return;
             }
             if(result.Success)
             {

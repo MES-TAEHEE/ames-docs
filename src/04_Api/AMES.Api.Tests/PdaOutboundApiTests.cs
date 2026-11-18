@@ -46,8 +46,8 @@ public class PdaOutboundApiTests
         using var client = Client(() => timeout ? throw new TaskCanceledException() : throw new HttpRequestException());
         var result = await new FinishedGoodsApi(client, new AuthState()).FgOutboundAsync(new PdaApi.FgOutboundUnitReq("LOT-001"));
         Assert.False(result.Success);
-        Assert.Contains("Check transaction history before retrying", result.Message);
-        Assert.Contains("may already have been processed", result.Message);
+        Assert.Contains("Reload the DCR before retrying", result.Message);
+        Assert.Contains("may already have been saved", result.Message);
     }
 
     private static HttpClient Client(Func<HttpResponseMessage> response)

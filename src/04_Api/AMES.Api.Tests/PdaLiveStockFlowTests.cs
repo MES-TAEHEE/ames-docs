@@ -202,6 +202,7 @@ public sealed class PdaLiveStockFlowTests(ITestOutputHelper output)
                 Assert.Contains(await api.OpenShippingDeliveriesAsync(), d => d.DeliveryNo == dcr);
                 Assert.True((await api.ShippingDeliveryAsync(dcr)).Success);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => api.CompleteShippingDeliveryAsync(dcr, true));
+                Assert.True((await api.FgOutboundAsync(new(pallet, null, true, dcr))).Success);
                 var loaded = await api.LoadShippingDeliveryAsync(dcr, pallet, true);
                 Assert.True(loaded.Success, loaded.Message);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => api.LoadShippingDeliveryAsync(dcr, pallet, true));

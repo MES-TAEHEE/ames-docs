@@ -227,11 +227,11 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         }
         catch (OperationCanceledException)
         {
-            return new FgOutboundUnitResult(false, "Outbound response timed out. Check transaction history before retrying; the stock may already have been processed.", null);
+            return new FgOutboundUnitResult(false, "Outbound response timed out. Reload the DCR before retrying; preparation may already have been saved.", null);
         }
         catch (HttpRequestException)
         {
-            return new FgOutboundUnitResult(false, "Connection lost during outbound. Check transaction history before retrying; the stock may already have been processed.", null);
+            return new FgOutboundUnitResult(false, "Connection lost during outbound. Reload the DCR before retrying; preparation may already have been saved.", null);
         }
     }
 

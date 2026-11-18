@@ -54,8 +54,8 @@ public static partial class FgEndpoints
     public sealed record OutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
         decimal TotalQty, int ItemCount, List<OutboundUnitItemRow> Items, string? CustomerId = null, string? CustomerName = null);
     public sealed record OutboundUnitResult(bool Success, string Message, OutboundUnitRow? Unit,
-        int ProcessedCount = 0, int? ShipmentId = null, List<FifoWarningDto>? FifoWarnings = null);
-    public sealed record OutboundUnitReq(string Barcode, string? CustomerId = null, bool AllowNonFifo = false);
+        int ProcessedCount = 0, int? ShipmentId = null, List<FifoWarningDto>? FifoWarnings = null, ShippingDeliveryDto? Delivery = null);
+    public sealed record OutboundUnitReq(string Barcode, string? CustomerId = null, bool AllowNonFifo = false, string? DeliveryBarcode = null);
     public sealed record OutboundCustomerRow(string CustomerId, string CustomerName);
     public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
@@ -480,53 +480,21 @@ public static partial class FgEndpoints
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!FgOutboundBarcode.TryNormalize(body.Barcode, out var normalized, out var error))
                 return Results.BadRequest(new OutboundUnitResult(false, error, null));
-            if (body.CustomerId is not null && !LoginInput.Valid(body.CustomerId, 20))
-                return Results.BadRequest(new OutboundUnitResult(false, "Select a valid customer ID within 20 bytes.", null));
+            if (string.IsNullOrWhiteSpace(body.DeliveryBarcode) || body.DeliveryBarcode.Length>30)
+                return Results.BadRequest(new OutboundUnitResult(false, "Scan or select a DCR before preparing inventory.", null));
             try
             {
-                using var conn = factory.OpenConnection();
-                using var tx = conn.BeginTransaction();
-                if (FindOutboundStockError(conn, tx, normalized) is { } stockError)
-                    return Results.BadRequest(new OutboundUnitResult(false, stockError, null));
-                FinishedGoodsFifo.RequireConfirmation(conn, tx, normalized, body.CustomerId, body.AllowNonFifo);
-                using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundComplete, conn)
-                {
-                    Transaction = tx,
-                    CommandType = CommandType.Text,
-                    CommandTimeout = 30
-                };
-                cmd.Parameters.Add("@ShippingDeliveryID",SqlDbType.Int).Value=DBNull.Value;
-                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
-                ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", session.OperatorId);
-                ColumnParams.Add(cmd, "@CustomerID", "MD_Customer.CustomerID", body.CustomerId);
-                using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read())
-                    return Results.Json(new OutboundUnitResult(false, "Outbound service returned no result.", null), statusCode: 503);
-                var processed = GetInt(rdr, "ProcessedCount") ?? 0;
-                var totalQty = GetDecimal(rdr, "TotalQty");
-                var unitType = GetString(rdr, "UnitType") ?? "UNIT";
-                var shipmentId = GetInt(rdr, "ShipmentID");
-                // Finish all result sets before committing the outer transaction.
-                while (rdr.NextResult()) { }
-                rdr.Close();
-                tx.Commit();
-                return Results.Ok(new OutboundUnitResult(true,
-                    $"Shipment #{shipmentId}: {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed, shipmentId));
+                var delivery=new FinishedGoodsRepository(factory).PrepareShippingDelivery(body.DeliveryBarcode,normalized,session.OperatorId,body.AllowNonFifo);
+                return Results.Ok(new OutboundUnitResult(true,"Awaiting trailer loading.",null,Delivery:delivery));
             }
             catch (FifoConfirmationRequiredException ex)
+            { return Results.Ok(new OutboundUnitResult(false, ex.Message, null, FifoWarnings: ex.Warnings)); }
+            catch(Exception ex) when(ex is ArgumentException or InvalidOperationException || ex is SqlException sql && sql.Number is >=52000 and <=52999)
+            { return Results.BadRequest(new OutboundUnitResult(false,ex.Message,null)); }
+            catch(Exception ex)
             {
-                return Results.Ok(new OutboundUnitResult(false, ex.Message, null, FifoWarnings: ex.Warnings));
-            }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020 or 52614)
-            {
-                return Results.BadRequest(new OutboundUnitResult(false,
-                    ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
-            }
-            catch
-            {
-                return Results.Json(new OutboundUnitResult(false,
-                    "Outbound confirmation could not be verified. Check transaction history before retrying; the stock may already have been processed.", null),
-                    statusCode: 503);
+                app.Logger.LogError(ex,"FG outbound preparation failed");
+                return Results.Json(new OutboundUnitResult(false,"Preparation could not be verified. Reload the DCR before retrying.",null),statusCode:503);
             }
         });
 

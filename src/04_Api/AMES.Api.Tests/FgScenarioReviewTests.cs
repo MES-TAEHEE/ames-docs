@@ -28,7 +28,9 @@ public sealed class FgScenarioReviewTests
     {
         var source = File.ReadAllText(Path.Combine(Root(), "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
         Assert.Contains("FindOutboundStockError(conn, null, normalized)", source);
-        Assert.Contains("FindOutboundStockError(conn, tx, normalized)", source);
+        Assert.Contains("PrepareShippingDelivery(body.DeliveryBarcode,normalized,session.OperatorId,body.AllowNonFifo)", source);
+        var preparation=File.ReadAllText(Path.Combine(Root(),"src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.ShippingOrders.cs"));
+        Assert.Contains("ReadLoadUnit(conn,tx,barcode)",preparation);
         Assert.DoesNotContain("FindOutboundLocationError", source);
         Assert.Contains("if (GetBool(reader, \"InspectionPending\")) return FgOutboundBarcode.InspectionPendingMessage;", source);
         Assert.Contains(FgOutboundBarcode.InspectionPendingMessage, PdaFinishedGoodsSql.OutboundScan);
