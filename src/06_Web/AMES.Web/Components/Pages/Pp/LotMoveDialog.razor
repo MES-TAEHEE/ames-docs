@@ -1,0 +1,175 @@
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
+
+@* LOT 을 다른 작업지시로 옮기거나 작업지시에서 풀어(재고) 둔다. 고른 LOT 이 속한 작업지시의 확정 LOT 을 공정·라인·품번 묶음으로 보여 주고, 받을 작업지시와 수량을 정하면 LOT 번호 순번대로 그 수량만큼 옮긴다.
+   받는 작업지시는 같은 공정·라인·품번의 열린 단계가 있는 것만 나온다(품목·공정·라인이 다르면 고를 수 없고 서버도 거부). 저장 뒤 감사 로그는 부른 화면이 남긴다. *@
+<div style="display:flex;flex-direction:column;gap:10px;min-width:560px;">
+    @if (_err is not null) { <div class="ames-alert bad">@_err</div> }
+
+    @if (_groups.Count == 0)
+    {
+        <div class="dim">@L["PP.LotMove.NoneSel"]</div>
+    }
+    else
+    {
+        <div>
+            <div class="dim" style="margin-bottom:4px;">@L["PP.LotMove.Source"]</div>
+            <RadzenDropDown TValue="int" @bind-Value="_gi" @bind-Value:after="OnGroupChanged" Data="_groupOpts" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <div class="dim" style="font-size:.8em;margin-top:2px;">@L["PP.LotMove.SourceHint"]</div>
+        </div>
+
+        <div>
+            <div class="dim" style="margin-bottom:4px;">@L["PP.LotMove.Target"]</div>
+            <RadzenDropDown TValue="int" @bind-Value="_to" @bind-Value:after="RefreshPreview" Data="_options" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            @if (_targets.Count == 0) { <div class="dim" style="font-size:.85em;margin-top:2px;">@L["PP.LotMove.NoTarget"]</div> }
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div>
+                <div class="dim" style="margin-bottom:4px;">@L["PP.LotMove.Qty"] <span style="font-size:.85em;">(@string.Format(L["PP.LotMove.Max"].Value, G.LotCount.ToString("#,0")))</span></div>
+                <RadzenNumeric TValue="int" @bind-Value="_qty" @bind-Value:after="RefreshPreview" Min="1" Max="@G.LotCount" Step="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            </div>
+            <div style="flex:1;min-width:200px;">
+                <div class="dim" style="margin-bottom:4px;">@L["PP.LotMove.From"]</div>
+                <RadzenTextBox @bind-Value="_from" @bind-Value:after="RefreshPreview" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </div>
+        </div>
+        <div class="dim" style="font-size:.8em;margin-top:-6px;">@L["PP.LotMove.FromHint"]</div>
+
+        <div class="ipk-info" style="margin:0;">
+            <div class="ipk-k">@L["PP.LotMove.Preview"]</div>
+            <div class="ipk-v" style="white-space:normal;">
+                @if (_seq.Count == 0) { <span class="dim">—</span> }
+                else { <b>@_seq.Count.ToString("#,0")</b> <span class="code">@_seq[0]</span>@(_seq.Count > 1 ? " ~ " : "")<span class="code">@(_seq.Count > 1 ? _seq[^1] : "")</span> }
+            </div>
+        </div>
+
+        @* 옮기면 반영될 값 — 담당자가 실행 전에 결과를 확인한다 *@
+        @if (_pv is { LotCount: > 0 } pv && _to >= 0)
+        {
+            <div class="ames-card" style="padding:10px 12px;border:1px solid var(--ames-border, #8884);border-radius:8px;">
+                <div style="font-weight:600;margin-bottom:6px;">@L["PP.LotMove.Pv.Title"]</div>
+                <div class="ipk-info" style="margin:0;">
+                    <div class="ipk-k">@L["PP.LotMove.Pv.Moving"]</div>
+                    <div class="ipk-v"><b>@pv.LotCount.ToString("#,0")</b> LOT · @L["PP.WorkOrder.Trace.Good"] <b>@pv.GoodQty.ToString("#,0")</b></div>
+                    <div class="ipk-k">@L["PP.LotMove.Pv.From"]</div>
+                    <div class="ipk-v" style="white-space:normal;">
+                        @SideLine(pv.Source, L["PP.LotMove.Pv.NoChange"].Value)
+                        @foreach (var w in SideWarn(pv.Source, false)) { <div style="font-size:.85em;" class="dim">@w</div> }
+                    </div>
+                    <div class="ipk-k">@L["PP.LotMove.Pv.To"]</div>
+                    <div class="ipk-v" style="white-space:normal;">
+                        @SideLine(pv.Target, L["PP.LotMove.Pv.Detach"].Value)
+                        @foreach (var w in SideWarn(pv.Target, true)) { <div style="font-size:.85em;color:var(--ames-tx-amber-400, #d97706);">@w</div> }
+                    </div>
+                    <div class="ipk-k">@L["PP.LotMove.Pv.Pallet"]</div><div class="ipk-v dim">@L["PP.LotMove.Pv.PalletNote"]</div>
+                </div>
+            </div>
+        }
+        <div class="dim" style="font-size:.85em;">@L["PP.LotMove.Warn"]</div>
+    }
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <RadzenButton Text="@($"{L["PP.LotMove.Do"].Value} ({_seq.Count:#,0})")" Icon="drive_file_move" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn"
+                      Disabled="@(_groups.Count == 0 || _busy || _to < 0 || _seq.Count == 0)" Click="Apply" />
+        <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(() => Dialog.Close())" />
+    </div>
+</div>
+
+@code {
+    /// <summary>이동 결과 — 화면이 메시지·감사 로그에 쓴다. ToWoId 0 = 작업지시에서 풀어 재고로 둠. From = 원래 작업지시(없으면 재고).</summary>
+    public sealed record Result(int Moved, int ToWoId, string ToText, string From, IReadOnlyList<string> LotCodes);
+
+    /// <summary>화면에서 고른 LOT — 이 LOT 들이 속한 작업지시의 확정 LOT 이 이동 대상 묶음이 된다. 시작 LOT 의 기본값은 선택 중 가장 앞 번호.</summary>
+    [Parameter, EditorRequired] public List<WorkOrderRepository.WoLotListRow> Rows { get; set; } = new();
+    [Parameter] public string Actor { get; set; } = "system";
+
+    sealed record Opt(string Text, int Value);
+    List<WorkOrderRepository.LotMoveGroup> _groups = new();
+    List<Opt> _groupOpts = new(), _options = new();
+    List<WorkOrderRepository.LotMoveTarget> _targets = new();
+    List<string> _seq = new();
+    WorkOrderRepository.LotMovePreview? _pv;
+    int _gi, _to = -1, _qty = 1;   // _to: -1 = 아직 고르지 않음, 0 = 재고(WO 해제), 그 밖 = WoId
+    string _from = "";
+    bool _busy;
+    string? _err;
+
+    WorkOrderRepository.LotMoveGroup G => _groups[_gi];
+
+    protected override void OnInitialized()
+    {
+        try { _groups = Wos.ListLotMoveGroups(Rows.Select(r => r.LotCode)); }
+        catch (Exception ex) { _err = ex.Message; return; }
+        _groupOpts = _groups.Select((g, i) => new Opt($"{g.WoNumber ?? L["PP.LotMove.Stock"].Value} · {g.ProcessCode} · {g.LineId} · {g.ItemNo} · {g.LotCount:#,0}", i)).ToList();
+        // 선택한 LOT 이 있는 묶음을 먼저
+        var first = Rows.FirstOrDefault();
+        var gi = first is null ? -1 : _groups.FindIndex(g => g.WoNumber == first.WoNumber && g.ProcessCode == first.ProcessCode && g.LineId == first.LineId && g.ItemNo == first.ItemNo);
+        _gi = Math.Max(0, gi);
+        if (_groups.Count > 0) OnGroupChanged();
+    }
+
+    // 묶음을 바꾸면 받을 작업지시 후보·수량·시작 LOT 을 새로 잡는다
+    void OnGroupChanged()
+    {
+        _err = null; _to = -1;
+        var g = G;
+        try { _targets = Wos.ListLotMoveTargets(g.ProcessCode, g.LineId, g.ItemNo, g.WoId); }
+        catch (Exception ex) { _err = ex.Message; _targets = new(); }
+        _options = _targets.Select(t => new Opt($"{t.WoNumber} · {t.Status} · {t.StepCompletedQty:#,0} / {t.OrderQty:#,0}{(t.DueDate is DateTime d ? " · " + d.ToString(DateFmt.Date) : "")}", t.WoId)).ToList();
+        if (g.WoId is not null) _options.Add(new Opt(L["PP.LotMove.ToStock"].Value, 0));   // 이미 재고인 묶음은 풀 것이 없다
+        // 선택한 LOT 중 이 묶음의 가장 앞 번호 = 시작, 개수 = 수량(없으면 전체)
+        var mine = Rows.Where(r => r.WoNumber == g.WoNumber && r.ProcessCode == g.ProcessCode && r.LineId == g.LineId && r.ItemNo == g.ItemNo).Select(r => r.LotCode)
+                       .OrderBy(c => c.Length).ThenBy(c => c, StringComparer.Ordinal).ToList();
+        _from = mine.FirstOrDefault() ?? "";
+        _qty = Math.Clamp(mine.Count > 0 ? mine.Count : g.LotCount, 1, g.LotCount);
+        if (_options.Count == 1) _to = _options[0].Value;
+        RefreshPreview();
+    }
+
+    // 미리보기 한 줄 — 단계 실적이 Before → After 로 바뀌는 모습. 상대편이 없으면(재고) 변화 없음·해제 문구.
+    string SideLine(WorkOrderRepository.LotMoveSide? x, string emptyNote) => x is null
+        ? $"{L["PP.LotMove.Stock"].Value} — {emptyNote}"
+        : $"{x.WoNumber} ({x.WoStatus}) · {L["PP.LotMove.Pv.Result"].Value} {x.Before:#,0} → {x.After:#,0} / {x.OrderQty:#,0}";
+
+    IEnumerable<string> SideWarn(WorkOrderRepository.LotMoveSide? x, bool target)
+    {
+        if (x is null) yield break;
+        if (!target && x.Finished) yield return L["PP.LotMove.Pv.FinishedKeep"].Value;
+        if (!target && x.WillReopen) yield return L["PP.LotMove.Pv.Reopen"].Value;
+        if (target && x.WillClose) yield return x.After > x.OrderQty ? string.Format(L["PP.LotMove.Pv.Over"].Value, (x.After - x.OrderQty).ToString("#,0")) : L["PP.LotMove.Pv.Close"].Value;
+    }
+
+    void RefreshPreview()
+    {
+        _err = null;
+        var g = G;
+        _qty = Math.Clamp(_qty, 1, g.LotCount);
+        try
+        {
+            _seq = Wos.ListLotMoveSequence(g.WoId, g.ProcessCode, g.LineId, g.ItemNo, _from, _qty);
+            _pv = _to >= 0 && _seq.Count > 0 ? Wos.PreviewLotMove(_seq, g.WoId, _to == 0 ? null : _to, g.ProcessCode, g.LineId, g.ItemNo) : null;
+        }
+        catch (Exception ex) { _err = ex.Message; _seq = new(); _pv = null; }
+    }
+
+    void Apply()
+    {
+        _err = null; _busy = true;
+        try
+        {
+            var g = G;
+            var res = Wos.MoveLots(_seq, _to == 0 ? null : _to, Actor);
+            if (!res.Ok)
+            {
+                _err = string.Join(" · ", res.Errors.Take(5).Select(e => $"{e.LotCode}: {L["PP.LotMove.Err." + e.Code].Value}")) + (res.Errors.Count > 5 ? $" … +{res.Errors.Count - 5}" : "");
+                return;
+            }
+            Dialog.Close(new Result(res.Moved, _to, _to == 0 ? L["PP.LotMove.ToStock"].Value : _targets.First(t => t.WoId == _to).WoNumber, g.WoNumber ?? L["PP.LotMove.Stock"].Value, _seq.ToList()));
+        }
+        catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = false; }
+    }
+}

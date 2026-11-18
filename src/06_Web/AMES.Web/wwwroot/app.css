@@ -5930,6 +5930,7 @@ input[data-ames-x] {
 .ipk-ver .ipk-sub { margin: 0; }
 /* 작업지시 팝업(Pp/WoDetailDialog) — BOM 미리보기와 같은 카드·표 모양 */
 .wod-row { grid-template-columns: 110px 140px 150px 110px minmax(0, 1fr) 90px; }
+.wod-prow { grid-template-columns: 60px minmax(0, 1.6fr) 80px 60px minmax(0, 1fr) minmax(0, 1.3fr); }
 .wod-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 720px) {
     .ipk-top { grid-template-columns: 1fr; }

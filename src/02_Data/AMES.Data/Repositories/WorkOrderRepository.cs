@@ -402,6 +402,61 @@ public sealed class WorkOrderRepository
         return list;
     }
 
+    /// <summary>작업지시 LOT 이 실린 팔레트 한 건(단계별) — Stage = INJ·IMG·PNT(POP 매핑, PR_LotPallet) · WH(창고 현재 재고) · SHIP(출하된 팔레트).
+    /// 같은 팔레트가 여러 단계에 나올 수 있고 단계마다 다를 수도 있다. Shipped=SHIP 행, LocationNo=WH 행의 FG 위치(미지정이면 null).</summary>
+    public sealed record WoPalletRow(string PalletNo, decimal Qty, int LotCount, string? LocationNo, bool Shipped, DateTime? ShippedAt, string Stage = "WH");
+
+    /// <summary>LOT↔팔레트 단계 순서 — 화면 정렬용.</summary>
+    public static int PalletStageOrder(string? stage) => stage switch { "INJ" => 1, "IMG" => 2, "PNT" => 3, "WH" => 4, "SHIP" => 5, _ => 9 };
+
+    static bool HasLotPalletTable(SqlConnection conn)
+    {
+        using var c = new SqlCommand("SELECT OBJECT_ID(N'dbo.PR_LotPallet', N'U');", conn);
+        return c.ExecuteScalar() is not (null or DBNull);
+    }
+
+    /// <summary>작업지시 LOT 이 담긴 팔레트 — 공정(INJ·IMG·PNT) 매핑 이력, 창고 현재 재고, 출하(FG_Shipment). 단계 순서 → 팔레트 번호순.</summary>
+    public List<WoPalletRow> ListWoPallets(int woId)
+    {
+        using var conn = _factory.OpenConnection();
+        var stageSql = HasLotPalletTable(conn) ? """
+            SELECT m.Stage, m.PalletNo, COUNT(DISTINCT m.LotCode), COUNT(DISTINCT m.LotCode),
+                   CAST(NULL AS varchar(50)), CAST(0 AS bit), CAST(NULL AS datetime2)
+            FROM   dbo.PR_LotPallet m JOIN WoLot w ON w.LotCode = m.LotCode COLLATE DATABASE_DEFAULT
+            GROUP  BY m.Stage, m.PalletNo
+            UNION ALL
+            """ : "";
+        var sql = """
+            ;WITH WoLot AS (
+                SELECT l.LotCode COLLATE DATABASE_DEFAULT AS LotCode
+                FROM   dbo.tbl_Lot l
+                WHERE  l.WoID = @Wo OR l.LotID IN (SELECT r.LotID FROM dbo.PR_ProductionResult r WHERE r.WoID = @Wo AND r.LotID IS NOT NULL)
+            )
+            SELECT * FROM (
+            """ + stageSql + """
+
+            SELECT 'WH', i.PalletNo, SUM(i.Qty), COUNT(*), MAX(NULLIF(LTRIM(RTRIM(i.LocationNo)), '')),
+                   CAST(0 AS bit), CAST(NULL AS datetime2)
+            FROM   dbo.WH_Inventory i JOIN WoLot w ON w.LotCode = i.LotNo
+            WHERE  i.PalletNo IS NOT NULL AND i.Qty > 0
+            GROUP  BY i.PalletNo
+            UNION ALL
+            SELECT 'SHIP', s.PalletNo, 0, COUNT(*), NULL, CAST(1 AS bit), MAX(s.ShippedAt)
+            FROM   dbo.FG_Shipment s JOIN WoLot w ON w.LotCode = s.LotNo
+            WHERE  s.PalletNo IS NOT NULL
+            GROUP  BY s.PalletNo
+            ) t (Stage, PalletNo, Qty, LotCount, LocationNo, Shipped, ShippedAt);
+            """;
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoPalletRow>();
+        while (r.Read())
+            list.Add(new((string)r["PalletNo"], Convert.ToDecimal(r["Qty"]), Convert.ToInt32(r["LotCount"]), r["LocationNo"] as string,
+                Convert.ToBoolean(r["Shipped"]), r["ShippedAt"] as DateTime?, (string)r["Stage"]));
+        return list.OrderBy(x => PalletStageOrder(x.Stage)).ThenBy(x => x.PalletNo, StringComparer.Ordinal).ToList();
+    }
+
     /// <summary>LOT 전체 목록 한 줄 — 작업지시의 생산품 전체 화면(Pp/WoLots). OperatorText 는 화면이 이름으로 채운다.</summary>
     public sealed record WoLotListRow(string LotCode, string? ProcessCode, string? LineId, string? Station, string? ItemNo, string? Status,
         string? OperatorId, decimal GoodQty, DateTime? At, string? ParentLotCode)
@@ -409,6 +464,8 @@ public sealed class WorkOrderRepository
         public string OperatorText { get; init; } = "";
         /// <summary>LOT 조회(PP-LOT)에서만 채운다 — 이 LOT 이 묶인 작업지시.</summary>
         public string? WoNumber { get; init; }
+        /// <summary>LOT 조회(PP-LOT)에서만 채운다 — 이 LOT 이 담긴 팔레트 번호(현재 재고 + 출하된 팔레트, 여러 개면 「, 」 로 이음). 없으면 null.</summary>
+        public string? PalletNos { get; init; }
     }
 
     /// <summary>
@@ -442,6 +499,28 @@ public sealed class WorkOrderRepository
         return list;
     }
 
+    /// <summary>LOT 조회 조건 입력 중 자동 완성 후보 — kind: lot(LOT 번호) · wo(작업지시 번호) · item(LOT 품번). 입력한 글자가 들어 있는 값을 최신순으로 최대 take 건(대소문자 무관).</summary>
+    public List<string> SuggestLotFilter(string kind, string? text, int take = 15)
+    {
+        var t = (text ?? "").Trim();
+        if (t.Length == 0) return new();
+        var sql = kind switch
+        {
+            "lot"  => "SELECT TOP (@Take) l.LotCode FROM dbo.tbl_Lot l WHERE CHARINDEX(@T, l.LotCode) > 0 GROUP BY l.LotCode ORDER BY MAX(l.LotID) DESC;",
+            "wo"   => "SELECT TOP (@Take) w.WoNumber FROM dbo.PP_WorkOrder w WHERE CHARINDEX(@T, w.WoNumber) > 0 ORDER BY w.WoID DESC;",
+            "item" => "SELECT TOP (@Take) l.ItemNo FROM dbo.tbl_Lot l WHERE l.ItemNo IS NOT NULL AND CHARINDEX(@T, l.ItemNo) > 0 GROUP BY l.ItemNo ORDER BY MAX(l.LotID) DESC;",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = Math.Clamp(take, 1, 50);
+        ColumnParams.AddFilter(cmd, "@T", null, t);
+        using var r = cmd.ExecuteReader();
+        var list = new List<string>();
+        while (r.Read()) list.Add((string)r[0]);
+        return list;
+    }
+
     /// <summary>PP-LOT 검색 조건의 공정·상태 선택지 — 실제 LOT 에 있는 값만.</summary>
     public (List<string> Processes, List<string> Statuses) ListLotFilterOptions()
     {
@@ -455,21 +534,15 @@ public sealed class WorkOrderRepository
 
     /// <summary>
     /// PP-LOT LOT 조회 — LOT 번호·작업지시 번호·품번(모두 부분 일치, 대소문자·와일드카드 문자 무관)·공정·상태·생산 기간으로 찾는다. 최신순.
-    /// 작업지시에 묶이지 않은 확정 전(RAW) LOT 도 찾는다. take 를 넘기면 호출자가 잘림을 알 수 있게 한 건 더 읽는다.
+    /// 작업지시에 묶이지 않은 확정 전(RAW) LOT 도 찾는다. 페이지(skip·take)만 읽고 작업자·팔레트 같은 무거운 정보도 그 페이지 건에만 붙인다 — Total 은 조건에 맞는 전체 건수.
     /// </summary>
-    public List<WoLotListRow> SearchLots(string? lot, string? wo, string? item, string? process, string? status, DateTime? from, DateTime? to, int take = 5001)
+    public (List<WoLotListRow> Rows, int Total) SearchLotsPage(string? lot, string? wo, string? item, string? process, string? status, DateTime? from, DateTime? to, int skip, int take)
     {
-        const string sql = """
-            SELECT TOP (@Take) l.LotCode, l.ProcessCode, l.LineID, l.ItemNo, l.Status, COALESCE(l.ProducedAt, l.CreatedTS) AS At,
-                   p.LotCode AS ParentLotCode, w.WoNumber, f.OperatorID, f.Station, ISNULL(f.GoodQty, 0) AS GoodQty
-            FROM   dbo.tbl_Lot l
-            LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
-            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
-            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
-                                (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
-                         FROM   dbo.PR_ProductionResult r
-                         LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
-                         WHERE  r.LotID = l.LotID ORDER BY r.EntryAt, r.ResultID) f
+        using var conn = _factory.OpenConnection();
+        var stageUnion = HasLotPalletTable(conn)
+            ? "SELECT m.PalletNo, m.Stage, CASE m.Stage WHEN 'INJ' THEN 1 WHEN 'IMG' THEN 2 WHEN 'PNT' THEN 3 ELSE 9 END FROM dbo.PR_LotPallet m WHERE m.LotCode = l.LotCode COLLATE DATABASE_DEFAULT UNION"
+            : "";
+        const string filter = """
             WHERE  (@Lot  = N'' OR CHARINDEX(@Lot,  l.LotCode) > 0)
               AND  (@Wo   = N'' OR CHARINDEX(@Wo,   ISNULL(w.WoNumber, N'')) > 0)
               AND  (@Item = N'' OR CHARINDEX(@Item, ISNULL(l.ItemNo, N'')) > 0)
@@ -477,11 +550,43 @@ public sealed class WorkOrderRepository
               AND  (@Stat = N'' OR l.Status = @Stat)
               AND  (@From IS NULL OR COALESCE(l.ProducedAt, l.CreatedTS) >= @From)
               AND  (@To   IS NULL OR COALESCE(l.ProducedAt, l.CreatedTS) <  DATEADD(day, 1, @To))
-            ORDER  BY COALESCE(l.ProducedAt, l.CreatedTS) DESC, l.LotID DESC;
             """;
-        using var conn = _factory.OpenConnection();
+        var sql = """
+            SELECT COUNT(*) FROM dbo.tbl_Lot l LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            """ + "\n" + filter + "\n" + """
+
+            ;
+            SELECT l.LotCode, l.ProcessCode, l.LineID, l.ItemNo, l.Status, COALESCE(l.ProducedAt, l.CreatedTS) AS At,
+                   p.LotCode AS ParentLotCode, w.WoNumber, f.OperatorID, f.Station, ISNULL(f.GoodQty, 0) AS GoodQty, pl.Pallets
+            FROM  (SELECT l.LotID, COALESCE(l.ProducedAt, l.CreatedTS) AS SortAt
+                   FROM   dbo.tbl_Lot l LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            """ + "\n" + filter + "\n" + """
+
+                   ORDER  BY COALESCE(l.ProducedAt, l.CreatedTS) DESC, l.LotID DESC
+                   OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY) k
+            JOIN   dbo.tbl_Lot l ON l.LotID = k.LotID
+            LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
+                                (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
+                         FROM   dbo.PR_ProductionResult r
+                         LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
+                         WHERE  r.LotID = l.LotID ORDER BY r.EntryAt, r.ResultID) f
+            OUTER APPLY (SELECT STRING_AGG(g.T, ', ') WITHIN GROUP (ORDER BY g.Ord, g.PalletNo) AS Pallets
+                         FROM (SELECT x.PalletNo, MIN(x.Ord) AS Ord, x.PalletNo + ' (' + STRING_AGG(x.Stage, '/') WITHIN GROUP (ORDER BY x.Ord) + ')' AS T
+                               FROM (
+            """ + stageUnion + """
+
+                                     SELECT i.PalletNo, 'WH', 4 FROM dbo.WH_Inventory i WHERE i.LotNo = l.LotCode COLLATE DATABASE_DEFAULT AND i.PalletNo IS NOT NULL AND i.Qty > 0
+                                     UNION
+                                     SELECT s.PalletNo, 'SHIP', 5 FROM dbo.FG_Shipment s WHERE s.LotNo = l.LotCode COLLATE DATABASE_DEFAULT AND s.PalletNo IS NOT NULL
+                                    ) x (PalletNo, Stage, Ord)
+                               GROUP BY x.PalletNo) g) pl
+            ORDER  BY k.SortAt DESC, l.LotID DESC;
+            """;
         using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 120 };
-        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+        cmd.Parameters.Add("@Skip", SqlDbType.Int).Value = Math.Max(0, skip);
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = Math.Max(1, take);
         ColumnParams.AddFilter(cmd, "@Lot", null, (lot ?? "").Trim());
         ColumnParams.AddFilter(cmd, "@Wo", null, (wo ?? "").Trim());
         ColumnParams.AddFilter(cmd, "@Item", null, (item ?? "").Trim());
@@ -490,11 +595,277 @@ public sealed class WorkOrderRepository
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)from?.Date ?? DBNull.Value;
         cmd.Parameters.Add("@To", SqlDbType.Date).Value = (object?)to?.Date ?? DBNull.Value;
         using var r = cmd.ExecuteReader();
+        var total = r.Read() ? Convert.ToInt32(r.GetValue(0)) : 0;
+        r.NextResult();
         var list = new List<WoLotListRow>();
         while (r.Read())
             list.Add(new((string)r["LotCode"], r["ProcessCode"] as string, r["LineID"] as string, r["Station"] as string, r["ItemNo"] as string, r["Status"] as string,
-                r["OperatorID"] as string, Convert.ToDecimal(r["GoodQty"]), r["At"] as DateTime?, r["ParentLotCode"] as string) { WoNumber = r["WoNumber"] as string });
+                r["OperatorID"] as string, Convert.ToDecimal(r["GoodQty"]), r["At"] as DateTime?, r["ParentLotCode"] as string) { WoNumber = r["WoNumber"] as string, PalletNos = r["Pallets"] as string });
+        return (list, total);
+    }
+
+    /// <summary>PP-LOT 조건에 맞는 LOT 을 앞에서 take 건(엑셀·테스트용). 화면 목록은 <see cref="SearchLotsPage"/>.</summary>
+    public List<WoLotListRow> SearchLots(string? lot, string? wo, string? item, string? process, string? status, DateTime? from, DateTime? to, int take = 5001)
+        => SearchLotsPage(lot, wo, item, process, status, from, to, 0, take).Rows;
+
+    // ── LOT 작업지시 이동 ─────────────────────────────────────────────────────
+    // POP 은 확정 때 라인·품번이 같은 열린 단계 중 빠른 WO 에 LOT 을 자동으로 붙인다. 엉뚱한 WO 에 붙은 LOT 을 다른 WO 로 옮기거나(같은 라인·품번·공정의 열린 단계),
+    // WO 에서 풀어(재고) 둔다. 팔레트·창고 재고는 건드리지 않는다.
+
+    /// <summary>LOT 이동 후보 WO 한 건 — 같은 공정·라인·품번의 열린 단계가 있는 작업지시.</summary>
+    public sealed record LotMoveTarget(int WoId, string WoNumber, string? Status, decimal OrderQty, decimal StepCompletedQty, DateTime? DueDate);
+
+    /// <summary>이 공정·라인·품번의 LOT 을 받을 수 있는 작업지시 — 종결(완료·입고·마감·취소)이 아니고 단계가 Released·In Progress 인 것. POP 자동 연결 순서(진행 중 → 우선순위 → 납기).</summary>
+    public List<LotMoveTarget> ListLotMoveTargets(string processCode, string lineId, string itemNo, int? excludeWoId = null)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.Status, ISNULL(w.OrderQty, 0) AS OrderQty, r.CompletedQty, w.DueDate
+            FROM   dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+            WHERE  r.ProcessCode = @Proc AND r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
+              AND  r.Status IN ('Released', 'In Progress')
+              AND  ISNULL(w.Status, 'Draft') NOT IN ('Completed', 'Stocked', 'Closed', 'Cancelled')
+              AND  (@Excl IS NULL OR w.WoID <> @Excl)
+            ORDER  BY CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END, ISNULL(w.Priority, 5), ISNULL(w.DueDate, '9999-12-31'), w.WoID;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Excl", SqlDbType.Int).Value = (object?)excludeWoId ?? DBNull.Value;
+        ColumnParams.AddFilter(cmd, "@Proc", "PP_WorkOrderRouting.ProcessCode", processCode);
+        ColumnParams.AddFilter(cmd, "@Line", "PP_WorkOrderRouting.LineID", lineId);
+        ColumnParams.AddFilter(cmd, "@Item", "PP_WorkOrder.ItemNo", itemNo);
+        using var r = cmd.ExecuteReader();
+        var list = new List<LotMoveTarget>();
+        while (r.Read())
+            list.Add(new(Convert.ToInt32(r["WoID"]), (string)r["WoNumber"], r["Status"] as string, Convert.ToDecimal(r["OrderQty"]), Convert.ToDecimal(r["CompletedQty"]), r["DueDate"] as DateTime?));
         return list;
+    }
+
+    /// <summary>이동 원천 묶음 — 같은 작업지시(WoId NULL = 재고)·공정·라인·품번의 확정(CONFIRMED) LOT. 수량을 입력해 순번대로 옮기는 단위.</summary>
+    public sealed record LotMoveGroup(int? WoId, string? WoNumber, string ProcessCode, string LineId, string ItemNo, int LotCount);
+
+    /// <summary>고른 LOT 들이 속한 작업지시(재고 포함)의 묶음 — 그 WO 의 확정 LOT 전체를 공정·라인·품번별로 센다.</summary>
+    public List<LotMoveGroup> ListLotMoveGroups(IEnumerable<string> lotCodes)
+    {
+        const string sql = """
+            ;WITH Src AS (SELECT DISTINCT l.WoID FROM dbo.tbl_Lot l WHERE l.LotCode IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@Codes, ',')))
+            SELECT l.WoID, w.WoNumber, l.ProcessCode, l.LineID, l.ItemNo, COUNT(*) AS N
+            FROM   dbo.tbl_Lot l LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
+            WHERE  l.Status = 'CONFIRMED' AND l.ProcessCode IS NOT NULL AND l.LineID IS NOT NULL AND l.ItemNo IS NOT NULL
+              AND  EXISTS (SELECT 1 FROM Src s WHERE s.WoID = l.WoID OR (s.WoID IS NULL AND l.WoID IS NULL))
+            GROUP  BY l.WoID, w.WoNumber, l.ProcessCode, l.LineID, l.ItemNo
+            ORDER  BY w.WoNumber, l.ProcessCode, l.ItemNo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Codes", SqlDbType.NVarChar, -1).Value = string.Join(",", lotCodes.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()));
+        using var r = cmd.ExecuteReader();
+        var list = new List<LotMoveGroup>();
+        while (r.Read())
+            list.Add(new(r["WoID"] as int?, r["WoNumber"] as string, (string)r["ProcessCode"], (string)r["LineID"], (string)r["ItemNo"], Convert.ToInt32(r["N"])));
+        return list;
+    }
+
+    /// <summary>묶음의 확정 LOT 을 LOT 번호 순번(짧은 번호 → 번호순)으로 fromLot 부터 take 건 — 수량을 입력해 앞에서부터 옮길 때 대상. fromLot 이 없으면 처음부터.</summary>
+    public List<string> ListLotMoveSequence(int? woId, string processCode, string lineId, string itemNo, string? fromLot, int take)
+    {
+        const string sql = """
+            SELECT TOP (@Take) l.LotCode
+            FROM   dbo.tbl_Lot l
+            WHERE  l.Status = 'CONFIRMED' AND l.ProcessCode = @Proc AND l.LineID = @Line AND l.ItemNo = @Item
+              AND  ((@Wo IS NULL AND l.WoID IS NULL) OR l.WoID = @Wo)
+              AND  (@From = N'' OR LEN(l.LotCode) > LEN(@From) OR (LEN(l.LotCode) = LEN(@From) AND l.LotCode >= @From))
+            ORDER  BY LEN(l.LotCode), l.LotCode;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = Math.Max(1, take);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = (object?)woId ?? DBNull.Value;
+        ColumnParams.AddFilter(cmd, "@Proc", "tbl_Lot.ProcessCode", processCode);
+        ColumnParams.AddFilter(cmd, "@Line", "tbl_Lot.LineID", lineId);
+        ColumnParams.AddFilter(cmd, "@Item", "tbl_Lot.ItemNo", itemNo);
+        ColumnParams.AddFilter(cmd, "@From", "tbl_Lot.LotCode", (fromLot ?? "").Trim());
+        using var r = cmd.ExecuteReader();
+        var list = new List<string>();
+        while (r.Read()) list.Add((string)r["LotCode"]);
+        return list;
+    }
+
+    /// <summary>이동 미리보기의 한쪽(원래 WO 또는 받는 WO) — 해당 단계 실적이 Before → After 로 바뀐다. Finished = 이미 끝난 WO(원래 쪽은 수량만 줄고 상태는 유지).
+    /// WillClose = 받는 쪽 실적이 주문 수량에 닿아 단계·WO 가 닫힘, WillReopen = 원래 쪽 실적이 주문 수량 밑으로 내려가 닫혀 있던 단계가 다시 열림.</summary>
+    public sealed record LotMoveSide(int WoId, string WoNumber, string? WoStatus, decimal OrderQty, decimal Before, decimal After, bool Finished, bool WillClose, bool WillReopen);
+    /// <summary>이동 미리보기 — GoodQty = 옮기는 LOT 의 양품 합계. 쓰기 없음(<see cref="MoveLots"/> 와 같은 규칙으로 값만 계산).</summary>
+    public sealed record LotMovePreview(int LotCount, decimal GoodQty, LotMoveSide? Source, LotMoveSide? Target);
+
+    /// <summary>옮기면 반영될 값 — 원래 WO 단계 실적에서 양품을 빼고 받는 WO 단계 실적에 더한 결과. 단계를 못 찾으면 그쪽은 null.</summary>
+    public LotMovePreview PreviewLotMove(IReadOnlyCollection<string> lotCodes, int? fromWoId, int? toWoId, string processCode, string lineId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        decimal good; int count;
+        using (var cmd = new SqlCommand("""
+            SELECT COUNT(DISTINCT l.LotID), ISNULL(SUM(r.GoodQty), 0)
+            FROM   dbo.tbl_Lot l LEFT JOIN dbo.PR_ProductionResult r ON r.LotID = l.LotID
+            WHERE  l.LotCode IN (SELECT LTRIM(RTRIM(value)) FROM STRING_SPLIT(@Codes, ','));
+            """, conn))
+        {
+            cmd.Parameters.Add("@Codes", SqlDbType.NVarChar, -1).Value = string.Join(",", lotCodes);
+            using var r = cmd.ExecuteReader(); r.Read();
+            count = Convert.ToInt32(r.GetValue(0)); good = Convert.ToDecimal(r.GetValue(1));
+        }
+        LotMoveSide? Side(int? woId, bool isTarget)
+        {
+            if (woId is not int id) return null;
+            using var cmd = new SqlCommand("""
+                SELECT TOP 1 w.WoNumber, w.Status, ISNULL(w.OrderQty, 0) AS OrderQty, r.CompletedQty
+                FROM   dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+                WHERE  r.WoID = @Wo AND r.ProcessCode = @Proc AND r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
+                ORDER  BY r.StepSeq;
+                """, conn);
+            cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = id;
+            ColumnParams.AddFilter(cmd, "@Proc", "PP_WorkOrderRouting.ProcessCode", processCode);
+            ColumnParams.AddFilter(cmd, "@Line", "PP_WorkOrderRouting.LineID", lineId);
+            ColumnParams.AddFilter(cmd, "@Item", "PP_WorkOrder.ItemNo", itemNo);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) return null;
+            var status = r["Status"] as string; var order = Convert.ToDecimal(r["OrderQty"]); var before = Convert.ToDecimal(r["CompletedQty"]);
+            var finished = WoStatusRules.IsFinished(status);
+            var after = isTarget ? before + good : Math.Max(0m, before - good);
+            return new LotMoveSide(id, (string)r["WoNumber"], status, order, before, after, finished,
+                WillClose: isTarget && after >= order && order > 0, WillReopen: !isTarget && !finished && before >= order && after < order && order > 0);
+        }
+        return new LotMovePreview(count, good, Side(fromWoId, false), Side(toWoId, true));
+    }
+
+    /// <summary>이동 거부 사유 — Code: NotFound(없는 LOT) · NotConfirmed(확정(CONFIRMED) 아님) · SameWo(이미 그 WO) · NoSource(WO 없음, 해제할 것 없음) · NoTargetStep(받을 단계 없음·종결 WO) · ItemMismatch(받는 WO 에 이 LOT 품번이 없음).</summary>
+    public sealed record LotMoveError(string LotCode, string Code);
+    public sealed record LotMoveResult(int Moved, IReadOnlyList<LotMoveError> Errors) { public bool Ok => Errors.Count == 0; }
+
+    /// <summary>
+    /// LOT 을 다른 작업지시로 옮긴다(toWoId = null 이면 WO 에서 풀어 재고로 둔다). 모두 한 트랜잭션 — 하나라도 거부되면 아무것도 바꾸지 않고 사유를 돌려준다.
+    /// 옮기는 일: tbl_Lot·PR_ProductionResult·PR_DefectDetail 의 WoID 를 바꾸고, 원래 WO 단계 CompletedQty 에서 양품만큼 빼고(<see cref="BumpStepCompleted"/> — 끝났던 단계·WO 는 다시 열린다)
+    /// 새 WO 단계에 더한다(OrderQty 에 닿으면 단계·WO 가 닫힌다). 받는 쪽은 LOT 과 같은 공정·라인·품번의 열린 단계여야 한다. 확정(CONFIRMED) LOT 만 옮긴다.
+    /// </summary>
+    public LotMoveResult MoveLots(IReadOnlyCollection<string> lotCodes, int? toWoId, string actor)
+    {
+        var errors = new List<LotMoveError>();
+        var codes = lotCodes.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (codes.Count == 0) return new(0, errors);
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            var moved = 0;
+            foreach (var code in codes)
+            {
+                int lotId; string? item, line, proc, status; int? curWo;
+                using (var cmd = new SqlCommand("SELECT LotID, ItemNo, LineID, ProcessCode, Status, WoID FROM dbo.tbl_Lot WITH (UPDLOCK, ROWLOCK) WHERE LotCode = @L;", conn, tx))
+                {
+                    ColumnParams.AddFilter(cmd, "@L", "tbl_Lot.LotCode", code);
+                    using var r = cmd.ExecuteReader();
+                    if (!r.Read()) { errors.Add(new(code, "NotFound")); continue; }
+                    lotId = Convert.ToInt32(r["LotID"]); item = r["ItemNo"] as string; line = r["LineID"] as string; proc = r["ProcessCode"] as string;
+                    status = r["Status"] as string; curWo = r["WoID"] as int?;
+                }
+                if (!string.Equals(status, "CONFIRMED", StringComparison.OrdinalIgnoreCase)) { errors.Add(new(code, "NotConfirmed")); continue; }
+                if (curWo == toWoId) { errors.Add(new(code, toWoId is null ? "NoSource" : "SameWo")); continue; }
+
+                decimal good;
+                using (var cmd = new SqlCommand("SELECT ISNULL(SUM(GoodQty), 0) FROM dbo.PR_ProductionResult WHERE LotID = @L;", conn, tx))
+                {
+                    cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+                    good = Convert.ToDecimal(cmd.ExecuteScalar());
+                }
+
+                int? targetStep = null;
+                if (toWoId is int to)
+                {
+                    targetStep = FindLotStep(conn, tx, to, proc, line, item, openOnly: true);
+                    if (targetStep is null)
+                    {
+                        // 받는 WO 에 이 품번 자체가 없으면 품목 불일치, 품번은 있는데 공정·라인·상태가 안 맞으면 NoTargetStep
+                        errors.Add(new(code, WoHasItem(conn, tx, to, item) ? "NoTargetStep" : "ItemMismatch")); continue;
+                    }
+                }
+                if (errors.Count > 0) continue;   // 이미 거부가 있으면 아무것도 쓰지 않는다 — 검사만 이어서 사유를 모은다
+
+                if (curWo is int from && FindLotStep(conn, tx, from, proc, line, item, openOnly: false) is int srcStep && good != 0m)
+                {
+                    // 이미 끝난(완료·입고·마감·취소) WO 에서 빼는 경우엔 수량만 줄이고 상태는 되돌리지 않는다 — 끝난 WO 가 다시 열리면 안 된다
+                    if (IsWoFinished(conn, tx, from)) SubtractFinishedStep(conn, tx, srcStep, good, actor);
+                    else BumpStepCompleted(conn, tx, srcStep, -good, actor);
+                }
+                if (targetStep is int ts && good != 0m)
+                    BumpStepCompleted(conn, tx, ts, good, actor);
+
+                foreach (var table in new[] { "tbl_Lot", "PR_ProductionResult", "PR_DefectDetail" })
+                {
+                    using var cmd = new SqlCommand($"UPDATE dbo.{table} SET WoID = @W WHERE LotID = @L;", conn, tx);
+                    cmd.Parameters.Add("@W", SqlDbType.Int).Value = (object?)toWoId ?? DBNull.Value;
+                    cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+                    cmd.ExecuteNonQuery();
+                }
+                moved++;
+            }
+            if (errors.Count > 0) { tx.Rollback(); return new(0, errors); }
+            tx.Commit();
+            return new(moved, errors);
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    static bool WoHasItem(SqlConnection conn, SqlTransaction tx, int woId, string? item)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT TOP 1 1 FROM dbo.PP_WorkOrder w LEFT JOIN dbo.PP_WorkOrderRouting r ON r.WoID = w.WoID
+            WHERE w.WoID = @Wo AND (w.ItemNo = @Item OR r.ItemNo = @Item);
+            """, conn, tx);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        ColumnParams.AddFilter(cmd, "@Item", "PP_WorkOrder.ItemNo", item ?? "");
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    static bool IsWoFinished(SqlConnection conn, SqlTransaction tx, int woId)
+    {
+        using var cmd = new SqlCommand("SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @Wo;", conn, tx);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        return WoStatusRules.IsFinished(cmd.ExecuteScalar() as string);
+    }
+
+    /// <summary>끝난 WO 의 단계 CompletedQty 만 줄인다(상태·ActualEnd 는 그대로). 라인이 있는 마지막 단계면 헤더 CompletedQty 도 같이 줄인다 — BumpStepCompleted 와 같은 동기 규칙.</summary>
+    static void SubtractFinishedStep(SqlConnection conn, SqlTransaction tx, int routingLineId, decimal qty, string actor)
+    {
+        using var cmd = new SqlCommand("""
+            DECLARE @Wo int, @Seq int;
+            SELECT @Wo = WoID, @Seq = StepSeq FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @RL;
+            UPDATE dbo.PP_WorkOrderRouting SET CompletedQty = CASE WHEN CompletedQty - @Q < 0 THEN 0 ELSE CompletedQty - @Q END, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE RoutingLineID = @RL;
+            IF @Seq = (SELECT MAX(StepSeq) FROM dbo.PP_WorkOrderRouting WHERE WoID = @Wo AND LineID IS NOT NULL)
+                UPDATE dbo.PP_WorkOrder SET CompletedQty = (SELECT CompletedQty FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @RL), ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE WoID = @Wo;
+            """, conn, tx);
+        cmd.Parameters.Add("@RL", SqlDbType.Int).Value = routingLineId;
+        cmd.Parameters.Add("@Q", SqlDbType.Decimal).Value = qty;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = actor.Length > 20 ? actor[..20] : actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>작업지시에서 LOT 의 공정·라인·품번에 맞는 단계(StepSeq 가 작은 쪽). openOnly 면 Released·In Progress 이고 WO 가 종결이 아닌 것만.</summary>
+    static int? FindLotStep(SqlConnection conn, SqlTransaction tx, int woId, string? proc, string? line, string? item, bool openOnly)
+    {
+        var sql = """
+            SELECT TOP 1 r.RoutingLineID
+            FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK) JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+            WHERE  r.WoID = @Wo AND r.ProcessCode = @Proc AND r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
+            """ + (openOnly ? """
+
+              AND  r.Status IN ('Released', 'In Progress') AND ISNULL(w.Status, 'Draft') NOT IN ('Completed', 'Stocked', 'Closed', 'Cancelled')
+            """ : "") + """
+
+            ORDER  BY r.StepSeq;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        ColumnParams.AddFilter(cmd, "@Proc", "PP_WorkOrderRouting.ProcessCode", proc ?? "");
+        ColumnParams.AddFilter(cmd, "@Line", "PP_WorkOrderRouting.LineID", line ?? "");
+        ColumnParams.AddFilter(cmd, "@Item", "PP_WorkOrder.ItemNo", item ?? "");
+        return cmd.ExecuteScalar() is int id ? id : null;
     }
 
     public sealed record LotResultRow(DateTime? At, string? ProcessCode, string? LineId, decimal GoodQty, string? OperatorId, string? MoldId, string? WoNumber, string? Station = null);

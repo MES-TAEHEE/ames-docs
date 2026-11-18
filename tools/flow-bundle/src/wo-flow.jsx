@@ -37,7 +37,7 @@ const MINIMAP = { show: true, position: 'bottom-right', width: 100, height: 50, 
 const INITIAL_FIT_DELAYS_MS = [200, 700];                                    // 팝업이 열리며 크기가 잡힌 뒤 처음 맞추는 시각(두 번)
 // ───────────────────────────────────────────────────────────────────────────────
 
-const KIND_COLOR = { so: '#38bdf8', plan: '#a78bfa', wo: '#34d399', step: '#fbbf24', slot: '#60a5fa', result: '#f472b6' };
+const KIND_COLOR = { so: '#38bdf8', plan: '#a78bfa', wo: '#34d399', step: '#fbbf24', slot: '#60a5fa', result: '#f472b6', pallet: '#fb923c' };
 const STATUS_COLOR = { done: '#22c55e', cur: '#3b82f6', todo: '#94a3b8', bad: '#ef4444' };
 const fitOpts = (extra) => ({ padding: FIT.padding, duration: FIT.durationMs, ...extra });
 

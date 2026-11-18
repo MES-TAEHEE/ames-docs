@@ -2274,6 +2274,12 @@
   <data name="PP.SupplyPlanImport.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
   </data>
+  <data name="PP.SupplyPlanImport.Fld.HideUnregistered" xml:space="preserve">
+    <value>Ocultar no registrados</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.PickOrders" xml:space="preserve">
+    <value>Seleccionar órdenes</value>
+  </data>
   <data name="PP.SupplyPlanImport.Btn.ConfirmSel" xml:space="preserve">
     <value>Confirmar Seleccionados ({0})</value>
   </data>
@@ -2639,6 +2645,27 @@
   </data>
   <data name="PP.WoDetail.Flow.Cancelled" xml:space="preserve">
     <value>Cancelado</value>
+  </data>
+  <data name="PP.WoDetail.Flow.Pallet" xml:space="preserve">
+    <value>Palet</value>
+  </data>
+  <data name="PP.WoDetail.Flow.PalletUnit" xml:space="preserve">
+    <value>uds</value>
+  </data>
+  <data name="PP.WoDetail.Flow.PalletShipped" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="PP.WoDetail.Flow.PalletUnplaced" xml:space="preserve">
+    <value>Sin ubicación</value>
+  </data>
+  <data name="PP.WoDetail.Pallet.None" xml:space="preserve">
+    <value>Ningún palé contiene LOT de esta orden de trabajo.</value>
+  </data>
+  <data name="PP.WoDetail.Pallet.LotCount" xml:space="preserve">
+    <value>LOT</value>
+  </data>
+  <data name="PP.WoDetail.Pallet.Stage" xml:space="preserve">
+    <value>Etapa</value>
   </data>
   <data name="PP.WoDetail.Flow.Fit" xml:space="preserve">
     <value>Ver todo</value>
@@ -12532,29 +12559,35 @@
   <data name="FG.OrderCreate.Err.Stock" xml:space="preserve">
     <value>Stock insuficiente para crear la orden — artículo (cant. / disponible): {0}</value>
   </data>
+  <data name="FG.Ship.Col.LinkedPallets" xml:space="preserve">
+    <value>Palets vinculados</value>
+  </data>
+  <data name="FG.OrderCreate.AutoFill.NoLoadable" xml:space="preserve">
+    <value>No hay stock cargable para autocompletar — hay stock sin ubicación para: {0}. Asigne la ubicación en la PDA e inténtelo de nuevo.</value>
+  </data>
   <data name="FG.OrderCreate.Override.Label" xml:space="preserve">
-    <value>Aprobar falta de stock y crear</value>
+    <value>Aprobar envío solo de la cantidad disponible</value>
   </data>
   <data name="FG.OrderCreate.Override.Reason" xml:space="preserve">
     <value>Motivo de aprobación (obligatorio)</value>
   </data>
   <data name="FG.OrderCreate.Override.ReasonRequired" xml:space="preserve">
-    <value>Ingrese el motivo de la aprobación.</value>
+    <value>Ingrese el motivo de la aprobación (verificación de producción).</value>
   </data>
   <data name="FG.OrderCreate.Override.NoStock" xml:space="preserve">
-    <value>Falta de stock — requiere aprobación</value>
+    <value>Cantidad de envío insuficiente — requiere aprobación</value>
   </data>
   <data name="FG.OrderCreate.Override.NeedApprover" xml:space="preserve">
-    <value>Solo usuarios con permiso de aprobación pueden crear una orden con falta de stock</value>
+    <value>Solo los aprobadores pueden aprobar el envío de una orden con falta de stock</value>
   </data>
   <data name="FG.OrderCreate.Err.StockApprove" xml:space="preserve">
-    <value>Stock insuficiente — artículo (cant. / disponible): {0}. Para continuar marque "Aprobar falta de stock y crear" e ingrese un motivo.</value>
+    <value>Stock insuficiente — artículo (cant. / disponible): {0}. Tras verificar la producción, marque "Aprobar envío solo de la cantidad disponible" e ingrese un motivo para enviar solo la cantidad disponible.</value>
   </data>
   <data name="FG.ShipOrders.Override.Badge" xml:space="preserve">
-    <value>Falta de stock aprobada</value>
+    <value>Envío aprobado</value>
   </data>
   <data name="FG.ShipOrders.Override.Tip" xml:space="preserve">
-    <value>Orden creada con falta de stock aprobada</value>
+    <value>Orden creada porque un aprobador verificó la producción y aprobó enviar solo la cantidad disponible, con un motivo</value>
   </data>
   <data name="FG.ShipOrders.Btn.Edit" xml:space="preserve">
     <value>Editar</value>
@@ -13931,5 +13964,122 @@
   </data>
   <data name="FG.ShipPlan.Release.Loaded" xml:space="preserve">
     <value>Hay paletas cargadas. Descárguelas en la PDA primero.</value>
+  </data>
+  <data name="PP.LotMove.Btn" xml:space="preserve">
+    <value>Mover orden de trabajo</value>
+  </data>
+  <data name="PP.LotMove.Title" xml:space="preserve">
+    <value>Mover LOT a otra orden de trabajo</value>
+  </data>
+  <data name="PP.LotMove.NoneSel" xml:space="preserve">
+    <value>Seleccione los LOT a mover.</value>
+  </data>
+  <data name="PP.LotMove.Mixed" xml:space="preserve">
+    <value>Solo se pueden mover juntos LOT del mismo proceso, línea y artículo. Divida la selección.</value>
+  </data>
+  <data name="PP.LotMove.Selected" xml:space="preserve">
+    <value>LOT seleccionados</value>
+  </data>
+  <data name="PP.LotMove.Cur" xml:space="preserve">
+    <value>Orden de trabajo actual</value>
+  </data>
+  <data name="PP.LotMove.Target" xml:space="preserve">
+    <value>Mover a la orden de trabajo</value>
+  </data>
+  <data name="PP.LotMove.ToStock" xml:space="preserve">
+    <value>Desvincular de la orden (dejar como stock)</value>
+  </data>
+  <data name="PP.LotMove.NoTarget" xml:space="preserve">
+    <value>No hay una orden abierta que pueda recibir estos LOT (mismo proceso, línea y artículo). Solo se puede desvincular.</value>
+  </data>
+  <data name="PP.LotMove.Warn" xml:space="preserve">
+    <value>La cantidad buena se resta de la orden original y se suma a la nueva. Los palés y el stock del almacén no cambian.</value>
+  </data>
+  <data name="PP.LotMove.Do" xml:space="preserve">
+    <value>Mover</value>
+  </data>
+  <data name="PP.LotMove.Ok" xml:space="preserve">
+    <value>Se movieron {0} LOT a {1}.</value>
+  </data>
+  <data name="PP.LotMove.Err.NotFound" xml:space="preserve">
+    <value>LOT no encontrado</value>
+  </data>
+  <data name="PP.LotMove.Err.NotConfirmed" xml:space="preserve">
+    <value>El LOT no está CONFIRMED</value>
+  </data>
+  <data name="PP.LotMove.Err.SameWo" xml:space="preserve">
+    <value>Ya está en esa orden</value>
+  </data>
+  <data name="PP.LotMove.Err.NoSource" xml:space="preserve">
+    <value>No está vinculado a una orden</value>
+  </data>
+  <data name="PP.LotMove.Err.NoTargetStep" xml:space="preserve">
+    <value>La orden destino no tiene un paso abierto para este proceso, línea y artículo</value>
+  </data>
+  <data name="PP.LotMove.Err.ItemMismatch" xml:space="preserve">
+    <value>No se puede mover a una orden de otro artículo</value>
+  </data>
+  <data name="PP.LotMove.Source" xml:space="preserve">
+    <value>Grupo de LOT a mover (orden · proceso · línea · artículo)</value>
+  </data>
+  <data name="PP.LotMove.Qty" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="PP.LotMove.From" xml:space="preserve">
+    <value>Número de LOT inicial</value>
+  </data>
+  <data name="PP.LotMove.FromHint" xml:space="preserve">
+    <value>Vacío = desde el primer número. Los LOT se mueven en orden numérico.</value>
+  </data>
+  <data name="PP.LotMove.Preview" xml:space="preserve">
+    <value>LOT a mover</value>
+  </data>
+  <data name="PP.LotMove.Stock" xml:space="preserve">
+    <value>Stock (sin orden)</value>
+  </data>
+  <data name="PP.LotMove.Max" xml:space="preserve">
+    <value>máx. {0}</value>
+  </data>
+  <data name="PP.LotMove.SourceHint" xml:space="preserve">
+    <value>LOT confirmados de las órdenes a las que pertenece la selección.</value>
+  </data>
+  <data name="PP.LotMove.Pv.Title" xml:space="preserve">
+    <value>Esto es lo que cambiará</value>
+  </data>
+  <data name="PP.LotMove.Pv.Moving" xml:space="preserve">
+    <value>LOT a mover</value>
+  </data>
+  <data name="PP.LotMove.Pv.From" xml:space="preserve">
+    <value>Orden de origen</value>
+  </data>
+  <data name="PP.LotMove.Pv.To" xml:space="preserve">
+    <value>Orden de destino</value>
+  </data>
+  <data name="PP.LotMove.Pv.Result" xml:space="preserve">
+    <value>Avance</value>
+  </data>
+  <data name="PP.LotMove.Pv.FinishedKeep" xml:space="preserve">
+    <value>La orden ya terminó: solo baja la cantidad, el estado no cambia.</value>
+  </data>
+  <data name="PP.LotMove.Pv.Reopen" xml:space="preserve">
+    <value>El avance baja de la cantidad ordenada: el paso cerrado vuelve a En proceso.</value>
+  </data>
+  <data name="PP.LotMove.Pv.NoChange" xml:space="preserve">
+    <value>sin cambio de avance</value>
+  </data>
+  <data name="PP.LotMove.Pv.Close" xml:space="preserve">
+    <value>Alcanza la cantidad ordenada: este paso (y la orden, si es el último) se cerrará.</value>
+  </data>
+  <data name="PP.LotMove.Pv.Over" xml:space="preserve">
+    <value>{0} por encima de la cantidad ordenada. El paso se cerrará.</value>
+  </data>
+  <data name="PP.LotMove.Pv.Detach" xml:space="preserve">
+    <value>Se desvincula de la orden y queda como stock</value>
+  </data>
+  <data name="PP.LotMove.Pv.Pallet" xml:space="preserve">
+    <value>Palé / almacén</value>
+  </data>
+  <data name="PP.LotMove.Pv.PalletNote" xml:space="preserve">
+    <value>sin cambios</value>
   </data>
 </root>

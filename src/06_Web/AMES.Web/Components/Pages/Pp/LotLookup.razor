@@ -7,6 +7,8 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject DialogService Dialog
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 
 @* LOT 조회(화면 코드 PP-LOT, 메뉴 표시 LOT) — LOT 번호·작업지시·품번·공정·상태·기간으로 찾는다. 작업지시를 몰라도 LOT 번호만으로 찾고, LOT 을 누르면 LOT 팝업(공정별 스테이션·작업자 이력)을 연다.
@@ -21,7 +23,7 @@
 }
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WoLots.Kpi.Total"]</div><div class="ames-kpi-v">@_rows.Count.ToString("#,0")@(_truncated ? "+" : "")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WoLots.Kpi.Total"]</div><div class="ames-kpi-v">@_total.ToString("#,0")</div></div>
     @foreach (var g in _rows.GroupBy(r => r.ProcessCode ?? "—").OrderBy(g => g.Key))
     {
         <div class="ames-kpi info"><div class="ames-kpi-l">@g.Key · LOT</div><div class="ames-kpi-v">@g.Count().ToString("#,0")</div></div>
@@ -31,11 +33,11 @@
 
 <div class="ames-card ames-card-fill">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ LOT · @_rows.Count.ToString("#,0")@(_truncated ? "+" : "")</span>
+        <span style="white-space:nowrap;">▼ LOT · @_total.ToString("#,0")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fLot" Placeholder="@L["PP.LotLookup.Ph.Lot"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
-            <RadzenTextBox @bind-Value="_fWo" Placeholder="@L["PP.LotLookup.Ph.Wo"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
-            <RadzenTextBox @bind-Value="_fItem" Placeholder="@L["PP.LotLookup.Ph.Item"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenAutoComplete @bind-Value="_fLot" Data="_sugLot" LoadData="@(a => Suggest(a, "lot"))" MinLength="1" FilterDelay="250" Placeholder="@L["PP.LotLookup.Ph.Lot"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+            <RadzenAutoComplete @bind-Value="_fWo" Data="_sugWo" LoadData="@(a => Suggest(a, "wo"))" MinLength="1" FilterDelay="250" Placeholder="@L["PP.LotLookup.Ph.Wo"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+            <RadzenAutoComplete @bind-Value="_fItem" Data="_sugItem" LoadData="@(a => Suggest(a, "item"))" MinLength="1" FilterDelay="250" Placeholder="@L["PP.LotLookup.Ph.Item"].Value" @onkeydown="OnKey" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenDropDown Data="_processes" @bind-Value="_fProcess" AllowClear="true" Placeholder="@L["PP.Lot.Process"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px" />
             <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
             <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.PrevWeek"]" Click="() => ShiftWeek(-1)" />
@@ -45,6 +47,10 @@
             <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["Btn.NextWeek"]" Click="() => ShiftWeek(1)" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@($"{L["PP.LotMove.Btn"].Value} ({_sel.Count})")" Icon="drive_file_move" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_sel.Count == 0)" Click="MoveSelected" />
+            }
             <RadzenButton Text="@L["PP.LotLookup.Btn.Excel"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportExcel" />
         </RadzenStack>
     </div>
@@ -56,12 +62,19 @@
 }
 else
 {
-    <RadzenDataGrid @ref="_grid" Data="_rows" TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid @ref="_grid" Data="_rows" TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" AllowVirtualization="false" Style="height:100%"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" class="ames-rz-grid">
         <Columns>
+            @if (_canEdit)
+            {
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" MinWidth="44px" Width="48px" Sortable="false" Filterable="false" Frozen="true">
+                    <HeaderTemplate><RadzenCheckBox TValue="bool" Value="@AllOnPageSelected" Change="@(v => SelectPage(v))" /></HeaderTemplate>
+                    <Template Context="r"><RadzenCheckBox TValue="bool" Value="@_sel.ContainsKey(r.LotCode)" Change="@(v => ToggleSel(r, v))" /></Template>
+                </RadzenDataGridColumn>
+            }
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Title="No." MinWidth="64px" Width="70px" TextAlign="TextAlign.Right" Sortable="false" Filterable="false" Frozen="true">
-                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? n.ToString("#,0") : "")</span></Template>
+                <Template Context="r"><span class="dim">@(RowNo(r) is var n && n > 0 ? (_page * _pageSize + n).ToString("#,0") : "")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="LotCode" Title="LOT" MinWidth="150px" Width="170px" Frozen="true">
                 <Template Context="r"><LotLink LotCode="@r.LotCode" /></Template>
@@ -90,16 +103,31 @@ else
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="ParentLotCode" Title="@L["PP.Lot.Parent"].Value" MinWidth="150px" Width="170px" Filterable="false">
                 <Template Context="r"><LotLink LotCode="@r.ParentLotCode" /></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WorkOrderRepository.WoLotListRow" Property="PalletNos" Title="@L["PP.WoDetail.Flow.Pallet"].Value" MinWidth="170px" Width="200px" Filterable="false">
+                <Template Context="r"><span class="code">@(r.PalletNos ?? "—")</span></Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 }
+</div>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:6px 8px;flex:none;">
+    <span class="dim">@(_total == 0 ? 0 : _page * _pageSize + 1) – @Math.Min(_total, (_page + 1) * _pageSize) / @_total.ToString("#,0")</span>
+    <RadzenDropDown TValue="int" Data="_pageSizes" @bind-Value="_pageSize" @bind-Value:after="OnPageSizeChanged" InputSize="InputSize.Small" class="ames-rz-input" Style="width:80px" />
+    <RadzenButton Icon="first_page" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_page == 0)" Click="() => GoPage(0)" />
+    <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_page == 0)" Click="() => GoPage(_page - 1)" />
+    <span>@(_page + 1) / @PageCount</span>
+    <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_page + 1 >= PageCount)" Click="() => GoPage(_page + 1)" />
+    <RadzenButton Icon="last_page" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_page + 1 >= PageCount)" Click="() => GoPage(PageCount - 1)" />
 </div>
 </div>
 </div>
 
 @code {
     const string Href = "pp/lot";
-    const int Take = 5000;
+    const int ExportMax = 50000;
+    readonly int[] _pageSizes = [50, 100, 200];
+    int _pageSize = 50, _page, _total;
+    int PageCount => Math.Max(1, (_total + _pageSize - 1) / _pageSize);
 
     List<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow> _rows = new();
     List<string> _processes = new(), _statuses = new();
@@ -107,7 +135,9 @@ else
     string? _fProcess, _fStatus;
     // 기본 기간 = 오늘까지 1주(7일) — ◀ ▶ 로 1주씩 옮긴다
     DateTime? _fFrom = DbClock.Today.AddDays(-6), _fTo = DbClock.Today;
-    bool _truncated, _isErr;
+    bool _isErr, _canEdit;
+    // 이동할 LOT 선택 — 페이지를 넘겨도 유지(LOT 번호 기준)
+    readonly Dictionary<string, AMES.Data.Repositories.WorkOrderRepository.WoLotListRow> _sel = new(StringComparer.OrdinalIgnoreCase);
     string _msg = "";
     RadzenDataGrid<AMES.Data.Repositories.WorkOrderRepository.WoLotListRow>? _grid;
     object? _noKey;
@@ -117,6 +147,7 @@ else
     {
         await PermSvc.EnsureAsync(AuthPrvd);
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
         try { (_processes, _statuses) = Wos.ListLotFilterOptions(); } catch { }
         await Search();
     }
@@ -142,19 +173,57 @@ else
         return _noMap.GetValueOrDefault(r);
     }
 
+    bool AllOnPageSelected => _rows.Count > 0 && _rows.All(r => _sel.ContainsKey(r.LotCode));
+    void ToggleSel(AMES.Data.Repositories.WorkOrderRepository.WoLotListRow r, bool on) { if (on) _sel[r.LotCode] = r; else _sel.Remove(r.LotCode); }
+    void SelectPage(bool on) { foreach (var r in _rows) ToggleSel(r, on); }
+
+    // 선택한 LOT 을 다른 작업지시로 옮기거나 WO 에서 풀어 재고로 — 편집(E) 권한, 핸들러에서도 다시 확인
+    async Task MoveSelected()
+    {
+        if (!_canEdit || _sel.Count == 0) return;
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        var rows = _sel.Values.ToList();
+        var result = await Dialog.OpenAsync<LotMoveDialog>($"{L["PP.LotMove.Title"].Value} · {rows.Count}",
+            new Dictionary<string, object?> { ["Rows"] = rows, ["Actor"] = actor }, new DialogOptions { Width = "620px" });
+        if (result is not LotMoveDialog.Result r) return;
+        Audit.Log("PP-LOT", "MOVE_WO", "tbl_Lot", string.Join(",", r.LotCodes.Take(50)), new { From = r.From }, new { To = r.ToText, r.Moved });
+        _sel.Clear();
+        await LoadPage();
+        _msg = string.Format(L["PP.LotMove.Ok"].Value, r.Moved, r.ToText); _isErr = false;
+    }
+
+    // 조건 입력 중 자동 완성 — 입력한 글자가 들어간 LOT·작업지시·품번을 최신순으로 제안한다. 목록에 없는 값도 그대로 입력해 조회할 수 있다(부분 일치).
+    List<string> _sugLot = new(), _sugWo = new(), _sugItem = new();
+    async Task Suggest(LoadDataArgs a, string kind)
+    {
+        List<string> found;
+        try { found = await Task.Run(() => Wos.SuggestLotFilter(kind, a.Filter)); }
+        catch { found = new(); }
+        switch (kind) { case "lot": _sugLot = found; break; case "wo": _sugWo = found; break; default: _sugItem = found; break; }
+    }
+
     async Task OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
 
-    async Task Search()
+    // 새 조건으로 조회 — 첫 페이지부터
+    async Task Search() { _page = 0; await LoadPage(); }
+
+    async Task GoPage(int page) { _page = Math.Clamp(page, 0, PageCount - 1); await LoadPage(); }
+
+    async Task OnPageSizeChanged() { _page = 0; await LoadPage(); }
+
+    // 한 페이지만 읽는다 — 작업자·팔레트 같은 무거운 정보도 이 페이지 건에만 붙는다
+    async Task LoadPage()
     {
         _msg = ""; _isErr = false; _noKey = null;
         try
         {
-            var found = await Task.Run(() => Wos.SearchLots(_fLot, _fWo, _fItem, _fProcess, _fStatus, _fFrom, _fTo, Take + 1));
-            _truncated = found.Count > Take;
-            _rows = found.Take(Take).Select(r => r with { OperatorText = r.OperatorId is null ? "" : Actors.Display(r.OperatorId) }).ToList();
-            if (_truncated) _msg = string.Format(L["PP.LotLookup.Truncated"].Value, Take.ToString("#,0"));
+            var (found, total) = await Task.Run(() => Wos.SearchLotsPage(_fLot, _fWo, _fItem, _fProcess, _fStatus, _fFrom, _fTo, _page * _pageSize, _pageSize));
+            _total = total;
+            if (found.Count == 0 && _page > 0 && total > 0) { _page = PageCount - 1; await LoadPage(); return; }
+            _rows = found.Select(r => r with { OperatorText = r.OperatorId is null ? "" : Actors.Display(r.OperatorId) }).ToList();
         }
-        catch (Exception ex) { _msg = ex.Message; _isErr = true; _rows = new(); }
+        catch (Exception ex) { _msg = ex.Message; _isErr = true; _rows = new(); _total = 0; }
     }
 
     // ◀ ▶ — 기간을 1주씩 옮기고 바로 조회한다. 비어 있는 쪽은 오늘까지 1주에서 시작한다.
@@ -175,13 +244,15 @@ else
     // 엑셀 내려받기 — 지금 정렬·필터로 보이는 순서 그대로, 양품은 숫자 칸
     async Task ExportExcel()
     {
-        if (_rows.Count == 0) return;
+        if (_total == 0) return;
+        var all = await Task.Run(() => Wos.SearchLots(_fLot, _fWo, _fItem, _fProcess, _fStatus, _fFrom, _fTo, ExportMax))
+            .ContinueWith(t => t.Result.Select(r => r with { OperatorText = r.OperatorId is null ? "" : Actors.Display(r.OperatorId) }).ToList());
         var headers = new List<string> { "No.", "LOT", L["PP.WorkOrder.Trace.Wo"].Value, L["PP.Lot.Process"].Value, L["Col.Line"].Value, L["PP.Lot.Station"].Value, L["Col.PartNo"].Value,
-            L["Col.Status"].Value, L["PP.WoDetail.Operator"].Value, L["PP.WorkOrder.Trace.Good"].Value, L["PP.Lot.ProducedAt"].Value, L["PP.Lot.Parent"].Value };
+            L["Col.Status"].Value, L["PP.WoDetail.Operator"].Value, L["PP.WorkOrder.Trace.Good"].Value, L["PP.Lot.ProducedAt"].Value, L["PP.Lot.Parent"].Value, L["PP.WoDetail.Flow.Pallet"].Value };
         var data = new List<IReadOnlyList<object?>>();
         var no = 0;
-        foreach (var r in (_grid?.View ?? _rows.AsQueryable()))
-            data.Add([++no, r.LotCode, r.WoNumber, r.ProcessCode, r.LineId, r.Station, r.ItemNo, r.Status, r.OperatorText, r.GoodQty, r.At?.ToString("yyyy-MM-dd HH:mm:ss"), r.ParentLotCode]);
+        foreach (var r in all)
+            data.Add([++no, r.LotCode, r.WoNumber, r.ProcessCode, r.LineId, r.Station, r.ItemNo, r.Status, r.OperatorText, r.GoodQty, r.At?.ToString("yyyy-MM-dd HH:mm:ss"), r.ParentLotCode, r.PalletNos]);
         var bytes = AMES.Web.Services.XlsxWriter.Build("LOT", headers, data);
         await JS.InvokeVoidAsync("amesDownload", $"LOT_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

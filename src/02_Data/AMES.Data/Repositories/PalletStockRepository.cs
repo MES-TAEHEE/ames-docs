@@ -123,7 +123,7 @@ public sealed class PalletStockRepository
     /// Ok 가 아니면 아무것도 쓰지 않는다 — 호출자가 트랜잭션을 되돌려 확정도 취소한다.
     /// </summary>
     internal static PalletLoadOutcome Load(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                           string palletNo, string operatorId, string employeeNo)
+                                           string palletNo, string operatorId, string employeeNo, string stage = "")
     {
         var no = PalletLoadRules.NormalizePalletNo(palletNo) ?? string.Empty;
         var state   = ReadState(conn, tx, no);
@@ -143,6 +143,23 @@ public sealed class PalletStockRepository
             ColumnParams.Add(cmd, "@L", "WH_Inventory.LotNo",    lotCode);
             ColumnParams.Add(cmd, "@I", "WH_Inventory.PartNo",   itemNo);
             cmd.ExecuteNonQuery();
+        }
+        // LOT↔팔레트 매핑 이력(공정 단계별) — PR_LotPallet 이 아직 없는 DB 에서도 확정이 실패하지 않게 테이블이 있을 때만 쓴다
+        if (stage.Length > 0)
+        {
+            using var map = new SqlCommand("""
+                IF OBJECT_ID(N'dbo.PR_LotPallet', N'U') IS NOT NULL
+                BEGIN
+                    -- 조건을 한 줄에 묶으면 테이블이 없을 때 컴파일 단계에서 실패한다 — 안쪽 IF 는 실행될 때 해석된다
+                    IF NOT EXISTS (SELECT 1 FROM dbo.PR_LotPallet WHERE LotCode = @L AND Stage = @S AND PalletNo = @P AND ReleasedTS IS NULL)
+                        INSERT dbo.PR_LotPallet (LotCode, PalletNo, Stage, CreatedBy) VALUES (@L, @P, @S, @By);
+                END
+                """, conn, tx);
+            map.Parameters.Add("@L", System.Data.SqlDbType.VarChar, 50).Value = lotCode;
+            map.Parameters.Add("@P", System.Data.SqlDbType.VarChar, 50).Value = no;
+            map.Parameters.Add("@S", System.Data.SqlDbType.VarChar, 10).Value = stage;
+            map.Parameters.Add("@By", System.Data.SqlDbType.VarChar, 20).Value = employeeNo.Length > 20 ? employeeNo[..20] : employeeNo;
+            map.ExecuteNonQuery();
         }
         WriteTxn(conn, tx, "IN", ConfirmSourceType, lotId, lotCode, itemNo, 0m, 1m, 1m,
                  $"{lotCode} {itemNo} → {no}", operatorId, employeeNo);
@@ -263,6 +280,14 @@ public sealed class PalletStockRepository
     internal static PalletUnloadResult Unload(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
                                               string sourceType, string reason, string operatorId, string employeeNo)
     {
+        using (var rel = new SqlCommand("""
+            IF OBJECT_ID(N'dbo.PR_LotPallet', N'U') IS NOT NULL
+                UPDATE dbo.PR_LotPallet SET ReleasedTS = SYSDATETIME() WHERE LotCode = @L AND ReleasedTS IS NULL;
+            """, conn, tx))
+        {
+            rel.Parameters.Add("@L", System.Data.SqlDbType.VarChar, 50).Value = lotCode;
+            rel.ExecuteNonQuery();
+        }
         decimal before; string? palletNo, locationNo;
         using (var cmd = new SqlCommand("""
             DELETE dbo.WH_Inventory

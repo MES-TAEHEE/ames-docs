@@ -43,6 +43,7 @@ public class PalletLoadDbTests
         DELETE FROM dbo.WH_InventoryTransaction WHERE LotNo IN (@P1, @P2, @P3);
         DELETE w FROM dbo.WH_Inventory w JOIN dbo.tbl_Lot l ON l.LotCode = w.LotNo COLLATE DATABASE_DEFAULT WHERE l.ItemNo IN (@A, @B, @F);
         DELETE FROM dbo.WH_Inventory WHERE LotNo IN (@P1, @P2, @P3) OR PalletNo IN (@P1, @P2, @P3);
+        IF OBJECT_ID(N'dbo.PR_LotPallet', N'U') IS NOT NULL DELETE FROM dbo.PR_LotPallet WHERE PalletNo IN (@P1, @P2, @P3);
         DELETE d FROM dbo.PR_DefectDetail     d JOIN dbo.tbl_Lot l ON l.LotID = d.LotID WHERE l.ItemNo IN (@A, @B, @F);
         DELETE r FROM dbo.PR_ProductionResult r JOIN dbo.tbl_Lot l ON l.LotID = r.LotID WHERE l.ItemNo IN (@A, @B, @F);
         DELETE e FROM dbo.PR_ImgLot           e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo IN (@A, @B, @F);
@@ -86,6 +87,9 @@ public class PalletLoadDbTests
                 Assert.Equal(Pallet1, r["PalletNo"]); Assert.Equal(DBNull.Value, r["LocationNo"]); Assert.Equal(1m, r["Qty"]);
             }
             Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@P AND UnitType='PALLET' AND Qty=0", ("@P", Pallet1)));
+            // LOT↔팔레트 매핑 이력(PR_LotPallet, 공정 단계 INJ) — 테이블이 있는 DB 에서만
+            if (AmesDevDb.Scalar(f!, "SELECT OBJECT_ID(N'dbo.PR_LotPallet', N'U')") is int)
+                Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.PR_LotPallet WHERE LotCode=@L AND PalletNo=@P AND Stage='INJ' AND ReleasedTS IS NULL", ("@L", code1), ("@P", Pallet1)));
             Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='IN' AND SourceType='PROD_CONFIRM' AND SourceID=@Id AND QtyChange=1",
                                   ("@L", code1), ("@Id", lot1)));
 
@@ -229,6 +233,8 @@ public class PalletLoadDbTests
             Assert.Equal(DefectRegisterOutcome.Registered, reg1.Outcome);
             Assert.True(u1.Removed); Assert.Equal(Pallet1, u1.PalletNo); Assert.Null(u1.LocationNo); Assert.False(u1.WasLocated);
             Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@L", ("@L", code1)));
+            if (AmesDevDb.Scalar(f!, "SELECT OBJECT_ID(N'dbo.PR_LotPallet', N'U')") is int)   // 불량으로 팔레트에서 내려지면 매핑은 남기되 ReleasedTS 를 채운다
+                Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.PR_LotPallet WHERE LotCode=@L AND Stage='INJ' AND ReleasedTS IS NOT NULL", ("@L", code1)));
             Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='OUT' AND SourceType='POP_DEFECT' AND SourceID=@Id AND QtyBefore=1 AND QtyChange=-1 AND QtyAfter=0 AND LocationNo IS NULL",
                                   ("@L", code1), ("@Id", lot1)));
             Assert.Equal(1, stock.Inspect(Pallet1, CoreA).State.CountOf(CoreA));

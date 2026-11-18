@@ -48,6 +48,24 @@ public class WoFlowGraphTests
     }
 
     [Fact]
+    public void Pallet_node_follows_result_and_shows_location_or_shipped()
+    {
+        var pallets = new[]
+        {
+            new WorkOrderRepository.WoPalletRow("PLT-1", 40, 2, "FG-A01-01", false, null),
+            new WorkOrderRepository.WoPalletRow("PLT-2", 10, 1, null, false, null),
+            new WorkOrderRepository.WoPalletRow("PLT-3", 0, 1, null, true, new DateTime(2026, 11, 18), "SHIP"),
+            new WorkOrderRepository.WoPalletRow("PLT-1", 12, 12, null, false, null, "INJ"),
+        };
+        var g = WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T, null, null, null, pallets);
+        var n = g.Nodes.Single(x => x.Id == "pallet");
+        Assert.Equal("3 ", n.Title);   // 같은 팔레트가 여러 단계에 나와도 한 개로 센다
+        Assert.Equal(["WH · PLT-1 · 40 EA · FG-A01-01", "WH · PLT-2 · 10 EA · —", "SHIP · PLT-3 · Shipped 2026-11-18", "INJ · PLT-1 · 12 EA"], n.Lines);
+        Assert.Contains(g.Edges, e => e.Source == "result" && e.Target == "pallet");
+        Assert.DoesNotContain(WoFlowGraph.Build(Wo("APS", "12"), [], Trace("APS", "12"), T).Nodes, x => x.Id == "pallet");   // 팔레트가 없으면 노드 없음
+    }
+
+    [Fact]
     public void Result_node_carries_the_lot_numbers_as_chips()
     {
         var lots = new[] { new WorkOrderRepository.WoLotRow("LOT-A1", "INJ", "CONFIRMED", "I", null), new WorkOrderRepository.WoLotRow("LOT-A2", "INJ", "CONFIRMED", "I", null) };

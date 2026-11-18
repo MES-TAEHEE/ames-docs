@@ -55,3 +55,9 @@ GO
 SELECT ScreenCode, ProcessCode, HRef, LidLabel, SortOrder, IsVisible FROM dbo.SYS_Screen WHERE ScreenCode = 'PP-LOT';
 SELECT RoleName, ScreenCode, PermissionLevel FROM dbo.SYS_RolePermission WHERE ScreenCode = 'PP-LOT';
 GO
+
+-- LOT 작업지시 이동(편집 E) — 처음 만든 조회 전용(_XX / RXX)이면 R·E 를 허용(_ _X)하고 Admin 을 REX 로 올린다. 이미 손으로 바꾼 값은 건드리지 않는다.
+IF COL_LENGTH('dbo.SYS_Screen', 'PermissionCriteria') IS NOT NULL
+    EXEC(N'UPDATE dbo.SYS_Screen SET PermissionCriteria = ''__X'' WHERE ScreenCode = ''PP-LOT'' AND PermissionCriteria = ''_XX''');
+UPDATE dbo.SYS_RolePermission SET PermissionLevel = 'REX' WHERE RoleID = N'ROLE-SYSADMIN' AND ScreenCode = 'PP-LOT' AND PermissionLevel = 'RXX';
+GO

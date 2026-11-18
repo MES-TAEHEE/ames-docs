@@ -110,6 +110,31 @@ else
         </div>
     }
 
+    <div class="ipk-sub">@L["PP.WoDetail.Flow.Pallet"] · @_pallets.Count</div>
+    @if (_pallets.Count == 0)
+    {
+        <div class="dim" style="margin:4px 0 12px;">@L["PP.WoDetail.Pallet.None"]</div>
+    }
+    else
+    {
+        <div class="ipk-tree wod-tree" style="margin:4px 0 12px;">
+            <div class="ipk-row wod-prow ipk-head">
+                <span>@L["PP.WoDetail.Pallet.Stage"]</span><span>@L["PP.WoDetail.Flow.Pallet"]</span><span class="r">@L["Col.Qty"]</span><span class="r">@L["PP.WoDetail.Pallet.LotCount"]</span><span>@L["Col.Location"]</span><span>@L["Col.Status"]</span>
+            </div>
+            @foreach (var p in _pallets)
+            {
+                <div class="ipk-row wod-prow">
+                    <span>@p.Stage</span>
+                    <span class="code">@p.PalletNo</span>
+                    <span class="r">@(p.Shipped ? "—" : p.Qty.ToString("#,0"))</span>
+                    <span class="r">@p.LotCount.ToString("#,0")</span>
+                    <span>@(p.Shipped || p.Stage != "WH" ? "—" : string.IsNullOrEmpty(p.LocationNo) ? L["PP.WoDetail.Flow.PalletUnplaced"].Value : p.LocationNo)</span>
+                    <span>@if (p.Shipped) { <span class="pill ok">@L["PP.WoDetail.Flow.PalletShipped"]@(p.ShippedAt is DateTime sa ? " " + sa.ToString(DateFmt.Date) : "")</span> }</span>
+                </div>
+            }
+        </div>
+    }
+
     @if (_trace is { } t)
     {
         <div class="ipk-sub">@L["PP.WorkOrder.Trace.Title"]</div>
@@ -209,6 +234,7 @@ else
             _ops = Wos.ListStepOperators(wo.WoId);
             _lots = Wos.ListWoLots(wo.WoId);
             _stepTrace = Wos.ListStepTrace(wo.WoId);
+            _pallets = Wos.ListWoPallets(wo.WoId);
             _order = Wos.GetWoOrderInfo(WoNumber);
             _updatedAt = DateTime.Now;
             _live = _steps.Any(s => s.Status == "In Progress") || wo.Status == "In Progress";
@@ -224,8 +250,9 @@ else
         L["PP.WorkOrder.Trace.Slots"].Value, L["PP.WorkOrder.Trace.Result"].Value, L["PP.WorkOrder.Trace.Good"].Value,
         L["PP.WorkOrder.Trace.Defect"].Value, L["PP.WorkOrder.Trace.SlotUnit"].Value, L["PP.WorkOrder.Trace.Run"].Value,
         L["PP.WoDetail.OpenLink"].Value, L["PP.WorkOrder.Src.Plan003"].Value, L["PP.WorkOrder.Src.Manual"].Value, L["PP.WorkOrder.Src.None"].Value,
-        L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value),
-        OperatorTexts(), _lots, _stepTrace);
+        L["PP.WoDetail.Flow.Done"].Value, L["PP.WoDetail.Flow.Running"].Value, L["PP.WoDetail.Flow.Waiting"].Value, L["PP.WoDetail.Flow.Cancelled"].Value,
+        L["PP.WoDetail.Flow.Pallet"].Value, L["PP.WoDetail.Flow.PalletUnit"].Value, L["PP.WoDetail.Flow.PalletShipped"].Value, L["PP.WoDetail.Flow.PalletUnplaced"].Value),
+        OperatorTexts(), _lots, _stepTrace, _pallets);
 
     // 라인별 담당자 — 한 사람이 한 줄. 지금 로그인해 작업 중이면 「작업중」(강조), 로그아웃했거나 공정이 끝났으면 담당했던 시간(첫~마지막 실적, 로그아웃 시각)과 작업 시간을 보인다.
     Dictionary<string, IReadOnlyList<WoFlowGraph.OperatorRow>> OperatorTexts()
@@ -314,6 +341,7 @@ else
     AMES.Data.Repositories.WorkOrderRepository.WoTraceRow? _trace;
     List<AMES.Data.Repositories.WorkOrderRepository.StepOperators> _ops = new();
     List<AMES.Data.Repositories.WorkOrderRepository.WoLotRow> _lots = new();   // 흐름 보기 LOT 칩
+    List<AMES.Data.Repositories.WorkOrderRepository.WoPalletRow> _pallets = new();   // 흐름 보기 팔레트
     List<AMES.Data.Repositories.WorkOrderRepository.WoStepTrace> _stepTrace = new();   // 흐름 보기 공정별 슬롯·실적
     DotNetObjectReference<WoDetailDialog>? _self;                                // 흐름 화면의 LOT 칩 클릭을 받는다
 
@@ -328,6 +356,7 @@ else
             _ops = Wos.ListStepOperators(_wo.WoId);
             _lots = Wos.ListWoLots(_wo.WoId);
             _stepTrace = Wos.ListStepTrace(_wo.WoId);
+            _pallets = Wos.ListWoPallets(_wo.WoId);
             _order = Wos.GetWoOrderInfo(WoNumber);
             _live = _steps.Any(s => s.Status == "In Progress") || _wo.Status == "In Progress";
         }

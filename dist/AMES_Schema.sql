@@ -301,6 +301,7 @@ DROP TABLE IF EXISTS [dbo].[PR_FabricIssueAttempt];
 DROP TABLE IF EXISTS [dbo].[PR_ImgLot];
 DROP TABLE IF EXISTS [dbo].[PR_InjCondLog];
 DROP TABLE IF EXISTS [dbo].[PR_InjLot];
+DROP TABLE IF EXISTS [dbo].[PR_LotPallet];
 DROP TABLE IF EXISTS [dbo].[PR_MoldChange];
 DROP TABLE IF EXISTS [dbo].[PR_PntLot];
 DROP TABLE IF EXISTS [dbo].[PR_PopAuthLog];
@@ -6398,6 +6399,32 @@ GO
 ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT ((0)) FOR [PrintedCount]
 GO
 ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+-- Table: dbo.PR_LotPallet
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PR_LotPallet](
+	[MapID] [bigint] IDENTITY(1,1) NOT NULL,
+	[LotCode] [varchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
+	[PalletNo] [varchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
+	[Stage] [varchar](10) COLLATE DATABASE_DEFAULT NOT NULL,
+	[ReleasedTS] [datetime2](7) NULL,
+	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_PR_LotPallet] PRIMARY KEY CLUSTERED ([MapID] ASC) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PR_LotPallet_Lot] ON [dbo].[PR_LotPallet]([LotCode] ASC) INCLUDE ([PalletNo], [Stage], [ReleasedTS])
+GO
+CREATE NONCLUSTERED INDEX [IX_PR_LotPallet_Pallet] ON [dbo].[PR_LotPallet]([PalletNo] ASC)
+GO
+ALTER TABLE [dbo].[PR_LotPallet] ADD  CONSTRAINT [DF_PR_LotPallet_CreatedTS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'LOT↔팔레트 매핑 이력 — POP(INJ·IMG·PNT)이 LOT 을 팔레트에 실을 때 한 줄' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_LotPallet'
 GO
 -- Table: dbo.PR_MoldChange
 SET ANSI_NULLS ON

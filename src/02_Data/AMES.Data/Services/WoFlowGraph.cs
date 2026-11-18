@@ -22,7 +22,8 @@ public static class WoFlowGraph
     /// <summary>화면에 보이는 말(번역된 문구). 키가 아니라 값을 받아 순수 함수로 둔다.</summary>
     public sealed record Texts(string So, string Plan, string Wo, string Step, string Slots, string Result,
         string Good, string Defect, string SlotUnit, string Run, string OpenLink, string SourcePlan003, string SourceManual, string SourceNone,
-        string Done = "", string Running = "", string Waiting = "", string Cancelled = "");
+        string Done = "", string Running = "", string Waiting = "", string Cancelled = "",
+        string Pallet = "Pallet", string PalletUnit = "", string PalletShipped = "Shipped", string PalletUnplaced = "—");
 
     // 노드 폭 260 + 진행 중 확대(1.12배) 여유 + 간격 — 공정 노드끼리 겹치지 않게 열 간격은 노드 폭보다 충분히 크게
     // const int ColW = 600, RowH = 400;
@@ -33,7 +34,8 @@ public static class WoFlowGraph
     static double Pct(decimal done, decimal total) => total <= 0 ? 0 : (double)Math.Min(100m, done * 100m / total);
 
     public static Graph Build(WorkOrderDto wo, IReadOnlyList<WorkOrderRepository.StepRow> steps, WorkOrderRepository.WoTraceRow? t, Texts x,
-        IReadOnlyDictionary<string, IReadOnlyList<OperatorRow>>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null, IReadOnlyList<WorkOrderRepository.WoStepTrace>? stepTrace = null)
+        IReadOnlyDictionary<string, IReadOnlyList<OperatorRow>>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null, IReadOnlyList<WorkOrderRepository.WoStepTrace>? stepTrace = null,
+        IReadOnlyList<WorkOrderRepository.WoPalletRow>? pallets = null)
     {
         var nodes = new List<Node>();
         var edges = new List<Edge>();
@@ -105,6 +107,20 @@ public static class WoFlowGraph
             }
             nodes.Add(new Node("result", "result", x.Result, $"{x.Good} {finalGood:#,0}", resultLines, finalGood > 0 ? "done" : null, null, null, 3 * ColW, RowH, Chips: chips, TitleKey: "lots", LineKeys: lineKeys));
             edges.Add(new Edge("slots-result", "slots", "result", false, null));
+
+            // 팔레트 — 실적(LOT)이 실린 팔레트와 위치·출하 상태. 팔레트가 없으면 노드를 두지 않는다
+            if (pallets is { Count: > 0 })
+            {
+                var plLines = pallets.Select(p => p.Shipped
+                    ? $"{p.Stage} · {p.PalletNo} · {x.PalletShipped}{(p.ShippedAt is DateTime sa ? " " + sa.ToString("yyyy-MM-dd") : "")}"
+                    : p.Stage == "WH"
+                        ? $"{p.Stage} · {p.PalletNo} · {p.Qty:#,0} EA · {(string.IsNullOrEmpty(p.LocationNo) ? x.PalletUnplaced : p.LocationNo)}"
+                        : $"{p.Stage} · {p.PalletNo} · {p.Qty:#,0} EA").ToList();
+                var allShipped = pallets.Any(p => p.Shipped) && !pallets.Any(p => p.Stage == "WH");
+                nodes.Add(new Node("pallet", "pallet", x.Pallet, $"{pallets.Select(p => p.PalletNo).Distinct().Count()} {x.PalletUnit}", plLines, allShipped ? "done" : null, null, null, 4 * ColW, RowH,
+                    allShipped ? x.PalletShipped : null));
+                edges.Add(new Edge("result-pallet", "result", "pallet", false, null));
+            }
         }
         return new Graph(nodes, edges);
     }
