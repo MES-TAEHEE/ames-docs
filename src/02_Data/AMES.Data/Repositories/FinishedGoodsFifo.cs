@@ -73,7 +73,7 @@ public static class FinishedGoodsFifo
         DECLARE @Selected TABLE(LotNo nvarchar(50) PRIMARY KEY);
         ;WITH Scope AS(
             SELECT LotNo FROM dbo.WH_Inventory W WITH(READCOMMITTED) WHERE LotNo=@Barcode OR EXISTS(
-                SELECT 1 FROM dbo.FG_DeliveryLoad D WITH(READCOMMITTED) WHERE D.DeliveryID=@DeliveryId AND D.RootLotNo=W.LotNo AND D.ShipmentID IS NULL)
+                SELECT 1 FROM dbo.FG_DeliveryLoad D WITH(READCOMMITTED) WHERE D.DeliveryID=@DeliveryId AND D.RootLotNo=W.LotNo AND D.ShipmentID IS NULL AND D.LoadState='Loaded')
             UNION ALL SELECT W.LotNo FROM dbo.WH_Inventory W WITH(READCOMMITTED) JOIN Scope S ON W.ParentLotNo=S.LotNo
         ) INSERT @Selected SELECT LotNo FROM Scope OPTION(MAXRECURSION 100);
         ;WITH EligibleRoots AS(

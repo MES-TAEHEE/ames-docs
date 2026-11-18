@@ -327,8 +327,9 @@ public static class PdaFinishedGoodsSql
                 EXEC @ShippingGate=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
                 IF @ShippingGate<0 THROW 52020,'Shipping is busy. Retry shortly.',1;
                 -- POP locks the physical pallet before inventory; use that order here too.
-                DECLARE @PalletLock varchar(50);
-                SELECT @PalletLock=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=@Barcode;
+                DECLARE @PalletLock varchar(50),@PalletRoot varchar(50);
+                SELECT @PalletRoot=PalletNo FROM dbo.WH_Inventory WITH(READCOMMITTED) WHERE LotNo=@Barcode;
+                SELECT @PalletLock=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=COALESCE(@PalletRoot,@Barcode);
                 IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                     THROW 52000,'No inventory record exists for this barcode.',1;
                 SELECT @UnitType=UnitType,@PalletNo=COALESCE(NULLIF(LTRIM(RTRIM(PalletNo)),''),CASE WHEN UnitType='PALLET' THEN LotNo END) FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
@@ -394,6 +395,21 @@ public static class PdaFinishedGoodsSql
                 SELECT @Now,'OUT',PartNo,LocationNo,LotNo,Qty,-Qty,0,@UnitType+'_OUTBOUND','FG_OUTBOUND',@ShipmentID,
                     @OperatorID,@UnitType+N' LOT: '+@Barcode,@OperatorID,@Now FROM @Items;
                 UPDATE I SET Qty=0,UpdatedAt=@Now FROM dbo.WH_Inventory I JOIN @Scope S ON S.LotNo=I.LotNo WHERE I.Qty>0;
+                -- Individual LOT shipment leaves its physical parent in stock; refresh header quantities.
+                DECLARE @Parents TABLE(LotNo nvarchar(50) PRIMARY KEY);
+                ;WITH Parents AS(
+                    SELECT I.ParentLotNo LotNo FROM dbo.WH_Inventory I JOIN @Scope S ON S.LotNo=I.LotNo WHERE I.ParentLotNo IS NOT NULL
+                    UNION ALL SELECT I.ParentLotNo FROM dbo.WH_Inventory I JOIN Parents P ON P.LotNo=I.LotNo WHERE I.ParentLotNo IS NOT NULL
+                ) INSERT @Parents SELECT DISTINCT LotNo FROM Parents OPTION(MAXRECURSION 100);
+                ;WITH Contents AS(
+                    SELECT P.LotNo RootLotNo,I.LotNo,I.Qty FROM @Parents P JOIN dbo.WH_Inventory I ON I.ParentLotNo=P.LotNo
+                    UNION ALL SELECT C.RootLotNo,I.LotNo,I.Qty FROM Contents C JOIN dbo.WH_Inventory I ON I.ParentLotNo=C.LotNo
+                ), Totals AS(
+                    SELECT RootLotNo,SUM(Qty) Qty
+                    FROM Contents C WHERE NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory X WHERE X.ParentLotNo=C.LotNo) GROUP BY RootLotNo
+                )
+                UPDATE I SET Qty=COALESCE(T.Qty,0),UpdatedAt=@Now FROM dbo.WH_Inventory I JOIN @Parents P ON P.LotNo=I.LotNo
+                    LEFT JOIN Totals T ON T.RootLotNo=I.LotNo WHERE I.UnitType IN('PALLET','CASE') OPTION(MAXRECURSION 100);
                 COMMIT TRANSACTION;
                 SELECT @ShipmentID ShipmentID,COUNT(*) ProcessedCount,SUM(Qty) TotalQty,@UnitType UnitType FROM @Items;
             END TRY

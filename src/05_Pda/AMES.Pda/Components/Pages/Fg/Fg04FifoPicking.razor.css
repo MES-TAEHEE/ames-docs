@@ -38,3 +38,36 @@
 .fg04-customer select { width: 100%; min-height: 44px; border: 1px solid #6d89ac; border-radius: 0; background: #080e1b; color: #fff; padding: 8px; }
 .fg04-customer strong { font-size: 13px; overflow-wrap: anywhere; }
 .fg04-customer small { color: #fca5a5; }
+
+.shipment-orders-head {display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;}
+.shipment-orders-head strong {font-size:13px;letter-spacing:1px;}
+.loading-shell ::deep .shipment-order-row.rz-button {
+    display:block;width:100%;height:auto;min-height:96px;padding:12px;
+    margin:0;border:1px solid #38516e;border-radius:0;box-shadow:none;
+    background:#111e30;color:#e5edf9;text-align:left;text-transform:none;
+}
+.loading-shell ::deep .shipment-order-row.rz-button+.shipment-order-row.rz-button {border-top:0;}
+.loading-shell ::deep .shipment-order-row .rz-button-box {display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;white-space:normal;}
+.shipment-order-main {display:flex;justify-content:space-between;gap:8px;}
+.shipment-order-main strong {color:#83bbff;overflow-wrap:anywhere;}
+.shipment-order-main>span,.shipment-order-meta,.shipment-order-dcr {font-size:12px;color:#a7b9ce;}
+.shipment-order-parts {font-size:12px;overflow-wrap:anywhere;}
+.shipment-orders-empty {padding:12px 0;color:#a7b9ce;}
+.shipment-orders-empty.error {color:#fca5a5;}
+.load-summary,.load-parts {border:1px solid #38516e;background:#111e30;padding:12px;color:#e5edf9;margin-bottom:12px;}
+.load-summary>strong {color:#83bbff;display:block;}
+.load-order {margin-top:6px;font-size:12px;}
+.load-parts header {font-size:12px;letter-spacing:1px;color:#8dbdff;margin-bottom:8px;}
+.load-parts article {padding:10px 0;border-top:1px solid #38516e;}
+.load-parts article>div:first-child {display:flex;justify-content:space-between;gap:12px;}
+.load-parts article.complete {border-left:3px solid #45d6a4;padding-left:8px;}
+.load-parts small {color:#a7b9ce;}
+
+.fg04-staged-qty,.fg04-at-shipping-area { color:#8ee6b7; }
+.fg04-at-shipping-area { margin:6px 0 0;font-size:12px; }
+.fg04-shortage { margin:8px 0 0;padding:8px;border:1px solid #d97777;background:#321d27;color:#fca5a5;font-size:12px;font-weight:700; }
+.fg04-recommendations { display:grid;gap:8px;margin-top:10px;max-height:230px;overflow-y:auto; }
+.fg04-stock-recommendation { display:grid;gap:4px;padding:8px;border:1px solid #38516e;background:#111e30; }
+.fg04-stock-recommendation>div { display:flex;justify-content:space-between;gap:8px; }
+.fg04-stock-recommendation strong { color:#83bbff; }
+.fg04-stock-recommendation span { font-size:12px;overflow-wrap:anywhere; }

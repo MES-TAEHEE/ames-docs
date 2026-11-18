@@ -300,10 +300,10 @@ public sealed partial class FinishedGoodsRepository
         {st.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;status=st.ExecuteScalar() as string;}
         if(status is null)throw new InvalidOperationException("Delivery not found. Refresh and retry.");
         if(status!="Open")throw new InvalidOperationException(status=="Loading"
-            ?"Pallets are already loaded on this DCR. Unload them on the PDA first, then release the DCR."
+            ?"Inventory is already loaded on this DCR. Unload them on the PDA first, then release the DCR."
             :$"A {status.ToLowerInvariant()} DCR cannot be released.");
-        using(var ld=new SqlCommand("SELECT COUNT(*) FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@D",conn,tx))
-        {ld.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;if((int)ld.ExecuteScalar()!>0)throw new InvalidOperationException("Pallets are already loaded on this DCR. Unload them on the PDA first, then release the DCR.");}
+        using(var ld=new SqlCommand("SELECT COUNT(*) FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@D AND LoadState='Loaded'",conn,tx))
+        {ld.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;if((int)ld.ExecuteScalar()!>0)throw new InvalidOperationException("Inventory is already loaded on this DCR. Unload them on the PDA first, then release the DCR.");}
         using(var rel=new SqlCommand("UPDATE dbo.FG_ShippingOrder SET DeliveryID=NULL,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@D AND Status='Open' AND (@O IS NULL OR OrderID=@O)",conn,tx))
         {
             rel.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;rel.Parameters.Add("@O",SqlDbType.Int).Value=(object?)orderId??DBNull.Value;Add(rel,"@Actor",SqlDbType.VarChar,20,actor);
@@ -329,49 +329,99 @@ public sealed partial class FinishedGoodsRepository
         using(var r=cmd.ExecuteReader())
         {
             if(!r.Read()) throw new InvalidOperationException("Delivery not found. Assign the shipment order to a DCR trailer delivery on the web first.");
-            result=new(GetInt(r,"DeliveryID"),GetString(r,"DeliveryNo")!,GetString(r,"CustomerID")!,r.GetDateTime(r.GetOrdinal("ShipDate")),GetString(r,"TrailerNo"),GetString(r,"Status")!,[],[],[]);
+            result=new(GetInt(r,"DeliveryID"),GetString(r,"DeliveryNo")!,GetString(r,"CustomerID")!,r.GetDateTime(r.GetOrdinal("ShipDate")),GetString(r,"TrailerNo"),GetString(r,"Status")!,[],[],[],[],true);
         }
         using var items=new SqlCommand("""
             SELECT OrderNo FROM dbo.FG_ShippingOrder WHERE DeliveryID=@Id ORDER BY OrderID;
             SELECT L.PartNo,I.ItemName,SUM(L.Qty) RequiredQty,
-                (SELECT COALESCE(SUM(A.Qty),0) FROM dbo.FG_DeliveryLoad A WHERE A.DeliveryID=@Id AND A.PartNo=L.PartNo) LoadedQty
+                (SELECT COALESCE(SUM(A.Qty),0) FROM dbo.FG_DeliveryLoad A WHERE A.DeliveryID=@Id AND A.PartNo=L.PartNo AND A.LoadState='Loaded') LoadedQty,
+                (SELECT COALESCE(SUM(CASE WHEN A.LoadState='Prepared' THEN W.Qty ELSE A.Qty END),0)
+                 FROM dbo.FG_DeliveryLoad A JOIN dbo.FG_Delivery G ON G.DeliveryID=A.DeliveryID
+                 LEFT JOIN dbo.WH_Inventory W ON W.LotNo=A.LotNo AND W.PartNo=A.PartNo
+                 WHERE A.PartNo=L.PartNo AND ((A.DeliveryID=@Id AND A.LoadState='Loaded')
+                    OR (G.CustomerID=@Customer AND A.LoadState='Prepared' AND A.ShipmentID IS NULL AND W.Qty>0))) PreparedQty
             FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
             LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.PartNo WHERE O.DeliveryID=@Id GROUP BY L.PartNo,I.ItemName;
-            SELECT RootLotNo,LotNo,PartNo,Qty FROM dbo.FG_DeliveryLoad WHERE DeliveryID=@Id ORDER BY LoadID;
-            """,conn,tx);items.Parameters.Add("@Id",SqlDbType.Int).Value=result.DeliveryId;
+            SELECT RootLotNo,LotNo,PartNo,Qty FROM dbo.FG_DeliveryLoad WHERE DeliveryID=@Id AND LoadState='Loaded' ORDER BY LoadID;
+            SELECT A.RootLotNo,A.LotNo,A.PartNo,W.Qty FROM dbo.FG_DeliveryLoad A
+            JOIN dbo.FG_Delivery G ON G.DeliveryID=A.DeliveryID
+            JOIN dbo.WH_Inventory W ON W.LotNo=A.LotNo AND W.PartNo=A.PartNo AND W.Qty>0
+            WHERE G.CustomerID=@Customer AND A.LoadState='Prepared' AND A.ShipmentID IS NULL
+              AND EXISTS(SELECT 1 FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
+                         WHERE O.DeliveryID=@Id AND L.PartNo=A.PartNo)
+            ORDER BY A.PreparedAt,A.LoadID;
+            """,conn,tx);items.Parameters.Add("@Id",SqlDbType.Int).Value=result.DeliveryId;Add(items,"@Customer",SqlDbType.VarChar,20,result.CustomerId);
         using var reader=items.ExecuteReader();
         while(reader.Read())result.OrderNos.Add(reader.GetString(0));
-        reader.NextResult();while(reader.Read())result.Parts.Add(new(reader.GetString(0),reader.IsDBNull(1)?null:reader.GetString(1),reader.GetDecimal(2),reader.GetDecimal(3)));
+        reader.NextResult();while(reader.Read())result.Parts.Add(new(reader.GetString(0),reader.IsDBNull(1)?null:reader.GetString(1),reader.GetDecimal(2),reader.GetDecimal(3),reader.GetDecimal(4)));
         reader.NextResult();while(reader.Read())result.Loads.Add(new(reader.GetString(0),reader.GetString(1),reader.GetString(2),reader.GetDecimal(3)));
-        return result;
+        reader.NextResult();while(reader.Read())result.Preparations!.Add(new(reader.GetString(0),reader.GetString(1),reader.GetString(2),reader.GetDecimal(3)));
+        reader.Close();
+        var stock=ReadDispatchRecommendations(conn,tx,result);
+        return result with{Recommendations=stock.Recommendations,Parts=result.Parts.Select(p=>p with{StockShortageQty=stock.Shortages.GetValueOrDefault(p.PartNo)}).ToList()};
     }
 
     private sealed record LoadUnit(string Type,string? Customer,List<DeliveryLoadDto> Items);
     private static LoadUnit ReadLoadUnit(SqlConnection conn,SqlTransaction tx,string barcode)
     {
-        if(string.IsNullOrWhiteSpace(barcode) || barcode.Length>50)throw new ArgumentException("Scan a pallet LOT barcode within 50 characters.");
-        using(var pallet=new SqlCommand("DECLARE @P varchar(50); SELECT @P=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=@Barcode;",conn,tx))
+        if(string.IsNullOrWhiteSpace(barcode) || barcode.Length>50)throw new ArgumentException("Scan an inventory barcode within 50 characters.");
+        using(var pallet=new SqlCommand(@"DECLARE @P varchar(50),@Root varchar(50); SELECT @Root=PalletNo FROM dbo.WH_Inventory WITH(READCOMMITTED) WHERE LotNo=@Barcode;
+            SELECT @P=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=COALESCE(@Root,@Barcode);",conn,tx))
         {
             Add(pallet,"@Barcode",SqlDbType.VarChar,50,barcode);
             pallet.ExecuteNonQuery();
         }
         using var cmd=new SqlCommand(PdaFinishedGoodsSql.OutboundScan,conn,tx);Add(cmd,"@Barcode",SqlDbType.NVarChar,50,barcode);
-        using var r=cmd.ExecuteReader();if(!r.Read())throw new InvalidOperationException("Pallet not found.");
+        using var r=cmd.ExecuteReader();if(!r.Read())throw new InvalidOperationException("Inventory barcode not found.");
         var type=GetString(r,"UnitType")!;var customer=GetString(r,"KnownCustomerID");var rows=new List<DeliveryLoadDto>();
         r.NextResult();while(r.Read())rows.Add(new(barcode,GetString(r,"LotNo")!,GetString(r,"PartNo")!,GetDecimal(r,"Qty")));
         return new(type,customer,rows);
     }
 
+    public ShippingDeliveryDto PrepareShippingDelivery(string deliveryBarcode,string barcode,string actor,bool allowNonFifo=false)
+    {
+        CheckActor(actor);
+        if(string.IsNullOrWhiteSpace(barcode))throw new ArgumentException("Scan Barcode first.");
+        barcode=barcode.Trim();
+        using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
+        var delivery=ReadDelivery(conn,tx,deliveryBarcode);
+        if(delivery.Status is not ("Open" or "Loading"))throw new InvalidOperationException("This DCR is closed and cannot accept outbound preparation.");
+        var unit=ReadLoadUnit(conn,tx,barcode);
+        if(unit.Customer is not null && unit.Customer!=delivery.CustomerId)throw new InvalidOperationException("The inventory customer does not match this DCR.");
+        using(var reserved=new SqlCommand("""
+            IF EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK)
+                WHERE ShipmentID IS NULL AND LotNo IN(SELECT value FROM OPENJSON(@Lots)))
+                THROW 52020,'This barcode or one of its LOTs is already prepared or loaded on a DCR.',1;
+            """,conn,tx))
+        {reserved.Parameters.Add("@Lots",SqlDbType.NVarChar,-1).Value=System.Text.Json.JsonSerializer.Serialize(unit.Items.Select(i=>i.LotNo));reserved.ExecuteNonQuery();}
+        var error=ValidateDeliveryLoad(delivery.Parts,unit.Items,enforceQuantity:false);
+        if(error is not null)throw new InvalidOperationException(error);
+        if(!allowNonFifo && FinishedGoodsFifo.Check(conn,tx,barcode,delivery.CustomerId) is {Count:>0} warnings)
+            throw new FifoConfirmationRequiredException(warnings);
+        foreach(var item in unit.Items)
+        {
+            using var cmd=new SqlCommand("""
+                IF EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Lot AND ShipmentID IS NULL)
+                    THROW 52020,'This LOT is already prepared or loaded on a DCR.',1;
+                INSERT dbo.FG_DeliveryLoad(DeliveryID,RootLotNo,LotNo,PartNo,Qty,LoadState,PreparedBy,PreparedAt,LoadedBy,LoadedAt)
+                VALUES(@Id,@Root,@Lot,@Part,@Qty,'Prepared',@Actor,SYSDATETIME(),NULL,NULL);
+                """,conn,tx);
+            cmd.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(cmd,"@Root",SqlDbType.NVarChar,50,barcode);
+            Add(cmd,"@Lot",SqlDbType.NVarChar,50,item.LotNo);Add(cmd,"@Part",SqlDbType.VarChar,20,item.PartNo);Qty(cmd,"@Qty",item.Qty);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);cmd.ExecuteNonQuery();
+        }
+        var result=ReadDelivery(conn,tx,delivery.DeliveryNo);tx.Commit();return result;
+    }
+
     public ShippingDeliveryDto LoadShippingDelivery(string deliveryBarcode,string palletBarcode,string actor,bool allowNonFifo=false)
     {
-        CheckActor(actor);if(string.IsNullOrWhiteSpace(palletBarcode))throw new ArgumentException("Scan a pallet barcode.");palletBarcode=palletBarcode.Trim();
+        CheckActor(actor);if(string.IsNullOrWhiteSpace(palletBarcode))throw new ArgumentException("Scan Barcode first.");palletBarcode=palletBarcode.Trim();
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
         var delivery=ReadDelivery(conn,tx,deliveryBarcode);
         if(delivery.Status=="Shipped")throw new InvalidOperationException("This delivery has already shipped.");
         if(delivery.Status=="Cancelled")throw new InvalidOperationException("This DCR was released. Assign the shipment orders to a DCR on the web first.");
         var unit=ReadLoadUnit(conn,tx,palletBarcode);
-        if(unit.Type is not ("PALLET" or "CASE"))throw new InvalidOperationException("Scan the parent pallet barcode, not an individual part or box.");
-        if(unit.Customer is not null && unit.Customer!=delivery.CustomerId)throw new InvalidOperationException("The pallet customer does not match this delivery.");
+
+        if(unit.Customer is not null && unit.Customer!=delivery.CustomerId)throw new InvalidOperationException("The scanned inventory customer does not match this delivery.");
         var error=ValidateDeliveryLoad(delivery.Parts,unit.Items);
         if(error is not null)throw new InvalidOperationException(error);
         if(!allowNonFifo && FinishedGoodsFifo.Check(conn,tx,palletBarcode,delivery.CustomerId) is {Count:>0} warnings)
@@ -379,26 +429,28 @@ public sealed partial class FinishedGoodsRepository
         foreach(var item in unit.Items)
         {
             using var cmd=new SqlCommand("""
-                IF EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Lot AND ShipmentID IS NULL)
-                    THROW 52020,'This pallet or one of its LOTs is already loaded on a delivery.',1;
-                INSERT dbo.FG_DeliveryLoad(DeliveryID,RootLotNo,LotNo,PartNo,Qty,LoadedBy) VALUES(@Id,@Root,@Lot,@Part,@Qty,@Actor);
+                UPDATE A WITH(UPDLOCK,HOLDLOCK)
+                SET DeliveryID=@Id,LoadState='Loaded',RootLotNo=@Root,Qty=@Qty,LoadedBy=@Actor,LoadedAt=SYSDATETIME()
+                FROM dbo.FG_DeliveryLoad A JOIN dbo.FG_Delivery G ON G.DeliveryID=A.DeliveryID
+                WHERE G.CustomerID=@Customer AND A.LotNo=@Lot AND A.PartNo=@Part AND A.LoadState='Prepared' AND A.ShipmentID IS NULL;
+                IF @@ROWCOUNT<>1 THROW 52020,'This LOT must be at the shipping area for this customer and cannot already be loaded.',1;
                 """,conn,tx);
             cmd.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(cmd,"@Root",SqlDbType.NVarChar,50,palletBarcode);
-            Add(cmd,"@Lot",SqlDbType.NVarChar,50,item.LotNo);Add(cmd,"@Part",SqlDbType.VarChar,20,item.PartNo);Qty(cmd,"@Qty",item.Qty);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);cmd.ExecuteNonQuery();
+            Add(cmd,"@Lot",SqlDbType.NVarChar,50,item.LotNo);Add(cmd,"@Part",SqlDbType.VarChar,20,item.PartNo);Qty(cmd,"@Qty",item.Qty);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);Add(cmd,"@Customer",SqlDbType.VarChar,20,delivery.CustomerId);cmd.ExecuteNonQuery();
         }
         using(var status=new SqlCommand("UPDATE dbo.FG_Delivery SET Status='Loading' WHERE DeliveryID=@Id; UPDATE dbo.FG_ShippingOrder SET Status='Loading',ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@Id;",conn,tx))
         {status.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(status,"@Actor",SqlDbType.VarChar,20,actor);status.ExecuteNonQuery();}
         var result=ReadDelivery(conn,tx,delivery.DeliveryNo);tx.Commit();return result;
     }
 
-    public static string? ValidateDeliveryLoad(IReadOnlyList<DeliveryRequirementDto> requirements,IReadOnlyList<DeliveryLoadDto> items)
+    public static string? ValidateDeliveryLoad(IReadOnlyList<DeliveryRequirementDto> requirements,IReadOnlyList<DeliveryLoadDto> items,bool enforceQuantity=true)
     {
-        if(items.Count==0)return "The pallet contains no available inventory.";
+        if(items.Count==0)return "The barcode contains no available inventory.";
         foreach(var group in items.GroupBy(x=>x.PartNo,StringComparer.OrdinalIgnoreCase))
         {
             var part=requirements.FirstOrDefault(x=>string.Equals(x.PartNo,group.Key,StringComparison.OrdinalIgnoreCase));
             if(part is null)return $"{group.Key}: this part is not required by the shipment orders.";
-            if(group.Sum(x=>x.Qty)>part.RequiredQty-part.LoadedQty)return $"{group.Key}: pallet quantity exceeds the remaining requirement ({part.RequiredQty-part.LoadedQty:N0}).";
+            if(enforceQuantity && group.Sum(x=>x.Qty)>part.RequiredQty-part.LoadedQty)return $"{group.Key}: barcode quantity exceeds the remaining requirement ({part.RequiredQty-part.LoadedQty:N0}).";
         }
         return null;
     }
@@ -406,13 +458,13 @@ public sealed partial class FinishedGoodsRepository
     public ShippingDeliveryDto UnloadShippingDelivery(string barcode,string palletBarcode,string actor)
     {
         CheckActor(actor);
-        if(string.IsNullOrWhiteSpace(palletBarcode)||palletBarcode.Length>50)throw new ArgumentException("Select a loaded pallet.");
+        if(string.IsNullOrWhiteSpace(palletBarcode)||palletBarcode.Length>50)throw new ArgumentException("Scan a loaded inventory barcode.");
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
         var delivery=ReadDelivery(conn,tx,barcode);
         if(delivery.Status=="Shipped")throw new InvalidOperationException("A shipped delivery cannot be changed.");
-        using(var cmd=new SqlCommand("DELETE dbo.FG_DeliveryLoad WHERE DeliveryID=@Id AND RootLotNo=@Root AND ShipmentID IS NULL",conn,tx))
-        {cmd.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(cmd,"@Root",SqlDbType.NVarChar,50,palletBarcode);cmd.ExecuteNonQuery();}
-        using(var status=new SqlCommand("IF NOT EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad WHERE DeliveryID=@Id) BEGIN UPDATE dbo.FG_Delivery SET Status='Open' WHERE DeliveryID=@Id; UPDATE dbo.FG_ShippingOrder SET Status='Open',ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@Id; END;",conn,tx))
+        using(var cmd=new SqlCommand("UPDATE dbo.FG_DeliveryLoad SET LoadState='Prepared',LoadedBy=NULL,LoadedAt=NULL,PreparedBy=COALESCE(PreparedBy,@Actor),PreparedAt=COALESCE(PreparedAt,SYSDATETIME()) WHERE DeliveryID=@Id AND RootLotNo=@Root AND LoadState='Loaded' AND ShipmentID IS NULL",conn,tx))
+        {cmd.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(cmd,"@Root",SqlDbType.NVarChar,50,palletBarcode);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);if(cmd.ExecuteNonQuery()==0)throw new InvalidOperationException("This barcode is not loaded on the selected DCR.");}
+        using(var status=new SqlCommand("IF NOT EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad WHERE DeliveryID=@Id AND LoadState='Loaded') BEGIN UPDATE dbo.FG_Delivery SET Status='Open' WHERE DeliveryID=@Id; UPDATE dbo.FG_ShippingOrder SET Status='Open',ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@Id; END;",conn,tx))
         {status.Parameters.Add("@Id",SqlDbType.Int).Value=delivery.DeliveryId;Add(status,"@Actor",SqlDbType.VarChar,20,actor);status.ExecuteNonQuery();}
         var result=ReadDelivery(conn,tx,delivery.DeliveryNo);tx.Commit();return result;
     }

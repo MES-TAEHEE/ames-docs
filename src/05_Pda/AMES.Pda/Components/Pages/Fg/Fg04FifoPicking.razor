@@ -1,11 +1,12 @@
 @page "/fg/04"
+@using AMES.Contracts.Dto
 @inject FinishedGoodsApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="pda-shell wh wh02-shell fg04-shell">
+<div class="pda-shell wh wh02-shell fg04-shell loading-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <span class="pda-tbar-brand">OUTBOUND</span>
@@ -27,12 +28,58 @@
             </div>
         </RadzenCard>
 
+        @if(_delivery is null)
+        {
+            <RadzenCard class="wh02-panel shipment-orders-panel">
+                <div class="shipment-orders-head"><strong>DCR LIST · @_deliveries.Count</strong><RadzenButton Icon="refresh" Text="REFRESH" Click="ReloadDeliveries" Disabled="@(_isBusy||_loadingDeliveries)" Size="ButtonSize.Small" class="wh02-clear-btn" /></div>
+                @if(_deliveriesError.Length>0){<div class="shipment-orders-empty error" role="alert">@_deliveriesError</div>}
+                else if(!_loadingDeliveries&&_deliveries.Count==0){<div class="shipment-orders-empty">No open DCRs.</div>}
+                @foreach(var dcr in _deliveries)
+                {
+                    <RadzenButton @key="dcr.DeliveryId" Click="@(()=>SelectDelivery(dcr))" Disabled="_isBusy" class="shipment-order-row"><ChildContent>
+                        <span class="shipment-order-main"><strong>@dcr.DeliveryNo</strong><span>@dcr.Status</span></span>
+                        <span class="shipment-order-meta">@dcr.CustomerId · @dcr.ShipDate.ToString("MM/dd/yyyy")</span>
+                        <span class="shipment-order-parts">@dcr.OrderCount order(s) · @dcr.PartCount part(s)</span>
+                    </ChildContent></RadzenButton>
+                }
+            </RadzenCard>
+        }
+        @if(_delivery is {} delivery)
+        {
+            <section class="load-summary"><strong>@delivery.DeliveryNo</strong><div>@delivery.CustomerId · @delivery.ShipDate.ToString("MM/dd/yyyy")</div><div>AWAITING TRAILER LOADING</div></section>
+            <section class="load-parts"><header>PREPARED / REQUIRED</header>
+                @foreach(var part in delivery.Parts)
+                {
+                    <article class="@(part.PreparedQty>=part.RequiredQty?"complete":"")">
+                        <div><strong>@part.PartNo</strong><strong class="@(part.PreparedQty>0?"fg04-staged-qty":null)">@part.PreparedQty.ToString("N0") / @part.RequiredQty.ToString("N0")</strong></div>
+                        <small>@part.PartName</small>
+                        @if(part.StagingQty>0){<p class="fg04-at-shipping-area">✓ AT SHIPPING AREA · @part.StagingQty.ToString("N0") EA</p>}
+                        @if(part.LoadedQty>0){<small>LOADED · @part.LoadedQty.ToString("N0") EA</small>}
+                        @if(part.StockShortageQty>0){<p class="fg04-shortage" role="status">SHORTAGE · @part.StockShortageQty.ToString("N0") EA</p>}
+                        @if(delivery.Recommendations?.Any(r=>r.PartNo==part.PartNo)==true)
+                        {
+                            <div class="fg04-recommendations"><small>PICK LOCATIONS · OLDEST FIRST</small>
+                                @foreach(var stock in delivery.Recommendations.Where(r=>r.PartNo==part.PartNo))
+                                {
+                                    <div class="fg04-stock-recommendation">
+                                        <div><strong>@stock.LocationNo</strong><b>@stock.Qty.ToString("N0") EA</b></div>
+                                        @if(!string.IsNullOrWhiteSpace(stock.LocationName)){<small>@stock.LocationName</small>}
+                                        <span>@stock.Barcode</span><small>Received · @(stock.ReceivedAt?.ToString("MM/dd/yyyy")??"—")</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </section>
+        }
+
         @if (_unit is not null)
         {
             <section class="fg04-unit">
                 <div class="fg04-unit-head">
                     <div><span>@_unit.UnitType</span><strong>@_unit.OutboundBarcode</strong></div>
-                    <span class="fg04-ready">READY</span>
+                    <span class="fg04-ready">@UnitStage</span>
                 </div>
                 <div class="fg04-totals">
                     <div><span>LOCATION</span><strong>@Text(_unit.LocationNo)</strong></div>
@@ -41,25 +88,7 @@
                 </div>
                 <div class="fg04-customer">
                     <label>CUSTOMER</label>
-                    @if (_unit.CustomerId is not null)
-                    {
-                        <strong>@_unit.CustomerId · @_unit.CustomerName</strong>
-                    }
-                    else
-                    {
-                        <select @bind="_customerId" disabled="@_isBusy" aria-label="Outbound customer">
-                            <option value="">Select Customer</option>
-                            @foreach (var customer in _customers)
-                            {
-                                <option value="@customer.CustomerId">@customer.CustomerId · @customer.CustomerName</option>
-                            }
-                        </select>
-                        @if (_customerError is not null)
-                        {
-                            <small>@_customerError</small>
-                            <button @onclick="LoadCustomers" disabled="@_isBusy">Reload Customers</button>
-                        }
-                    }
+                    <strong>@_delivery?.CustomerId</strong>
                 </div>
             </section>
 
@@ -87,7 +116,7 @@
         }
         <div class="wh02-action-bar has-reset">
             <RadzenButton class="wh02-clear-btn" Click="Clear" Disabled="@_isBusy" Text="CLEAR" />
-            <RadzenButton class="pda-btn-pri wh02-receive-btn wh02-receive-action-btn ready" Click="CompleteOutbound" Disabled="@(_isBusy || _unit is null)" Text="OUTBOUND" />
+            <RadzenButton class="pda-btn-pri wh02-receive-btn wh02-receive-action-btn ready" Click="CompleteOutbound" Disabled="@(_isBusy || _unit is null || _delivery is null || UnitStage!="READY")" Text="OUTBOUND" />
         </div>
     </div>
 
@@ -113,8 +142,26 @@
     private const string SamplePartLot = "FGPART-DEMO-001";
     private PdaApi.FgOutboundUnitRow? _unit;
     private string _barcode = "";
-    private string? _customerId, _customerError;
-    private List<PdaApi.FgOutboundCustomerRow> _customers = [];
+    private ShippingDeliveryDto? _delivery;
+    private List<ShippingDeliveryListDto> _deliveries=[];
+    private bool _loadingDeliveries;
+    private string _deliveriesError="";
+    private string UnitStage=>_unit is not null && _unit.Items.All(item=>_delivery?.Loads.Any(p=>p.LotNo==item.LotNo)==true) ? "LOADED"
+        : _unit is not null && _unit.Items.All(item=>_delivery?.Preparations?.Any(p=>p.LotNo==item.LotNo)==true) ? "PREPARED" : "READY";
+    protected override Task OnInitializedAsync()=>ReloadDeliveries();
+    private async Task ReloadDeliveries()
+    {
+        if(_isBusy||_loadingDeliveries)return;
+        _loadingDeliveries=true;_deliveriesError="";
+        try{_deliveries=await Api.OpenShippingDeliveriesAsync();}
+        catch(Exception ex){_deliveries=[];_deliveriesError=ex.Message;}
+        finally{_loadingDeliveries=false;}
+    }
+    private async Task SelectDelivery(ShippingDeliveryListDto delivery)
+    {
+        if(_isBusy||_modalOpen)return;
+        _barcode=delivery.DeliveryNo;await ScanOutboundUnit();
+    }
     private bool _isBusy, _modalOpen;
     private bool _confirmFifo;
     private List<AMES.Contracts.Dto.FifoWarningDto> _fifoWarnings = [];
@@ -128,14 +175,7 @@
         _scannerRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
         await FocusAsync();
-        await LoadCustomers();
-    }
 
-    private async Task LoadCustomers()
-    {
-        try { _customers = await Api.FgOutboundCustomersAsync(); _customerError = null; }
-        catch (Exception ex) { _customerError = ex.Message; }
-        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -167,6 +207,17 @@
         _isBusy = true;
         try
         {
+            if(barcode.StartsWith("DCR-",StringComparison.OrdinalIgnoreCase))
+            {
+                var document=await Api.ShippingDeliveryAsync(barcode);
+                if(!document.Success || document.Delivery is null)
+                {ShowModal("DCR Unavailable",document.Message,"warn");return;}
+                if(document.Delivery.Status is not ("Open" or "Loading"))
+                {ShowModal("DCR Closed","This DCR cannot accept outbound preparation.","warn");return;}
+                if(!document.Delivery.SupportsPreparation){ShowModal("Outbound Unavailable","Shipment preparation is unavailable. Please contact an administrator.","warn");return;}
+                _delivery=document.Delivery;_unit=null;_barcode="";return;
+            }
+            if(_delivery is null){ShowModal("DCR Required","Scan or select a DCR first.","warn");return;}
             var result = await Api.FgOutboundScanAsync(barcode);
             if (!result.Success || result.Unit is null)
             {
@@ -177,9 +228,10 @@
             }
             _unit = result.Unit;
             _fifoWarnings = result.FifoWarnings ?? [];
-            _customerId = result.Unit.CustomerId;
+
             _barcode = result.Unit.OutboundBarcode;
         }
+        catch(Exception ex){ShowModal("Outbound Scan Failed",ex.Message,"danger");}
         finally
         {
             _isBusy = false;
@@ -208,12 +260,8 @@
         {
             var barcode = _unit.OutboundBarcode;
             var unitType = _unit.UnitType;
-            if (string.IsNullOrWhiteSpace(_customerId))
-            {
-                ShowModal("Customer Required", "Select the outbound customer before confirming shipment.", "warn");
-                return;
-            }
-            var result = await Api.FgOutboundAsync(new PdaApi.FgOutboundUnitReq(barcode, _customerId, allowNonFifo));
+            if(_delivery is null){ShowModal("DCR Required","Scan or select a DCR first.","warn");return;}
+            var result = await Api.FgOutboundAsync(new PdaApi.FgOutboundUnitReq(barcode, _delivery.CustomerId, allowNonFifo, _delivery.DeliveryNo));
             if (result.FifoWarnings is { Count: > 0 } warnings)
             {
                 _fifoWarnings = warnings;
@@ -226,8 +274,9 @@
                 ShowModal("Outbound Failed", result.Message, "danger");
                 return;
             }
-            Clear();
-            ShowModal("Outbound Complete", $"{unitType} {barcode} was processed.\n{result.Message}", "success");
+            _delivery=result.Delivery ?? _delivery;
+            ClearUnit();
+            ShowModal("Outbound Complete", $"{unitType} {barcode}\nAwaiting trailer loading.", "success");
         }
         finally
         {
@@ -236,11 +285,11 @@
         }
     }
 
-    private void Clear()
+    private void Clear(){ClearUnit();_delivery=null;_=ReloadDeliveries();}
+    private void ClearUnit()
     {
         _unit = null;
         _barcode = "";
-        _customerId = null;
         _fifoWarnings = [];
         _confirmFifo = false;
     }

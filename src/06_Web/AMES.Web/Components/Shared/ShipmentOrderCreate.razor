@@ -23,7 +23,6 @@
         <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <RadzenTextBox @bind-Value="_q" Placeholder='@L["FG.OrderCreate.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px;" @onkeydown='async e=>{if(e.Key=="Enter")await Search();}' />
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-        <RadzenButton Text="@L["FG.OrderCreate.Btn.AutoFill"]" Icon="auto_fix_high" Click="AutoFillVisible" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["FG.OrderCreate.Hint.AutoFill"]" />
         <RadzenButton Text="@L["FG.OrderCreate.Btn.ClearQty"]" Icon="restart_alt" Click="ClearQty" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["FG.OrderCreate.Hint.ClearQty"]" />
         <RadzenLabel Text="@L["Col.ShipDate"]" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
     </RadzenStack>
@@ -109,26 +108,7 @@
     decimal AvailForRow(PpRepository.SoRow r)=>Math.Max(0,ItemAvail(r.ItemNo)-_rows.Where(x=>x.SoId!=r.SoId&&string.Equals(x.ItemNo,r.ItemNo,StringComparison.OrdinalIgnoreCase)).Sum(x=>_quantities.GetValueOrDefault(x.SoId)));
     void SetQty(PpRepository.SoRow r,decimal v)=>_quantities[r.SoId]=Math.Max(0,Math.Min(decimal.Truncate(v),Remaining(r)));
     void FillStock(PpRepository.SoRow r)=>SetQty(r,Math.Min(Remaining(r),AvailForRow(r)));
-    // 「자동 채움」 — 재고가 허용하는 만큼 출하 수량을 채운다(납기가 이른 수주부터 같은 품번 재고를 나눠 씀). 채운 뒤 직접 고칠 수 있고,
-    // 목록이 글자 검색으로 걸러져 있으면 보이는 수주만 채운다. 「초기화」는 모든 출하 수량을 0 으로 되돌린다.
     void ClearQty()=>_quantities.Clear();
-    void AutoFillVisible()
-    {
-        var visible=View.Select(r=>r.SoId).ToHashSet();
-        _quantities.Clear();_error="";
-        var unplaced=new List<string>();
-        foreach(var g in _rows.Where(r=>visible.Contains(r.SoId)).GroupBy(r=>r.ItemNo,StringComparer.OrdinalIgnoreCase))
-        {
-            var avail=ItemAvail(g.Key);
-            if(avail<=0&&_unloc.ContainsKey(g.Key))unplaced.Add(g.Key);
-            foreach(var r in g.OrderBy(x=>x.RequestedDeliveryDate??DateTime.MaxValue).ThenBy(x=>x.SoId))
-            {
-                var q=decimal.Truncate(Math.Min(Remaining(r),avail));
-                if(q>0){_quantities[r.SoId]=q;avail-=q;}
-            }
-        }
-        if(_quantities.Count==0&&unplaced.Count>0)_error=string.Format(L["FG.OrderCreate.AutoFill.NoLoadable"].Value,string.Join(", ",unplaced.Take(5))+(unplaced.Count>5?" …":""));
-    }
     string _q="";DateTime? _loadedFrom,_loadedTo;
     // 수주번호/품번/품명/고객 부분일치 — 입력한 출하 수량은 그대로 둔다(보이는 목록만 거른다)
     IEnumerable<PpRepository.SoRow> View=>string.IsNullOrWhiteSpace(_q)?_rows

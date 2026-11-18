@@ -9,7 +9,7 @@ public partial class Fg04FifoPicking
 
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
-        new("Outbound Unit", "팔렛 또는 대형 단품 바코드를 스캔해 실제 출고 대상을 확인합니다.",
+        new("Outbound Unit", "DCR을 선택한 뒤 팔렛·박스·개별 LOT를 스캔하여 출하 대기로 준비합니다. 실제 출하는 Trailer Loading의 Confirm Shipment에서 확정합니다.",
             new PptScenarioPanel.Value("Sample Pallet", SamplePalletLot, "PALLET"),
             new PptScenarioPanel.Value("Sample Large Part", SamplePartLot, "PART"))
     ];

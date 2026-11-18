@@ -45,13 +45,13 @@ public sealed class PdaTrailerLoadingListTests
     }
 
     [Fact]
-    public void Loaded_pallet_detail_list_is_hidden_but_scanned_removal_is_preserved()
+    public void Loaded_unit_detail_list_is_hidden_but_scanned_removal_is_preserved()
     {
         var page=Read("src/05_Pda/AMES.Pda/Components/Pages/Fg/Fg05TrailerLoading.razor");
         Assert.DoesNotContain("<details>",page);
         Assert.DoesNotContain("delivery.Loads.GroupBy",page);
-        Assert.Contains("LOADED PALLETS:",page);
-        Assert.Contains("REMOVE PALLET BARCODE",page);
+        Assert.Contains("LOADED UNITS:",page);
+        Assert.Contains("REMOVE BARCODE",page);
         Assert.Contains("Api.UnloadShippingDeliveryAsync(_delivery!.DeliveryNo,value)",page);
         Assert.Contains("DCR Required",page);
         Assert.Contains("Scan or select a DCR first",page);
@@ -84,12 +84,12 @@ public sealed class PdaTrailerLoadingListTests
     }
 
     [Fact]
-    public void Duplicate_pallet_or_child_LOT_is_blocked_across_deliveries_under_the_shipping_lock()
+    public void Duplicate_barcode_or_child_LOT_is_blocked_across_deliveries_under_the_shipping_lock()
     {
         var repo=Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.ShippingOrders.cs");
         Assert.Contains("IsolationLevel.Serializable);Gate(conn,tx)",repo);
         Assert.Contains("FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Lot AND ShipmentID IS NULL",repo);
-        Assert.Contains("already loaded on a delivery",repo);
+        Assert.Contains("already prepared or loaded on a DCR",repo);
         Assert.Contains("@Resource='FG_SHIPPING_ORDERS'",repo);
     }
 

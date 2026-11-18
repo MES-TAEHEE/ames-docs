@@ -53,4 +53,11 @@ Health check: `GET /api/health`
 ---
 
 - **출하 오더 재고 검사는 「적재 가능 재고」 기준**(11-18 사용자 결정): 오더 생성·수정의 재고 = `WH_Inventory` 양수 수량 중 등록된 활성 FG 상세 위치(레벨 2)에 지정된 것(반품 검사 대기 제외, `FinishedGoodsRepository.LoadableLocation`). 위치 미지정(Set Location 전) 재고는 PDA 적재(52006)가 막으므로 세지 않는다 — 생성 팝업 재고 칸에 「+N 위치 미지정」으로만 보인다(`ListShippableStock`). PP-003·APS 의 재고 요약(`PpRepository.ListFgStockSummary`)은 위치 무관 기준 그대로. 재고 부족 승인(override)은 그대로 쓴다.
-- **DCR 해제**(11-18): FG-03 DCR 상세 팝업의 「DCR 해제」(권한 `fg/shipping-orders` E, 사유 필수, 감사 `FG-03/RELEASE`) → `FinishedGoodsRepository.ReleaseShippingDelivery`. 아직 하나도 싣지 않은(Open·`FG_DeliveryLoad` 0건) DCR 만 가능 — 오더 `DeliveryID` 를 비워 미배정 Open 으로 되돌리고 DCR 은 `Cancelled`. 실은 팔레트가 있으면(Loading) 막으니 PDA 에서 내린 뒤 해제. 출하 완료는 되돌리지 않는다. 해제된 DCR 번호로는 PDA 적재가 거부된다.
+- **DCR 해제**(11-18): FG-03 DCR 상세 팝업의 「DCR 해제」(권한 `fg/shipping-orders` E, 사유 필수, 감사 `FG-03/RELEASE`) → `FinishedGoodsRepository.ReleaseShippingDelivery`. 아직 하나도 싣지 않은(Open·`FG_DeliveryLoad.LoadState=Loaded` 0건) DCR 만 가능 — 오더 `DeliveryID` 를 비워 미배정 Open 으로 되돌리고 DCR 은 `Cancelled`. 실은 팔레트가 있으면(Loading) 막으니 PDA 에서 내린 뒤 해제. 출하 완료는 되돌리지 않는다. 해제된 DCR 번호로는 PDA 적재가 거부된다. DCR은 출하 준비의 가이드이므로, 해제 후에도 Prepared 재고는 출하 대기에 남아 같은 고객·품번의 다른 DCR에서 적재할 수 있다.
+
+- **PDA 출하 준비/적재 분리**(11-18): Outbound는 DCR을 선택·스캔한 뒤 팔렛·박스·개별 LOT를 `FG_DeliveryLoad.LoadState=Prepared` 출하 대기로 기록한다. DCR은 가이드이며 준비 수량 상한을 두지 않는다. 같은 고객·품번의 공용 출하 대기 수량을 보여주므로 30/20도 그대로 표시한다. 적재할 때 선택 DCR에 연결하며 실제 적재/출하 수량만 엄격히 검사한다. 출하 후 남은 Prepared 재고도 다음 DCR에서 재사용한다. 재고·출하 이력·SO 누계는 변경하지 않는다. Trailer Loading은 준비된 바코드만 `Loaded`로 전환하고, Confirm Shipment에서만 실제 재고 차감·FG_Shipment·OUT 거래·DCR/오더 Shipped·SO 출하 누계를 확정한다. 개별 LOT 출하 시 남은 부모 팔렛 수량을 다시 합산한다.
+- 배포 전 `dist/migrate_fg_dispatch_preparation.sql` 적용 및 Web/API/PDA 동시 교체가 필요하다. 기존 적재 행은 Loaded로 보존한다. 새 PDA는 DCR 응답의 `SupportsPreparation`을 확인해 구 API에 준비 요청이 즉시 출하로 전달되는 것을 막는다. 입력 플레이스홀더는 기존 `Scan Barcode`를 유지한다. 팔렛 분할·초과 수량 자동 보정은 제공하지 않는다.
+
+- **Outbound 위치 추천**: 출하 대기 및 이미 적재한 수량을 제외한 부족분에 대해, 활성 FG 상세 위치의 미준비 재고를 입고일(ReceivedAt) 순으로 추천한다. 팔렛/박스 전체 수량을 표시하고, 해당 묶음에 다른 고객·불량/검사대기·이미 준비된 LOT가 있으면 적합한 개별 LOT만 추천한다. 충분히 준비됐으면 추가 창고 추천은 숨긴다. 바코드 플레이스홀더는 변경하지 않는다.
+- 출하 대기 수량과 추천 가능한 FG 재고를 합해도 필요량보다 적으면 파트에 빨간색 `SHORTAGE · N EA`를 표시한다. 재고가 전혀 없을 때도 표시하며 일부 재고가 있으면 위치 추천을 함께 유지한다. 부족 수량은 추천 50행 표시 제한과 별도로 전체 적합 재고에서 계산한다.
+- **출하 오더 재고 집계 오류 수정**: ListShippableStock에서 위치 EXISTS를 SUM/COUNT 인수에 직접 넣지 않고 Stock CTE에서 위치 판정을 먼저 계산한다. SQL Server 오류 130을 임시 DB에서 재현·회귀 검사한다.

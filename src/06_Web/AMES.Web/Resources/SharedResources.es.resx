@@ -12544,14 +12544,8 @@
   <data name="PP.WoDetail.Order.SoNo" xml:space="preserve">
     <value>Orden de venta</value>
   </data>
-  <data name="FG.OrderCreate.Btn.AutoFill" xml:space="preserve">
-    <value>Autocompletar</value>
-  </data>
   <data name="FG.OrderCreate.Btn.ClearQty" xml:space="preserve">
     <value>Restablecer</value>
-  </data>
-  <data name="FG.OrderCreate.Hint.AutoFill" xml:space="preserve">
-    <value>Completar cantidades según el stock disponible (entrega más próxima primero, hasta el saldo)</value>
   </data>
   <data name="FG.OrderCreate.Hint.ClearQty" xml:space="preserve">
     <value>Poner todas las cantidades en 0</value>
@@ -12561,9 +12555,6 @@
   </data>
   <data name="FG.Ship.Col.LinkedPallets" xml:space="preserve">
     <value>Palets vinculados</value>
-  </data>
-  <data name="FG.OrderCreate.AutoFill.NoLoadable" xml:space="preserve">
-    <value>No hay stock cargable para autocompletar — hay stock sin ubicación para: {0}. Asigne la ubicación en la PDA e inténtelo de nuevo.</value>
   </data>
   <data name="FG.OrderCreate.Override.Label" xml:space="preserve">
     <value>Aprobar envío solo de la cantidad disponible</value>
