@@ -692,6 +692,24 @@ public sealed partial class PpRepository
         return list;
     }
 
+    /// <summary>품번별 완제품 재고 요약 — 수량 합과 팔렛 수(ListFgStockOrigins 와 같은 기준: 양수·위치 무관·반품 검사 대기 제외). FG-02 출하 오더 생성 팝업용.</summary>
+    public Dictionary<string, (decimal Qty, int Pallets)> ListFgStockSummary()
+    {
+        const string sql = """
+            SELECT i.PartNo, SUM(i.Qty) AS Qty, COUNT(DISTINCT i.PalletNo) AS Pallets
+            FROM   dbo.WH_Inventory i
+            WHERE  i.Qty > 0 AND i.PartNo IS NOT NULL
+              AND  NOT EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo = i.LotNo AND R.Status IN ('Open','Inspecting'))
+            GROUP  BY i.PartNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 60 };
+        using var r = cmd.ExecuteReader();
+        var d = new Dictionary<string, (decimal, int)>(StringComparer.OrdinalIgnoreCase);
+        while (r.Read()) d[(string)r["PartNo"]] = (r.GetDecimal(1), r.GetInt32(2));
+        return d;
+    }
+
     // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
     // includeIssued = 수주 수량만큼 WO 가 다 발행된 확정 수주도 함께 (조회용, 선택 불가)
     public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500, bool includeIssued = false, bool includeHeld = false)

@@ -13,7 +13,13 @@ else
 @code {
     [Parameter] public string? OrderNo { get; set; }
 
+    /// <summary>팝업에서 오더를 수정·취소해 목록이 바뀌었을 때 알린다(목록 화면이 다시 읽는다).</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
     async Task Open()
-        => await Dialog.OpenAsync<AMES.Web.Components.Pages.Fg.ShippingOrderDialog>(OrderNo!, new Dictionary<string, object?> { ["OrderNo"] = OrderNo },
+    {
+        var res = await Dialog.OpenAsync<AMES.Web.Components.Pages.Fg.ShippingOrderDialog>(OrderNo!, new Dictionary<string, object?> { ["OrderNo"] = OrderNo },
                new DialogOptions { Width = "65vw", Height = "auto", Resizable = true, CloseDialogOnOverlayClick = true });
+        if (res is true) await Changed.InvokeAsync();
+    }
 }

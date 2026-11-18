@@ -1,6 +1,14 @@
 .order-balance {display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;}
 .order-pallet-count {font-weight:700;color:var(--ames-accent);}
 .order-due-overdue {color:var(--ames-tx-red-400);font-weight:700;}
-.shipment-order-create ::deep .rz-numeric-input {text-align:left;}
+.shipment-order-create ::deep .rz-numeric input, .shipment-order-create ::deep input.rz-numeric-input {text-align:left !important;}
+.order-fill {color:var(--ames-accent);font-weight:700;text-decoration:underline dotted;cursor:pointer;}
 .order-create-preview {margin-top:12px;}
 .order-preview-list {max-height:320px;overflow:auto;padding:0 12px 8px;}
+/* 팝업 안 배치 — KPI·툴바·하단 버튼은 줄어들지 않고(잘림 방지), 수주 목록이 남은 높이를 채우며 안에서 스크롤 */
+.ames-kpis {flex:none;}
+.shipment-order-create {flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:auto;}
+.shipment-order-create > .ames-card-h, .shipment-order-create > .ames-modal-footer, .shipment-order-create > .order-create-preview {flex:none;}
+.shipment-order-create ::deep .shipment-order-quantity-grid {flex:1 1 auto;min-height:260px;display:flex;flex-direction:column;}
+.shipment-order-create ::deep .shipment-order-quantity-grid .rz-data-grid-data {height:auto !important;flex:1 1 0;min-height:0;overflow:auto !important;}
+.order-preview-list {max-height:180px;}

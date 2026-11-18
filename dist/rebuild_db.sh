@@ -118,6 +118,7 @@ FILES=(
   migrate_aps.sql                     # APS: MD_Item.BoxQty·MD_MoldItem.PartCavityCount 폐지·삭제 + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
   migrate_pp_aps_screen.sql           # PP-APS 생산계획 화면 등록 + Admin 권한 (seed_admin_permissions 이후)
   migrate_pp_lot_screen.sql           # PP-LOT LOT 조회 화면 등록 + Admin 읽기 권한(11-17, seed_admin_permissions 이후)
+  migrate_fg_shipping_order_approve.sql # FG 출하 오더 승인(A) 기능 + Admin REA — 재고 부족 승인 생성(11-17, seed_admin_permissions 이후)
   migrate_demand_plan.sql             # 일별 구매계획(MM30011) 테이블·PP_ApsRun.IncludeDailyPlan·SW_DPSYNC* (migrate_aps 이후)
   migrate_po_sync.sql                 # SW_POSYNC* code groups
   migrate_po_sync_service_key.sql     # Web→API manual import key; created once per DB

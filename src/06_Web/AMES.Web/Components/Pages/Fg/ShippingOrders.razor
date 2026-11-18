@@ -21,6 +21,8 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.ShipOrders.List"] · @VisibleOrders.Count() @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />}
+            @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />}
             <RadzenTextBox @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
@@ -42,7 +44,7 @@
                 @if(CanSelect(r)){<RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" aria-label='@(L["Scm.Text.Select"]+" "+r.OrderNo)' />}
                 else{<RadzenIcon Icon="block" class="shipping-order-unavailable-icon" title="@SelectionUnavailableReason(r)" aria-label="@SelectionUnavailableReason(r)" />}
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" MinWidth="220px" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" MinWidth="220px"><Template Context="r"><ShipOrderLink OrderNo="@r.OrderNo" Changed="Reload" />@if(_overrides.TryGetValue(r.OrderNo,out var why)){<span class="pill warn" style="margin-left:6px;" title="@(L["FG.ShipOrders.Override.Tip"].Value+": "+why)">@L["FG.ShipOrders.Override.Badge"]</span>}</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="@L["Col.Customer"]" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["FG.ShipOrders.Col.PartQty"]"><Template Context="r">
@@ -56,17 +58,10 @@
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="r"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
-    @if(_canEdit)
-    {
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer shipping-order-actions">
-            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />
-        </RadzenStack>
-    }
 </section>
 @if(_creating && _canEdit)
 {
-    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Create"]" @onclick:stopPropagation>
+    <div class="ames-modal-bg ames-modal-anchor" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide ames-modal-resizable" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Create"]" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Title.Create"]</div>
         <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" />
     </div></div>
@@ -94,7 +89,7 @@
 }
 @if(_deliveryModal)
 {
-    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal ames-modal-wide" @onclick:stopPropagation>
+    <div class="ames-modal-bg ames-modal-anchor" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal ames-modal-wide ames-modal-resizable ames-modal-dcr" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Btn.CreateDcr"]</div>
         <ShippingDeliveryOrderSummary Orders="SelectedDeliveryOrders" />
         @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
@@ -112,6 +107,7 @@
         .Where(order=>string.IsNullOrWhiteSpace(_search) || string.Join(" ",order.OrderNo,order.CustomerId,order.DeliveryNo,
             string.Join(" ",order.Lines.Select(l=>$"{l.PartNo} {l.PartName}"))).Contains(_search,StringComparison.OrdinalIgnoreCase));
     async Task SetIncludeShipped(bool value){_includeShipped=value;_selected.Clear();if(_grid is not null)await _grid.FirstPage(true);}
+    Dictionary<string,string> _overrides=[];
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
     List<ShippingOrderDto> SelectedDeliveryOrders => _orders.Where(o=>_selected.Contains(o.OrderId)).OrderBy(o=>o.OrderId).ToList();
     List<ShippingOrderDto> _createdOrders=[];
@@ -124,7 +120,7 @@
     bool _canEdit,_creating,_createBusy,_deliveryModal,_busy,_allowed,_loading;
     string _actor="",_message="",_deliveryError="",_search="";
     bool CanSelect(ShippingOrderDto order)=>_canEdit && !_loading && !_busy && order.DeliveryId is null && order.Status=="Open";
-    string SelectionUnavailableReason(ShippingOrderDto order)=>L[order.Status=="Shipped" ? "FG.ShipOrders.Selection.Shipped"
+    string SelectionUnavailableReason(ShippingOrderDto order)=>L[order.Status=="Cancelled" ? "FG.ShipOrders.Selection.Cancelled" : order.Status=="Shipped" ? "FG.ShipOrders.Selection.Shipped"
         : order.DeliveryId is not null ? "FG.ShipOrders.Selection.Assigned"
         : !_canEdit ? "FG.ShipOrders.Selection.ReadOnly"
         : "FG.ShipOrders.Selection.Unavailable"];
@@ -140,7 +136,7 @@
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
-    async Task Reload(){if(!_allowed||_loading)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}_loading=true;try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();_message="";}catch(Exception ex){_message=ex.Message;}finally{_loading=false;}}
+    async Task Reload(){if(!_allowed||_loading)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}_loading=true;try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));try{_overrides=await Task.Run(()=>Fg.ListStockOverrideReasons());}catch{_overrides=[];}_selected.Clear();_message="";}catch(Exception ex){_message=ex.Message;}finally{_loading=false;}}
     void Select(int id,bool value){if(!value){_selected.Remove(id);return;}if(_orders.FirstOrDefault(o=>o.OrderId==id) is {} order && CanSelect(order))_selected.Add(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {

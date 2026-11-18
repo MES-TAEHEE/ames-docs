@@ -64,6 +64,27 @@ else
         </div>
     </div>
 
+    <div class="ipk-sub">@L["PP.WoDetail.Order.Title"]</div>
+    @if (_order is { } od)
+    {
+        var remain = Math.Max(0m, od.OrderQty - od.ShippedQty);
+        <div class="ipk-info wod-order" style="margin:4px 0 12px;">
+            <div class="ipk-k">@L["PP.WoDetail.Order.SoNo"]</div><div class="ipk-v code">@od.SoNumber@(od.SoLineNo is int sl ? "-" + sl : "")  <span class="pill info">@od.Status</span></div>
+            <div class="ipk-k">@L["Col.Customer"]</div><div class="ipk-v">@od.CustomerId <span class="dim">@od.CustomerName</span></div>
+            <div class="ipk-k">@L["Col.PartNo"]</div><div class="ipk-v"><span class="code" data-item="@od.ItemNo">@od.ItemNo</span> <span class="dim">@od.ItemName</span></div>
+            <div class="ipk-k">@L["PP.WoDetail.Order.OrderDate"]</div><div class="ipk-v">@(od.OrderDate?.ToString(DateFmt.Date) ?? "—")</div>
+            <div class="ipk-k">@L["PP.WoDetail.Order.Requested"]</div><div class="ipk-v"><b>@(od.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</b></div>
+            <div class="ipk-k">@L["PP.WoDetail.Order.Promised"]</div><div class="ipk-v">@(od.PromisedDate?.ToString(DateFmt.Date) ?? "—")</div>
+            <div class="ipk-k">@L["PP.WoDetail.Order.Qty"]</div><div class="ipk-v"><b>@od.OrderQty.ToString("#,0")</b> <span class="dim">· @L["PP.WoDetail.Order.Shipped"] @od.ShippedQty.ToString("#,0") · @L["PP.WoDetail.Order.Remain"] @remain.ToString("#,0")</span></div>
+            <div class="ipk-k" style="grid-column:1;">@L["PP.WoDetail.Order.Issued"]</div><div class="ipk-v" style="white-space:normal;grid-column: span 3;">@od.WoQtyTotal.ToString("#,0") <span class="dim">(@string.Format(L["PP.WoDetail.Order.WoCountFmt"].Value, od.WoCount) · @L["PP.WoDetail.Order.ThisWo"] @od.ThisWoQty.ToString("#,0"))</span>
+                @if (od.WoQtyTotal < remain + od.ShippedQty) { <span class="pill warn">@string.Format(L["PP.WoDetail.Order.NotIssuedFmt"].Value, (od.OrderQty - od.WoQtyTotal).ToString("#,0"))</span> }</div>
+        </div>
+    }
+    else
+    {
+        <div class="dim" style="margin:4px 0 12px;">@L["PP.WoDetail.Order.None"]</div>
+    }
+
     <div class="ipk-sub">@L["PP.WoDetail.Steps"] · @_steps.Count</div>
     @if (_steps.Count == 0)
     {
@@ -188,6 +209,7 @@ else
             _ops = Wos.ListStepOperators(wo.WoId);
             _lots = Wos.ListWoLots(wo.WoId);
             _stepTrace = Wos.ListStepTrace(wo.WoId);
+            _order = Wos.GetWoOrderInfo(WoNumber);
             _updatedAt = DateTime.Now;
             _live = _steps.Any(s => s.Status == "In Progress") || wo.Status == "In Progress";
             if (_mode == "flow" && _mod is not null)
@@ -287,6 +309,7 @@ else
     }
 
     WorkOrderDto? _wo;
+    AMES.Data.Repositories.WorkOrderRepository.WoOrderInfo? _order;
     List<AMES.Data.Repositories.WorkOrderRepository.StepRow> _steps = new();
     AMES.Data.Repositories.WorkOrderRepository.WoTraceRow? _trace;
     List<AMES.Data.Repositories.WorkOrderRepository.StepOperators> _ops = new();
@@ -305,6 +328,7 @@ else
             _ops = Wos.ListStepOperators(_wo.WoId);
             _lots = Wos.ListWoLots(_wo.WoId);
             _stepTrace = Wos.ListStepTrace(_wo.WoId);
+            _order = Wos.GetWoOrderInfo(WoNumber);
             _live = _steps.Any(s => s.Status == "In Progress") || _wo.Status == "In Progress";
         }
         catch { _wo = null; }

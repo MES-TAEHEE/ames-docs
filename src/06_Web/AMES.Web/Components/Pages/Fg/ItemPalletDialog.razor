@@ -1,0 +1,12 @@
+@* FG-02 출하 오더 생성 팝업에서 품번의 완제품 재고 팔레트를 본다 — 어떤 팔레트·위치에 얼마나 있고 어떤 수주·작업지시(생산 실적)로 만든 재고인지.
+   내용은 공용 FgStockPanel(PP-003 팝업과 같은 기준). *@
+@inject IStringLocalizer<SharedResources> L
+
+<div style="min-width:min(760px,90vw);">
+    <FgStockPanel ItemNos="@(new[] { ItemNo })" />
+    <p class="dim" style="margin-top:8px;">@L["FG.OrderCreate.Stock.Hint"]</p>
+</div>
+
+@code {
+    [Parameter] public string ItemNo { get; set; } = "";
+}

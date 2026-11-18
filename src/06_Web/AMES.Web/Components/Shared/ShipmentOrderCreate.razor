@@ -5,6 +5,8 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject UomFormat UomFmt
+@inject DialogService Dialog
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 
 <div class="ames-kpis">
@@ -19,15 +21,18 @@
     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
         <RadzenLabel Text="@L["FG.OrderCreate.Col.DueDate"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-        <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        <RadzenTextBox @bind-Value="_q" Placeholder='@L["FG.OrderCreate.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px;" @onkeydown='async e=>{if(e.Key=="Enter")await Search();}' />
+        <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        <RadzenButton Text="@L["FG.OrderCreate.Btn.AutoFill"]" Icon="auto_fix_high" Click="AutoFillVisible" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["FG.OrderCreate.Hint.AutoFill"]" />
+        <RadzenButton Text="@L["FG.OrderCreate.Btn.ClearQty"]" Icon="restart_alt" Click="ClearQty" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" title="@L["FG.OrderCreate.Hint.ClearQty"]" />
         <RadzenLabel Text="@L["Col.ShipDate"]" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
     </RadzenStack>
 </div>
 @if(!string.IsNullOrEmpty(_error)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
-<RadzenDataGrid TItem="PpRepository.SoRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
+<RadzenDataGrid TItem="PpRepository.SoRow" Data="View" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
     <Columns>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.Ship.Col.ShipQty"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputAttributes="_shipQtyInputAttributes" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Balance"]" Width="240px" MinWidth="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><strong title="@L["FG.OrderCreate.Hint.Remaining"]">@UomFmt.Qty(Remaining(r),null)</strong></div></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Balance"]" Width="240px" MinWidth="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><a href="javascript:void(0)" class="order-fill" title="@L["FG.OrderCreate.Hint.FillRemaining"]" @onclick="@(()=>SetQty(r,Remaining(r)))"><strong title="@L["FG.OrderCreate.Hint.Remaining"]">@UomFmt.Qty(Remaining(r),null)</strong></a></div></Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Pallets"]" Width="200px" MinWidth="200px" Sortable="false"><Template Context="r">
             @if(_packing.TryGetValue(r.ItemNo,out var item) && !item.ToteFlag && item.PalletQty is > 0)
             {
@@ -35,12 +40,20 @@
             }
             else {<span class="dim">@(item?.ToteFlag==true ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span>}
         </Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="SO" Width="130px" MinWidth="130px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="SO" Width="150px" MinWidth="150px"><Template Context="r"><SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" /></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="WoNumber" Title="@L["FG.OrderCreate.Col.Wo"]" Width="200px" MinWidth="200px"><Template Context="r">
+            @if(!string.IsNullOrEmpty(r.WoNumber)){<WoLink WoNumber="@r.WoNumber" /> <span class="pill info">@r.WoStatus</span>@if(r.WoCount>1){<span class="dim"> +@(r.WoCount-1)</span>}}
+            else{<span class="dim">—</span>}
+        </Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Stock"]" Width="190px" MinWidth="190px" Sortable="false"><Template Context="r">
+            @if(_stock.TryGetValue(r.ItemNo,out var st)){<a href="javascript:void(0)" class="order-fill" title="@L["FG.OrderCreate.Hint.FillStock"]" @onclick="@(()=>FillStock(r))">@UomFmt.Qty(st.Qty,null)</a> <a href="javascript:void(0)" class="code wo-link" title="@L["FG.OrderCreate.Stock.Tip"]" @onclick="@(()=>OpenStock(r.ItemNo))" @onclick:stopPropagation="true">· @st.Pallets PLT</a>}
+            else{<span class="dim">@L["FG.OrderCreate.Stock.None"]</span>}
+        </Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["FG.OrderCreate.Col.DueDate"]" Width="120px" MinWidth="120px">
             <Template Context="r"><span class="@(r.RequestedDeliveryDate is {} due && due.Date < DbClock.Today ? "order-due-overdue" : null)">@(r.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="110px" MinWidth="110px" />
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r"><span class="code" data-item="@r.ItemNo">@r.ItemNo</span> <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 @{ var previewOrders = _rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId).ToList(); }
@@ -64,6 +77,16 @@
 </section>
 }
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
+    @if(Lacking.Count>0)
+    {
+        @if(_canApprove)
+        {
+            <RadzenCheckBox TValue="bool" @bind-Value="_override" Name="stockOverride" />
+            <RadzenLabel Component="stockOverride" Text="@L["FG.OrderCreate.Override.Label"]" Style="color:var(--ames-tx-amber-300,#fbbf24);" />
+            <RadzenTextBox @bind-Value="_overrideReason" MaxLength="200" Disabled="@(!_override)" Placeholder='@L["FG.OrderCreate.Override.Reason"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+        }
+        else{<span class="pill warn" title="@L["FG.OrderCreate.Override.NeedApprover"]">@L["FG.OrderCreate.Override.NoStock"]</span>}
+    }
     @if(UnestimatedParts>0){<span class="dim">@L["FG.OrderCreate.Hint.UnestimatedFmt",UnestimatedParts]</span>}
     <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
     <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" Click="@(()=>Closed.InvokeAsync())" Disabled="_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -74,7 +97,42 @@
     [Parameter]public EventCallback<CreatedOrders> Saved{get;set;}
     [Parameter]public EventCallback Closed{get;set;}
     [Parameter]public EventCallback<bool> BusyChanged{get;set;}
-    List<PpRepository.SoRow> _rows=[];Dictionary<int,decimal> _quantities=[],_reserved=[];
+    List<PpRepository.SoRow> _rows=[];
+    bool _canApprove,_override;string _overrideReason="";
+    // 재고보다 많이 잡은 품번(필요 / 출하 가능) — 승인 권한자가 사유와 함께 승인하면 만들 수 있다
+    List<(string Item,decimal Need,decimal Have)> Lacking=>_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).GroupBy(r=>r.ItemNo,StringComparer.OrdinalIgnoreCase)
+        .Select(g=>(Item:g.Key,Need:g.Sum(r=>_quantities.GetValueOrDefault(r.SoId)),Have:ItemAvail(g.Key))).Where(x=>x.Need>x.Have).ToList();
+    Dictionary<string,(decimal Qty,int Pallets)> _stock=[];Dictionary<string,decimal> _reservedItem=new(StringComparer.OrdinalIgnoreCase);
+    // 출하 가능 재고 = 완제품 재고 − 이미 열린 출하 오더(Open·Loading)에 잡힌 같은 품번 수량
+    decimal ItemAvail(string item)=>Math.Max(0,(_stock.TryGetValue(item,out var s)?s.Qty:0)-_reservedItem.GetValueOrDefault(item));
+    decimal AvailForRow(PpRepository.SoRow r)=>Math.Max(0,ItemAvail(r.ItemNo)-_rows.Where(x=>x.SoId!=r.SoId&&string.Equals(x.ItemNo,r.ItemNo,StringComparison.OrdinalIgnoreCase)).Sum(x=>_quantities.GetValueOrDefault(x.SoId)));
+    void SetQty(PpRepository.SoRow r,decimal v)=>_quantities[r.SoId]=Math.Max(0,Math.Min(decimal.Truncate(v),Remaining(r)));
+    void FillStock(PpRepository.SoRow r)=>SetQty(r,Math.Min(Remaining(r),AvailForRow(r)));
+    // 「자동 채움」 — 재고가 허용하는 만큼 출하 수량을 채운다(납기가 이른 수주부터 같은 품번 재고를 나눠 씀). 채운 뒤 직접 고칠 수 있고,
+    // 목록이 글자 검색으로 걸러져 있으면 보이는 수주만 채운다. 「초기화」는 모든 출하 수량을 0 으로 되돌린다.
+    void ClearQty()=>_quantities.Clear();
+    void AutoFillVisible()
+    {
+        var visible=View.Select(r=>r.SoId).ToHashSet();
+        _quantities.Clear();
+        foreach(var g in _rows.Where(r=>visible.Contains(r.SoId)).GroupBy(r=>r.ItemNo,StringComparer.OrdinalIgnoreCase))
+        {
+            var avail=ItemAvail(g.Key);
+            foreach(var r in g.OrderBy(x=>x.RequestedDeliveryDate??DateTime.MaxValue).ThenBy(x=>x.SoId))
+            {
+                var q=decimal.Truncate(Math.Min(Remaining(r),avail));
+                if(q>0){_quantities[r.SoId]=q;avail-=q;}
+            }
+        }
+    }
+    string _q="";DateTime? _loadedFrom,_loadedTo;
+    // 수주번호/품번/품명/고객 부분일치 — 입력한 출하 수량은 그대로 둔다(보이는 목록만 거른다)
+    IEnumerable<PpRepository.SoRow> View=>string.IsNullOrWhiteSpace(_q)?_rows
+        :_rows.Where(r=>string.Join(" ",r.SoNumber,r.ItemNo,r.ItemName,r.CustomerId).Contains(_q.Trim(),StringComparison.OrdinalIgnoreCase));
+    // 납기 기간이 바뀌었으면 다시 읽고, 글자 검색만이면 입력 수량을 지우지 않고 거르기만 한다
+    async Task Search(){if(_from!=_loadedFrom||_to!=_loadedTo)await Load();else StateHasChanged();}
+    async Task OpenStock(string itemNo)=>await Dialog.OpenAsync<AMES.Web.Components.Pages.Fg.ItemPalletDialog>(string.Format(L["FG.OrderCreate.Stock.TitleFmt"].Value,itemNo),
+        new Dictionary<string,object?>{["ItemNo"]=itemNo},new DialogOptions{Width="min(860px,92vw)",Height="auto",Resizable=true,CloseDialogOnOverlayClick=true});Dictionary<int,decimal> _quantities=[],_reserved=[];
     Dictionary<string,MasterDataRepository.ItemRow> _packing=[];
     readonly Dictionary<string,object> _shipQtyInputAttributes = new() { ["data-shipment-qty"] = "" };
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
@@ -91,7 +149,7 @@
     }
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1),_shipDate=DbClock.Today;
     string _error="";bool _busy;
-    protected override Task OnInitializedAsync()=>Load();
+    protected override async Task OnInitializedAsync(){await PermSvc.EnsureAsync(AuthPrvd);_canApprove=PermSvc.CanApprove("fg/shipping-orders");await Load();}
     async Task Load()
     {
         if(_from is null||_to is null||_from>_to){_error=L["FG.Ship.Err.DateRange"].Value;return;}
@@ -102,14 +160,37 @@
             _reserved=reserved.Where(x=>x.Status is "Open" or "Loading").SelectMany(x=>x.Lines).GroupBy(x=>x.SoId).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.Qty));
             _rows=(await Task.Run(()=>Pp.ListShipmentPlanOrders(_from.Value.AddDays(-1),_to.Value.AddDays(-1))))
                 .Where(x=>x.ItemExists && x.OrderQty-x.ShippedQty>_reserved.GetValueOrDefault(x.SoId) && x.Status?.ToUpperInvariant() is not("CLOSED" or "CANCELLED" or "CANCELED")).ToList();
+            _stock=await Task.Run(()=>Pp.ListFgStockSummary());
+            _loadedFrom=_from;_loadedTo=_to;
+            _reservedItem=reserved.Where(x=>x.Status is "Open" or "Loading").SelectMany(x=>x.Lines).GroupBy(x=>x.PartNo,StringComparer.OrdinalIgnoreCase).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.Qty),StringComparer.OrdinalIgnoreCase);
             _quantities.Clear();_error="";
         }
         catch(Exception ex){_error=ex.Message;}
+    }
+    // 재고 부족 승인으로 만든 오더는 감사 로그(FG-05/CREATE_OVERRIDE, 사유=비고)에 남기고 목록에 배지로 보인다 — 부족 품번이 든 오더만
+    void AuditOverride(List<string> numbers,List<(string Item,decimal Need,decimal Have)> lacking,string reason)
+    {
+        var items=lacking.Select(x=>x.Item).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach(var no in numbers)
+        {
+            var order=Fg.GetShippingOrder(no);
+            var hit=order?.Lines.Where(l=>items.Contains(l.PartNo)).Select(l=>l.PartNo).Distinct().ToList();
+            if(hit is not {Count:>0})continue;
+            Audit.Log("FG-05","CREATE_OVERRIDE","FG_ShippingOrder",no,null,new{Reason=reason,Shortage=lacking.Where(x=>hit.Contains(x.Item,StringComparer.OrdinalIgnoreCase)).Select(x=>new{x.Item,Requested=x.Need,Available=x.Have})},note:reason);
+        }
     }
     async Task Create()
     {
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;
         if(_shipDate is null){_error=L["FG.OrderCreate.Err.ShipDate"].Value;return;}
+        var lacking=Lacking;
+        _canApprove=PermSvc.CanApprove("fg/shipping-orders");
+        var overriding=lacking.Count>0&&_canApprove&&_override;
+        if(lacking.Count>0)
+        {
+            if(!overriding){_error=string.Format(L[_canApprove?"FG.OrderCreate.Err.StockApprove":"FG.OrderCreate.Err.Stock"].Value,string.Join(", ",lacking.Select(x=>$"{x.Item} ({UomFmt.Qty(x.Need,null)} / {UomFmt.Qty(x.Have,null)})")));return;}
+            if(string.IsNullOrWhiteSpace(_overrideReason)){_error=L["FG.OrderCreate.Override.ReasonRequired"].Value;return;}
+        }
         if(_rows.Any(r=>_quantities.GetValueOrDefault(r.SoId)>Remaining(r) || _quantities.GetValueOrDefault(r.SoId)<0 || _quantities.GetValueOrDefault(r.SoId)!=decimal.Truncate(_quantities.GetValueOrDefault(r.SoId)))){_error=L["FG.OrderCreate.Err.Qty"].Value;return;}
         _busy=true;_error="";await BusyChanged.InvokeAsync(true);
         try
@@ -117,7 +198,10 @@
             var actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
             var shipDate=_shipDate.Value.Date;
             var input=_quantities.Where(x=>x.Value>0).Select(x=>new ShippingOrderInput(x.Key,x.Value)).ToList();
-            var nos=await Task.Run(()=>Fg.CreateShippingOrders(shipDate,input,actor));
+            var stockOverride=overriding?new FinishedGoodsRepository.StockOverride(_overrideReason.Trim()):null;
+            var nos=await Task.Run(()=>Fg.CreateShippingOrders(shipDate,input,actor,stockOverride));
+            if(overriding)AuditOverride(nos,lacking,_overrideReason.Trim());
+            _override=false;_overrideReason="";
             _quantities.Clear();
             await Saved.InvokeAsync(new(shipDate,nos));
             await Load();

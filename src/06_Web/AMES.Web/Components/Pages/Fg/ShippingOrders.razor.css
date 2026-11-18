@@ -4,3 +4,12 @@
 .shipping-orders-page ::deep tr.shipping-order-selectable > td:first-child {box-shadow:inset 3px 0 var(--ames-tx-green-400);}
 .shipping-orders-page ::deep tr.shipping-order-selected > td {background:color-mix(in srgb,var(--ames-tx-blue-300) 12%,transparent) !important;}
 .shipping-order-unavailable-icon {color:var(--ames-tx-slate-400);font-size:18px;}
+/* 출하 오더 생성 팝업 — 크기를 끌어서 조절한다(왼쪽 위에 고정해 오른쪽·아래로 늘어남). 높이는 고정하고 목록만 안에서 스크롤해
+   위 숫자(KPI)가 잘리거나 아래 페이지 크기·버튼이 가려지지 않는다 */
+.ames-modal-anchor {justify-content:flex-start !important;align-items:flex-start !important;}
+.ames-modal-resizable {margin:3vh 0 0 3vw;width:92vw;height:92vh;min-width:760px;min-height:460px;max-width:98vw !important;max-height:98vh;
+    overflow:hidden !important;resize:both;display:flex;flex-direction:column;box-sizing:border-box;}
+/* DCR 생성 팝업 — 오더 미리보기가 팝업 높이를 채우고 안에서만 스크롤한다(아래쪽에 별도 스크롤 막대가 생기지 않게). 크기는 끌어서 조절 */
+.ames-modal-dcr {width:78vw;height:84vh;min-width:760px;min-height:380px;}
+.ames-modal-dcr ::deep .dcr-order-preview {max-height:none;flex:1 1 auto;min-height:0;}
+.ames-modal-dcr ::deep p, .ames-modal-dcr .ames-modal-h, .ames-modal-dcr .ames-modal-footer {flex:none;}

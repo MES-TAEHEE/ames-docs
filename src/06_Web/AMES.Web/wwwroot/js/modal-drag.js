@@ -76,3 +76,17 @@ window.amesOverText = (root, x, y) => {
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
 })();
+
+// 팝업 안에서 누른 채 끌어(글자 선택·입력칸 드래그 등) 배경에서 놓으면 브라우저가 "배경 클릭" 으로 보내 팝업이 닫힌다.
+// 배경 클릭은 누른 곳도 배경일 때만 인정한다 — 누른 곳이 팝업 안이면 그 클릭은 버린다(.ames-modal 배경과 Radzen 대화상자 마스크 공통).
+(() => {
+    const BACKDROP = '.ames-modal-bg, .rz-dialog-mask, .rz-dialog-wrapper';
+    let downTarget = null;
+    window.addEventListener('mousedown', e => { downTarget = e.target; }, true);
+    window.addEventListener('click', e => {
+        const t = e.target;
+        if (!t || !t.matches?.(BACKDROP)) return;
+        if (downTarget && downTarget !== t) { e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+    window.addEventListener('click', () => { downTarget = null; });   // 눌림 기록은 클릭 한 번에만 쓴다(키보드·코드로 낸 클릭에 남지 않게)
+})();

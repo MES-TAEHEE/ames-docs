@@ -68,7 +68,24 @@ public sealed partial class FinishedGoodsRepository
         return rows;
     }
 
-    public List<string> CreateShippingOrders(DateTime shipDate,IReadOnlyList<ShippingOrderInput> input,string actor)
+    /// <summary>재고 부족을 승인하고 오더를 만들 때의 예외 승인 — 사유 필수(승인 권한 확인은 호출한 화면 몫, 기록은 감사 로그).</summary>
+    public sealed record StockOverride(string Reason);
+    /// <summary>요청 수량이 출하 가능 재고를 넘는 품번 목록을 담아 오더 생성을 거부한다.</summary>
+    public sealed class InsufficientStockException(List<(string Part,decimal Requested,decimal Available)> items)
+        : InvalidOperationException(string.Join("; ",items.Select(x=>$"{x.Part}: insufficient finished-goods stock (available {x.Available:N0}, requested {x.Requested:N0})")))
+    { public List<(string Part,decimal Requested,decimal Available)> Items{get;}=items; }
+
+    /// <summary>재고 부족 승인으로 만든 출하 오더 번호 → 승인 사유(감사 로그 FG-05/CREATE_OVERRIDE). 목록 배지용.</summary>
+    public Dictionary<string,string> ListStockOverrideReasons()
+    {
+        using var conn=_factory.OpenConnection();
+        using var cmd=new SqlCommand("SELECT TargetID,Note FROM dbo.SYS_AuditLog WHERE ScreenCode='FG-05' AND ActionType='CREATE_OVERRIDE' AND Result='OK' ORDER BY EventTS",conn);
+        using var r=cmd.ExecuteReader();var d=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+        while(r.Read())if(r["TargetID"] is string no)d[no]=r["Note"] as string??"";
+        return d;
+    }
+
+    public List<string> CreateShippingOrders(DateTime shipDate,IReadOnlyList<ShippingOrderInput> input,string actor,StockOverride? stockOverride=null)
     {
         CheckActor(actor);
         if(input.Count is <1 or >500 || input.Select(x=>x.SoId).Distinct().Count()!=input.Count || input.Any(x=>x.Qty<=0 || x.Qty>99999999999m || x.Qty!=decimal.Truncate(x.Qty)))
@@ -91,6 +108,28 @@ public sealed partial class FinishedGoodsRepository
             if(!r.Read() || r.IsDBNull(0) || line.Qty>GetDecimal(r,"Remaining")) throw new InvalidOperationException($"SO #{line.SoId}: quantity exceeds the unallocated SO balance, or the order is unavailable. Refresh and retry.");
             selected.Add((line.SoId,r.GetString(0),r.GetString(1),line.Qty));
         }
+        // 재고 검사 — 품번별로 (완제품 재고 − 이미 열린 출하 오더가 잡은 수량)보다 많이 요청하면 오더를 만들지 않는다.
+        // 재고 = WH_Inventory 양수 수량(위치 무관, 반품 검사 대기 제외 — PP-003·APS 와 같은 기준). 승인(StockOverride, 사유 필수)이 있으면 통과시킨다.
+        var lacking=new List<(string Part,decimal Requested,decimal Available)>();
+        foreach(var part in selected.GroupBy(x=>x.Part,StringComparer.OrdinalIgnoreCase))
+        {
+            using var cmd=new SqlCommand("""
+                SELECT (SELECT COALESCE(SUM(i.Qty),0) FROM dbo.WH_Inventory i
+                        WHERE i.PartNo=@Part AND i.Qty>0
+                          AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting')))
+                     - (SELECT COALESCE(SUM(L.Qty),0) FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
+                        WHERE L.PartNo=@Part AND O.Status IN('Open','Loading')) AS Available;
+                """,conn,tx);
+            Add(cmd,"@Part",SqlDbType.VarChar,20,part.Key);
+            var available=Math.Max(0,Convert.ToDecimal(cmd.ExecuteScalar()));
+            var requested=part.Sum(x=>x.Qty);
+            if(requested>available)lacking.Add((part.Key,requested,available));
+        }
+        if(lacking.Count>0)
+        {
+            if(stockOverride is null)throw new InsufficientStockException(lacking);
+            if(string.IsNullOrWhiteSpace(stockOverride.Reason)||stockOverride.Reason.Trim().Length>200)throw new ArgumentException("A stock shortage approval needs a reason (1-200 characters).");
+        }
         var numbers=new List<string>();
         foreach(var customer in selected.GroupBy(x=>x.Customer))
         {
@@ -106,6 +145,86 @@ public sealed partial class FinishedGoodsRepository
             numbers.Add(number);
         }
         tx.Commit();return numbers;
+    }
+
+    /// <summary>
+    /// 출하 오더 취소 — DCR 에 배정되지 않은 Open 오더만. 상태를 Cancelled 로 바꿔 수주 잔량·재고 예약(Open·Loading 만 센다)이 풀린다.
+    /// 행을 지우지 않아 번호·라인 이력이 남는다. 사유·행위자는 호출한 화면이 감사 로그에 남긴다.
+    /// </summary>
+    public void CancelShippingOrder(int orderId,string actor)
+    {
+        CheckActor(actor);
+        using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
+        using var cmd=new SqlCommand("UPDATE dbo.FG_ShippingOrder SET Status='Cancelled',ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE OrderID=@Id AND Status='Open' AND DeliveryID IS NULL",conn,tx);
+        cmd.Parameters.Add("@Id",SqlDbType.Int).Value=orderId;Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);
+        if(cmd.ExecuteNonQuery()!=1)throw new InvalidOperationException("Only an open order that is not assigned to a DCR can be cancelled. Refresh and retry.");
+        tx.Commit();
+    }
+
+    /// <summary>
+    /// 출하 오더 수정 — DCR 에 배정되지 않은 Open 오더의 출하일과 라인별 수량. 수량 0 은 그 라인을 뺀다(전부 빼려면 취소).
+    /// 수량을 올리는 라인은 생성 때와 같이 수주 잔량(다른 오더가 잡은 몫 제외)과 품번별 출하 가능 재고를 넘지 못한다.
+    /// </summary>
+    public void UpdateShippingOrder(int orderId,DateTime shipDate,IReadOnlyDictionary<int,decimal> lineQty,string actor)
+    {
+        CheckActor(actor);
+        if(lineQty.Count is <1 or >500 || lineQty.Values.Any(q=>q<0 || q>99999999999m || q!=decimal.Truncate(q)))
+            throw new ArgumentException("Enter whole, non-negative shipment quantities.");
+        using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
+        using(var lockCmd=new SqlCommand("SELECT OrderID FROM dbo.FG_ShippingOrder WITH(UPDLOCK,HOLDLOCK) WHERE OrderID=@Id AND Status='Open' AND DeliveryID IS NULL",conn,tx))
+        {
+            lockCmd.Parameters.Add("@Id",SqlDbType.Int).Value=orderId;
+            if(lockCmd.ExecuteScalar() is null)throw new InvalidOperationException("Only an open order that is not assigned to a DCR can be edited. Refresh and retry.");
+        }
+        var lines=new List<(int LineId,int SoId,string Part,decimal Old)>();
+        using(var rd=new SqlCommand("SELECT OrderLineID,SoID,PartNo,Qty FROM dbo.FG_ShippingOrderLine WITH(UPDLOCK,HOLDLOCK) WHERE OrderID=@Id",conn,tx))
+        {
+            rd.Parameters.Add("@Id",SqlDbType.Int).Value=orderId;using var r=rd.ExecuteReader();
+            while(r.Read())lines.Add((r.GetInt32(0),r.GetInt32(1),r.GetString(2),r.GetDecimal(3)));
+        }
+        if(lineQty.Keys.Any(id=>lines.All(l=>l.LineId!=id)))throw new InvalidOperationException("The order lines changed. Refresh and retry.");
+        var kept=lines.Where(l=>lineQty.GetValueOrDefault(l.LineId,l.Old)>0).ToList();
+        if(kept.Count==0)throw new InvalidOperationException("An order needs at least one line with a quantity; cancel the order instead.");
+        foreach(var l in kept)
+        {
+            var qty=lineQty.GetValueOrDefault(l.LineId,l.Old);
+            if(qty<=l.Old)continue;   // 줄이는 것은 항상 가능
+            using var cmd=new SqlCommand("""
+                SELECT COALESCE(S.OrderQty,0)-COALESCE(S.ShippedQty,0)-COALESCE(R.Qty,0)
+                FROM dbo.PP_CustomerOrder S WITH(UPDLOCK,HOLDLOCK)
+                OUTER APPLY(SELECT SUM(X.Qty) Qty FROM dbo.FG_ShippingOrderLine X JOIN dbo.FG_ShippingOrder O ON O.OrderID=X.OrderID
+                    WHERE X.SoID=S.SoID AND O.Status IN('Open','Loading') AND X.OrderLineID<>@Line) R
+                WHERE S.SoID=@So;
+                """,conn,tx);
+            cmd.Parameters.Add("@So",SqlDbType.Int).Value=l.SoId;cmd.Parameters.Add("@Line",SqlDbType.Int).Value=l.LineId;
+            if(cmd.ExecuteScalar() is not decimal remaining || qty>remaining)throw new InvalidOperationException($"{l.Part}: quantity exceeds the unallocated SO balance. Refresh and retry.");
+        }
+        var lacking=new List<(string Part,decimal Requested,decimal Available)>();
+        foreach(var part in kept.GroupBy(x=>x.Part,StringComparer.OrdinalIgnoreCase))
+        {
+            if(part.All(l=>lineQty.GetValueOrDefault(l.LineId,l.Old)<=l.Old))continue;
+            using var cmd=new SqlCommand("""
+                SELECT (SELECT COALESCE(SUM(i.Qty),0) FROM dbo.WH_Inventory i
+                        WHERE i.PartNo=@Part AND i.Qty>0
+                          AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting')))
+                     - (SELECT COALESCE(SUM(L.Qty),0) FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
+                        WHERE L.PartNo=@Part AND O.Status IN('Open','Loading') AND L.OrderID<>@Order);
+                """,conn,tx);
+            Add(cmd,"@Part",SqlDbType.VarChar,20,part.Key);cmd.Parameters.Add("@Order",SqlDbType.Int).Value=orderId;
+            var available=Math.Max(0,Convert.ToDecimal(cmd.ExecuteScalar()));
+            var requested=part.Sum(l=>lineQty.GetValueOrDefault(l.LineId,l.Old));
+            if(requested>available)lacking.Add((part.Key,requested,available));
+        }
+        if(lacking.Count>0)throw new InsufficientStockException(lacking);
+        foreach(var l in lines)
+        {
+            var qty=lineQty.GetValueOrDefault(l.LineId,l.Old);
+            if(qty<=0){using var del=new SqlCommand("DELETE dbo.FG_ShippingOrderLine WHERE OrderLineID=@L",conn,tx);del.Parameters.Add("@L",SqlDbType.Int).Value=l.LineId;del.ExecuteNonQuery();}
+            else if(qty!=l.Old){using var up=new SqlCommand("UPDATE dbo.FG_ShippingOrderLine SET Qty=@Q WHERE OrderLineID=@L",conn,tx);up.Parameters.Add("@L",SqlDbType.Int).Value=l.LineId;Qty(up,"@Q",qty);up.ExecuteNonQuery();}
+        }
+        using(var hd=new SqlCommand("UPDATE dbo.FG_ShippingOrder SET ShipDate=@D,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE OrderID=@Id",conn,tx))
+        {hd.Parameters.Add("@D",SqlDbType.Date).Value=shipDate.Date;hd.Parameters.Add("@Id",SqlDbType.Int).Value=orderId;Add(hd,"@Actor",SqlDbType.VarChar,20,actor);hd.ExecuteNonQuery();}
+        tx.Commit();
     }
 
     internal static (string CustomerId, DateTime ShipDate) ShippingDeliveryHeader(IReadOnlyList<(string CustomerId, DateTime ShipDate)> orders)

@@ -2583,6 +2583,42 @@
   <data name="PP.WoDetail.OpenWo" xml:space="preserve">
     <value>Open work orders</value>
   </data>
+  <data name="PP.WoDetail.Order.Title" xml:space="preserve">
+    <value>Order (sales order)</value>
+  </data>
+  <data name="PP.WoDetail.Order.OrderDate" xml:space="preserve">
+    <value>Order date</value>
+  </data>
+  <data name="PP.WoDetail.Order.Requested" xml:space="preserve">
+    <value>Requested delivery</value>
+  </data>
+  <data name="PP.WoDetail.Order.Promised" xml:space="preserve">
+    <value>Promised delivery</value>
+  </data>
+  <data name="PP.WoDetail.Order.Qty" xml:space="preserve">
+    <value>Order qty</value>
+  </data>
+  <data name="PP.WoDetail.Order.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="PP.WoDetail.Order.Remain" xml:space="preserve">
+    <value>Remaining</value>
+  </data>
+  <data name="PP.WoDetail.Order.Issued" xml:space="preserve">
+    <value>Issued WO total</value>
+  </data>
+  <data name="PP.WoDetail.Order.WoCountFmt" xml:space="preserve">
+    <value>{0} work order(s)</value>
+  </data>
+  <data name="PP.WoDetail.Order.ThisWo" xml:space="preserve">
+    <value>this WO</value>
+  </data>
+  <data name="PP.WoDetail.Order.NotIssuedFmt" xml:space="preserve">
+    <value>Not issued {0}</value>
+  </data>
+  <data name="PP.WoDetail.Order.None" xml:space="preserve">
+    <value>No sales order is linked (stock replenishment / manual WO).</value>
+  </data>
   <data name="PP.WoDetail.Mode.Detail" xml:space="preserve">
     <value>Detail</value>
   </data>
@@ -12447,6 +12483,102 @@
   </data>
   <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
     <value>Order Preview · {0} order(s)</value>
+  </data>
+  <data name="FG.OrderCreate.Ph.Search" xml:space="preserve">
+    <value>SO no./Item no./Item name/Customer</value>
+  </data>
+  <data name="FG.OrderCreate.Col.Wo" xml:space="preserve">
+    <value>Work order (production)</value>
+  </data>
+  <data name="FG.OrderCreate.Col.Stock" xml:space="preserve">
+    <value>FG stock · pallets</value>
+  </data>
+  <data name="FG.OrderCreate.Stock.Tip" xml:space="preserve">
+    <value>View pallets, locations and the orders / work orders that produced them</value>
+  </data>
+  <data name="FG.OrderCreate.Stock.None" xml:space="preserve">
+    <value>No stock</value>
+  </data>
+  <data name="FG.OrderCreate.Stock.TitleFmt" xml:space="preserve">
+    <value>Finished-goods pallets · {0}</value>
+  </data>
+  <data name="FG.OrderCreate.Stock.Hint" xml:space="preserve">
+    <value>Click an order / work order number to see its production results and flow.</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.FillRemaining" xml:space="preserve">
+    <value>Click to set the ship quantity to the remaining balance</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.FillStock" xml:space="preserve">
+    <value>Click to set the ship quantity from stock (up to the remaining balance)</value>
+  </data>
+  <data name="PP.WoDetail.Order.SoNo" xml:space="preserve">
+    <value>Sales order</value>
+  </data>
+  <data name="FG.OrderCreate.Btn.AutoFill" xml:space="preserve">
+    <value>Auto fill</value>
+  </data>
+  <data name="FG.OrderCreate.Btn.ClearQty" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.AutoFill" xml:space="preserve">
+    <value>Fill ship quantities from available stock (earliest due first, up to the remaining balance)</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.ClearQty" xml:space="preserve">
+    <value>Set every ship quantity back to 0</value>
+  </data>
+  <data name="FG.OrderCreate.Err.Stock" xml:space="preserve">
+    <value>Not enough finished-goods stock to create the order — item (ship qty / available): {0}</value>
+  </data>
+  <data name="FG.OrderCreate.Override.Label" xml:space="preserve">
+    <value>Approve stock shortage and create</value>
+  </data>
+  <data name="FG.OrderCreate.Override.Reason" xml:space="preserve">
+    <value>Approval reason (required)</value>
+  </data>
+  <data name="FG.OrderCreate.Override.ReasonRequired" xml:space="preserve">
+    <value>Enter the reason for approving the stock shortage.</value>
+  </data>
+  <data name="FG.OrderCreate.Override.NoStock" xml:space="preserve">
+    <value>Stock shortage — approval required</value>
+  </data>
+  <data name="FG.OrderCreate.Override.NeedApprover" xml:space="preserve">
+    <value>Only users with approval permission can create an order with a stock shortage</value>
+  </data>
+  <data name="FG.OrderCreate.Err.StockApprove" xml:space="preserve">
+    <value>Not enough stock — item (ship qty / available): {0}. To proceed, tick "Approve stock shortage and create" and enter a reason.</value>
+  </data>
+  <data name="FG.ShipOrders.Override.Badge" xml:space="preserve">
+    <value>Stock shortage approved</value>
+  </data>
+  <data name="FG.ShipOrders.Override.Tip" xml:space="preserve">
+    <value>Order created with a stock shortage approved by an approver</value>
+  </data>
+  <data name="FG.ShipOrders.Btn.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="FG.ShipOrders.Btn.CancelOrder" xml:space="preserve">
+    <value>Cancel order</value>
+  </data>
+  <data name="FG.ShipOrders.Edit.Hint" xml:space="preserve">
+    <value>Set a quantity to 0 to remove that line (cancel the order to remove all). Increases are limited to the SO balance and available stock.</value>
+  </data>
+  <data name="FG.ShipOrders.Edit.Saved" xml:space="preserve">
+    <value>Shipment order updated.</value>
+  </data>
+  <data name="FG.ShipOrders.Cancel.Reason" xml:space="preserve">
+    <value>Cancel reason (required)</value>
+  </data>
+  <data name="FG.ShipOrders.Cancel.ReasonRequired" xml:space="preserve">
+    <value>Enter the cancel reason.</value>
+  </data>
+  <data name="FG.ShipOrders.Cancel.Confirm" xml:space="preserve">
+    <value>Confirm cancel</value>
+  </data>
+  <data name="FG.ShipOrders.Cancel.Done" xml:space="preserve">
+    <value>Shipment order cancelled. The SO balance and stock reservation are released.</value>
+  </data>
+  <data name="FG.ShipOrders.Selection.Cancelled" xml:space="preserve">
+    <value>This order was cancelled</value>
   </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Pallets (Qty / Pallet)</value>

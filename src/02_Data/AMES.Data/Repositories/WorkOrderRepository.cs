@@ -247,6 +247,37 @@ public sealed class WorkOrderRepository
                .FirstOrDefault();
     }
 
+    /// <summary>WO 가 만들어진 수주(주문) 내용 — 생산·납품 때 주문을 정확히 파악하도록 WO 팝업에 보인다. 수주 없는 WO(재고 보충)는 null.</summary>
+    public sealed record WoOrderInfo(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId, string? CustomerName,
+        string? ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate,
+        DateTime? PromisedDate, string? Status, decimal WoQtyTotal, int WoCount, decimal ThisWoQty);
+
+    public WoOrderInfo? GetWoOrderInfo(string woNumber)
+    {
+        const string sql = """
+            SELECT o.SoID, o.SoNumber, o.SoLineNo, o.CustomerID, c.CustomerName, o.ItemNo, i.ItemName,
+                   ISNULL(o.OrderQty,0) AS OrderQty, ISNULL(o.ShippedQty,0) AS ShippedQty,
+                   o.OrderDate, o.RequestedDeliveryDate, o.PromisedDate, o.Status,
+                   ISNULL(t.Qty,0) AS WoQtyTotal, ISNULL(t.Cnt,0) AS WoCount, ISNULL(w.OrderQty,0) AS ThisWoQty
+            FROM   dbo.PP_WorkOrder w
+            JOIN   dbo.PP_CustomerOrder o ON o.SoID = w.SoID
+            LEFT JOIN dbo.MD_Customer c ON c.CustomerID = o.CustomerID
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = o.ItemNo
+            OUTER APPLY (SELECT SUM(x.OrderQty) AS Qty, COUNT(*) AS Cnt FROM dbo.PP_WorkOrder x
+                         WHERE x.SoID = o.SoID AND ISNULL(x.Status,'') <> 'Cancelled') t
+            WHERE  w.WoNumber = @Wo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        ColumnParams.AddFilter(cmd, "@Wo", "PP_WorkOrder.WoNumber", woNumber ?? "");
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+        return new((int)r["SoID"], r["SoNumber"] as string, r["SoLineNo"] as int?, r["CustomerID"] as string, r["CustomerName"] as string,
+            r["ItemNo"] as string, r["ItemName"] as string, Convert.ToDecimal(r["OrderQty"]), Convert.ToDecimal(r["ShippedQty"]),
+            r["OrderDate"] as DateTime?, r["RequestedDeliveryDate"] as DateTime?, r["PromisedDate"] as DateTime?, r["Status"] as string,
+            Convert.ToDecimal(r["WoQtyTotal"]), Convert.ToInt32(r["WoCount"]), Convert.ToDecimal(r["ThisWoQty"]));
+    }
+
     /// <summary>WO 번호로 한 건 — 상태와 관계없이(목록 조회는 끝난 WO 를 일정 기간만 준다). 팝업·연결 화면용.</summary>
     public WorkOrderDto? GetByNumber(string woNumber)
     {

@@ -1,6 +1,12 @@
-@* 출하 오더 한 건의 내용 팝업 — 상단에 같은 수주로 이어진 작업지시·출하 오더 이름을 같이 보이고, 아래에 오더 정보와 수주 라인(연결된 작업지시 포함)을 보인다. *@
+﻿@* 출하 오더 한 건의 내용 팝업 — 상단에 같은 수주로 이어진 작업지시·출하 오더 이름을 같이 보이고, 아래에 오더 정보와 수주 라인(연결된 작업지시 포함)을 보인다.
+   DCR 에 배정되지 않은 Open 오더는 수정 권한(E)으로 출하일·수량을 고치거나 사유와 함께 취소할 수 있다(그 밖의 상태는 보기만). *@
+@using AMES.Contracts.Dto
 @inject FinishedGoodsRepository Fg
 @inject DialogService Dialog
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
 
 <div style="min-width:640px;">
@@ -13,26 +19,135 @@
         <LinkedDocChips OrderNo="@OrderNo" />
         <div class="ipk-info" style="margin-bottom:12px;">
             <div class="ipk-k">@L["FG.ShipOrders.Col.OrderNo"]</div><div class="ipk-v code">@_order.OrderNo</div>
-            <div class="ipk-k">@L["Col.ShipDate"]</div><div class="ipk-v">@_order.ShipDate.ToString(DateFmt.Date)</div>
+            <div class="ipk-k">@L["Col.ShipDate"]</div>
+            <div class="ipk-v">
+                @if (_mode == "edit") { <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" /> }
+                else { @_order.ShipDate.ToString(DateFmt.Date) }
+            </div>
             <div class="ipk-k">@L["Col.Customer"]</div><div class="ipk-v">@_order.CustomerId</div>
-            <div class="ipk-k">@L["Col.Status"]</div><div class="ipk-v"><span class="pill info">@_order.Status</span></div>
+            <div class="ipk-k">@L["Col.Status"]</div><div class="ipk-v"><span class="pill @(_order.Status == "Cancelled" ? "bad" : "info")">@_order.Status</span></div>
             <div class="ipk-k">@L["FG.ShipOrders.Col.Dcr"]</div><div class="ipk-v">@(_order.DeliveryNo ?? L["FG.ShipOrders.Lbl.NotAssigned"].Value)</div>
         </div>
-        <ShipmentOrderLines Lines="_order.Lines" />
+
+        @if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false" Style="margin-bottom:8px;">@_msg</RadzenAlert> }
+
+        @if (_mode == "edit")
+        {
+            <table class="ames-table" style="width:100%;margin-bottom:8px;">
+                <thead><tr><th>SO</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th style="width:160px;">@L["FG.Ship.Col.ShipQty"]</th></tr></thead>
+                <tbody>
+                @foreach (var l in _order.Lines)
+                {
+                    <tr>
+                        <td>@l.SoNumber</td><td class="code">@l.PartNo</td><td class="dim">@l.PartName</td>
+                        <td><RadzenNumeric TValue="decimal" Value="@_qty.GetValueOrDefault(l.OrderLineId)" Change="@(v => _qty[l.OrderLineId] = v)" Min="0" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-align:left" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="dim" style="font-size:.85em;margin-bottom:8px;">@L["FG.ShipOrders.Edit.Hint"]</div>
+        }
+        else
+        {
+            <ShipmentOrderLines Lines="_order.Lines" />
+        }
+
+        @if (_mode == "cancel")
+        {
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <RadzenTextBox @bind-Value="_reason" MaxLength="200" Placeholder='@L["FG.ShipOrders.Cancel.Reason"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
+                <RadzenButton Text="@L["FG.ShipOrders.Cancel.Confirm"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="DoCancel" Disabled="_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="undo" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => { _mode = "view"; _msg = ""; })" class="ames-rz-btn" />
+            </div>
+        }
     }
-    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close())" class="ames-rz-btn" />
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+        @if (CanChange && _mode == "view")
+        {
+            <RadzenButton Text="@L["FG.ShipOrders.Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="StartEdit" class="ames-rz-btn" />
+            <RadzenButton Text="@L["FG.ShipOrders.Btn.CancelOrder"]" Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => { _mode = "cancel"; _msg = ""; })" class="ames-rz-btn" />
+        }
+        @if (_mode == "edit")
+        {
+            <RadzenButton Text="@L["Btn.Save"]" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveEdit" Disabled="_busy" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Cancel"]" Icon="undo" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => { _mode = "view"; _msg = ""; })" class="ames-rz-btn" />
+        }
+        <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Dialog.Close(_changed))" class="ames-rz-btn" />
     </div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public string OrderNo { get; set; } = "";
-    AMES.Contracts.Dto.ShippingOrderDto? _order;
+    ShippingOrderDto? _order;
     string? _error;
+    string _mode = "view", _msg = "", _reason = "";
+    bool _isErr, _busy, _changed, _canEdit;
+    DateTime? _shipDate;
+    readonly Dictionary<int, decimal> _qty = new();
 
-    protected override void OnInitialized()
+    // 수정·취소는 DCR 에 배정되지 않은 Open 오더만
+    bool CanChange => _canEdit && _order is { Status: "Open", DeliveryId: null };
+
+    protected override async Task OnInitializedAsync()
     {
         try { _order = Fg.GetShippingOrder(OrderNo); }
         catch (Exception ex) { _error = ex.Message; }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("fg/shipping-orders");
+    }
+
+    void StartEdit()
+    {
+        if (_order is null) return;
+        _shipDate = _order.ShipDate; _msg = "";
+        _qty.Clear();
+        foreach (var l in _order.Lines) _qty[l.OrderLineId] = l.Qty;
+        _mode = "edit";
+    }
+
+    async Task Reload() { _order = await Task.Run(() => Fg.GetShippingOrder(OrderNo)); }
+
+    async Task SaveEdit()
+    {
+        if (_busy || _order is null || !CanChange || _shipDate is null) return;
+        _busy = true; _msg = "";
+        try
+        {
+            var actor = ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
+            var before = _order;
+            var shipDate = _shipDate.Value; var qty = new Dictionary<int, decimal>(_qty); var id = _order.OrderId;
+            await Task.Run(() => Fg.UpdateShippingOrder(id, shipDate, qty, actor));
+            await Reload();
+            Audit.Updated("FG-05", "FG_ShippingOrder", OrderNo,
+                new { before.ShipDate, Lines = before.Lines.Select(l => new { l.PartNo, l.Qty }) },
+                new { _order?.ShipDate, Lines = _order?.Lines.Select(l => new { l.PartNo, l.Qty }) });
+            _changed = true; _mode = "view"; _isErr = false; _msg = L["FG.ShipOrders.Edit.Saved"].Value;
+        }
+        catch (FinishedGoodsRepository.InsufficientStockException ex)
+        {
+            _isErr = true;
+            _msg = string.Format(L["FG.OrderCreate.Err.Stock"].Value, string.Join(", ", ex.Items.Select(x => $"{x.Part} ({UomFmt.Qty(x.Requested, null)} / {UomFmt.Qty(x.Available, null)})")));
+        }
+        catch (Exception ex) { _isErr = true; _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task DoCancel()
+    {
+        if (_busy || _order is null || !CanChange) return;
+        if (string.IsNullOrWhiteSpace(_reason)) { _isErr = true; _msg = L["FG.ShipOrders.Cancel.ReasonRequired"].Value; return; }
+        _busy = true; _msg = "";
+        try
+        {
+            var actor = ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
+            var before = _order; var id = _order.OrderId;
+            await Task.Run(() => Fg.CancelShippingOrder(id, actor));
+            Audit.Log("FG-05", "CANCEL", "FG_ShippingOrder", OrderNo,
+                new { before.Status, before.ShipDate, Lines = before.Lines.Select(l => new { l.PartNo, l.Qty }) }, new { Status = "Cancelled", Reason = _reason.Trim() }, note: _reason.Trim());
+            await Reload();
+            _changed = true; _mode = "view"; _isErr = false; _msg = L["FG.ShipOrders.Cancel.Done"].Value;
+        }
+        catch (Exception ex) { _isErr = true; _msg = ex.Message; }
+        finally { _busy = false; }
     }
 }
