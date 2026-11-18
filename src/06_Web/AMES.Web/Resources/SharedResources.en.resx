@@ -12544,14 +12544,8 @@
   <data name="PP.WoDetail.Order.SoNo" xml:space="preserve">
     <value>Sales order</value>
   </data>
-  <data name="FG.OrderCreate.Btn.AutoFill" xml:space="preserve">
-    <value>Auto fill</value>
-  </data>
   <data name="FG.OrderCreate.Btn.ClearQty" xml:space="preserve">
     <value>Reset</value>
-  </data>
-  <data name="FG.OrderCreate.Hint.AutoFill" xml:space="preserve">
-    <value>Fill ship quantities from available stock (earliest due first, up to the remaining balance)</value>
   </data>
   <data name="FG.OrderCreate.Hint.ClearQty" xml:space="preserve">
     <value>Set every ship quantity back to 0</value>
@@ -12561,9 +12555,6 @@
   </data>
   <data name="FG.Ship.Col.LinkedPallets" xml:space="preserve">
     <value>Linked pallets</value>
-  </data>
-  <data name="FG.OrderCreate.AutoFill.NoLoadable" xml:space="preserve">
-    <value>No loadable stock to auto-fill — stock exists but has no location for: {0}. Set the location on the PDA, then try again.</value>
   </data>
   <data name="FG.OrderCreate.Override.Label" xml:space="preserve">
     <value>Approve shipping available quantity only</value>
