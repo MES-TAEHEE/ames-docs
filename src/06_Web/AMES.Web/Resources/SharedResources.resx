@@ -13788,6 +13788,9 @@
   <data name="ItemPeek.Parents" xml:space="preserve">
     <value>Used in (parents)</value>
   </data>
+  <data name="ItemPeek.MoldItems" xml:space="preserve">
+    <value>Same-mold products</value>
+  </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>No parent item uses this item.</value>
   </data>

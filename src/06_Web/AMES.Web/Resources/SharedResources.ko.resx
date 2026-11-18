@@ -13788,6 +13788,9 @@
   <data name="ItemPeek.Parents" xml:space="preserve">
     <value>사용처(상위 품목)</value>
   </data>
+  <data name="ItemPeek.MoldItems" xml:space="preserve">
+    <value>같은 금형 제품</value>
+  </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>이 품번을 쓰는 상위 품목이 없습니다.</value>
   </data>

@@ -5887,6 +5887,11 @@ input[data-ames-x] {
 .ipk-cycle { margin-left: 4px; color: var(--ames-tx-amber-400); }
 .ipk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ipk-chip { border: 1px solid var(--ames-bd-white-a08); border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+/* 같은 금형 제품 — 금형마다 한 줄, 지금 보는 품번은 강조, 사용 안 함은 흐리게 */
+.ipk-mold { display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; }
+.ipk-mold-id { flex: 0 0 auto; font-size: 12px; padding-top: 3px; min-width: 90px; }
+.ipk-chip.self { border-color: var(--ames-accent); font-weight: 600; }
+.ipk-chip.off { opacity: .5; }
 .ipk-msg { font-size: 13px; }
 .ipk-msg.neg { color: var(--ames-tx-red-300); }
 .ipk-msg.warn { color: var(--ames-tx-amber-400); }

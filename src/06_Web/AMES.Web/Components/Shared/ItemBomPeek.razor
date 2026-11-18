@@ -179,6 +179,35 @@
                         }
                     </div>
                 }
+
+                @* 같은 금형으로 찍는 제품 — 이 품번이 금형 제품정보(MD_MoldItem)에 있을 때만 보인다 *@
+                @if (_molds.Count > 0)
+                {
+                    var moldGroups = _molds.GroupBy(m => m.MoldID).ToList();
+                    <div class="ipk-sub" style="margin-top:10px;">@L["ItemPeek.MoldItems"] · @moldGroups.Count</div>
+                    @foreach (var g in moldGroups)
+                    {
+                        <div class="ipk-mold">
+                            <span class="ipk-mold-id"><span class="code">@g.Key</span>@if (!string.IsNullOrEmpty(g.First().MoldName)) { <span class="dim"> · @g.First().MoldName</span> }</span>
+                            <span class="ipk-chips">
+                                @foreach (var m in g)
+                                {
+                                    var self = string.Equals(m.ItemNo, _itemNo, StringComparison.OrdinalIgnoreCase);
+                                    <span class="ipk-chip @(self ? "self" : "") @(m.ActiveFlag ? "" : "off")" title="@(m.ActiveFlag ? null : L["ItemPeek.ActiveOff"].Value)">
+                                        <span class="code" data-item="@m.ItemNo">@m.ItemNo</span>
+                                        @if (!string.IsNullOrEmpty(m.Color)) { <span class="dim"> @m.Color</span> }
+                                        @if (!string.IsNullOrEmpty(m.CavityPos)) { <span class="dim"> (@m.CavityPos)</span> }
+                                        @if (!string.IsNullOrEmpty(m.ItemName)) { <span class="dim"> · @m.ItemName</span> }
+                                    </span>
+                                }
+                            </span>
+                        </div>
+                    }
+                }
+                else if (_moldErr is not null)
+                {
+                    <div class="ipk-msg neg ipk-small" style="margin-top:10px;">⚠ @L["ItemPeek.MoldItems"]: @_moldErr</div>
+                }
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -224,6 +253,8 @@
     readonly Dictionary<string, List<MasterDataRepository.CodeItemRow>> _codes = new();
     WarehouseRepository.ItemStockSummary? _stock;
     string? _stockErr;
+    List<MasterDataRepository.MoldSiblingRow> _molds = new();
+    string? _moldErr;
     const int LocShow = 8;
     DateOnly _today;
     int _seq;   // 늦게 끝난 이전 조회가 새 조회 결과를 덮지 않게
@@ -255,10 +286,11 @@
     async Task Show(string itemNo)
     {
         var seq = ++_seq;
-        _itemNo = itemNo; _show = true; _loading = true; _err = null; _stock = null; _stockErr = null;
+        _itemNo = itemNo; _show = true; _loading = true; _err = null; _stock = null; _stockErr = null; _molds = new(); _moldErr = null;
         await InvokeAsync(StateHasChanged);
-        // 재고는 BOM 과 따로 읽는다 — 재고 조회가 실패해도 BOM 은 보이게
+        // 재고·금형 제품은 BOM 과 따로 읽는다 — 그 조회가 실패해도 BOM 은 보이게
         var stockTask = Task.Run(() => WH.GetItemStockSummary(itemNo));
+        var moldTask  = Task.Run(() => MD.ListMoldSiblings(itemNo));
         try
         {
             var r = await Task.Run(() => Load(itemNo));
@@ -272,6 +304,8 @@
         }
         try { var st = await stockTask; if (seq != _seq) return; _stock = st; }
         catch (Exception ex) { if (seq != _seq) return; _stockErr = ex.Message; }
+        try { var ms = await moldTask; if (seq != _seq) return; _molds = ms; }
+        catch (Exception ex) { if (seq != _seq) return; _moldErr = ex.Message; }
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }

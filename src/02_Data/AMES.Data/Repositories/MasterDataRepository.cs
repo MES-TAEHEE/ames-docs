@@ -2159,6 +2159,32 @@ public sealed class MasterDataRepository
         return list;
     }
 
+    public record MoldSiblingRow(string MoldID, string? MoldName, string ItemNo, string? ItemName, string? Color, string? CavityPos, bool ActiveFlag);
+
+    /// <summary>
+    /// 품번 BOM 미리보기 — 이 품번을 찍는 금형(MD_MoldItem)과 그 금형의 제품 전부(자기 자신 포함). 금형·캐비티 순.
+    /// </summary>
+    public List<MoldSiblingRow> ListMoldSiblings(string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT mi.MoldID, m.MoldName, mi.ItemNo, i.ItemName, mi.Color, mi.CavityPos,
+                   CAST(ISNULL(mi.ActiveFlag, 1) AS bit) AS ActiveFlag
+            FROM   dbo.MD_MoldItem mi
+            LEFT   JOIN dbo.MD_Mold m ON m.MoldID = mi.MoldID
+            LEFT   JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
+            WHERE  mi.MoldID IN (SELECT MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @P)
+            ORDER  BY mi.MoldID, mi.CavitySeq, mi.ItemNo;
+            """, conn);
+        ColumnParams.AddFilter(cmd, "@P", "MD_MoldItem.ItemNo", itemNo);
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldSiblingRow>();
+        while (r.Read())
+            list.Add(new MoldSiblingRow((string)r["MoldID"], r["MoldName"] as string, (string)r["ItemNo"], r["ItemName"] as string,
+                                        r["Color"] as string, r["CavityPos"] as string, (bool)r["ActiveFlag"]));
+        return list;
+    }
+
     public bool MoldItemExists(string moldId, string itemNo)
     {
         using var conn = _factory.OpenConnection();

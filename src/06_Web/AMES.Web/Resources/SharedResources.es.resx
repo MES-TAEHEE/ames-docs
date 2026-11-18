@@ -13788,6 +13788,9 @@
   <data name="ItemPeek.Parents" xml:space="preserve">
     <value>Usado en (superiores)</value>
   </data>
+  <data name="ItemPeek.MoldItems" xml:space="preserve">
+    <value>Productos del mismo molde</value>
+  </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>Ningún artículo superior usa este artículo.</value>
   </data>
