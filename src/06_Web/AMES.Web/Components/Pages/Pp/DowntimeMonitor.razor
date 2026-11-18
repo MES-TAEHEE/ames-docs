@@ -165,11 +165,12 @@
         @if (_canOpenDtl) { <a href="pp/downtime" style="margin-left:6px;">@L["PP.DowntimeMonitor.Link.Dtl"] →</a> }
     </div>
 
-    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid @ref="_rnGrid1" TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowRender="@RowRender"
                     EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+<RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="120px" Property="LineId" Title="@L["Col.Line"]" Width="120px">
                 <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
             </RadzenDataGridColumn>
@@ -200,6 +201,7 @@
 </div>
 
 @code {
+    RadzenDataGrid<PpRepository.DowntimeRow>? _rnGrid1;
     const int WINDOW    = 60;   // 타임라인 분
     const int STALE_MIN = 10;   // 마지막 로그가 이보다 오래되면 '신호없음'
     const int ALERT_MIN = 10;   // 실제비가동 경보 기준 분

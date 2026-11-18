@@ -14076,4 +14076,22 @@
   <data name="PP.LotMove.Pv.PalletNote" xml:space="preserve">
     <value>sin cambios</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertSel" xml:space="preserve">
+    <value>Anular confirmación ({0})</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertRow" xml:space="preserve">
+    <value>Anular</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Title" xml:space="preserve">
+    <value>Anular confirmación</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Confirm" xml:space="preserve">
+    <value>¿Revertir {0} orden(es) confirmada(s) a Open? No se pueden revertir las que ya tienen orden de trabajo.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Reverted" xml:space="preserve">
+    <value>{0} orden(es) revertida(s) a Open.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.PartialRevert" xml:space="preserve">
+    <value>Revertidas {0} de {1}. Las demás tienen orden de trabajo o cambiaron de estado.</value>
+  </data>
 </root>

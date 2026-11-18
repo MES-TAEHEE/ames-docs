@@ -1751,6 +1751,27 @@ public sealed partial class PpRepository
         return cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// 확정 취소(PP-002) — Confirmed 를 Open 으로 되돌린다. 잘못 확정한 건을 원상 복구하는 길.
+    /// 활성 WO(취소 제외)가 이미 있으면 되돌리지 않는다(WO·생산이 이미 걸려 있음 → WO 를 먼저 취소해야 한다). 변경 행수 반환.
+    /// </summary>
+    public int RevertCustomerOrder(int soId, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.PP_CustomerOrder
+            SET    Status     = 'Open',
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
+            WHERE  SoID = @SoID AND Status = 'Confirmed'
+              AND  NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w WHERE w.SoID = dbo.PP_CustomerOrder.SoID AND w.Status <> 'Cancelled');
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
+        cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = actor;
+        return cmd.ExecuteNonQuery();
+    }
+
     // ── PP-002 수주 자동 확정 (SYS_Config PP_SO_AUTO_CONFIRM, 규칙 정본 SoAutoConfirm) ──
 
     /// <summary>자동 확정이 켜져 있는가. 행이 없거나 비활성이면 false(마이그레이션 전 DB 는 종전 동작).</summary>

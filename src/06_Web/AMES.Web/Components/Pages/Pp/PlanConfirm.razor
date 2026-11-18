@@ -81,10 +81,14 @@
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="PpRepository.PlanLineRow" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid @ref="_grid" Data="_view" TItem="PpRepository.PlanLineRow" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     class="ames-rz-grid">
         <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false"
+                                  TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value">
+                <Template Context="rn"><span class="dim">@RowNo(rn)</span></Template>
+            </RadzenDataGridColumn>
             @* 선택은 WO 일괄 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
@@ -198,6 +202,11 @@ else
 </div>
 
 @code {
+    RadzenDataGrid<PpRepository.PlanLineRow>? _grid;
+
+    // 맨 왼쪽 순번 — 정렬·필터가 적용된 화면 순서 기준
+    int RowNo(PpRepository.PlanLineRow r) => (_grid?.View.ToList().IndexOf(r) ?? -1) + 1;
+
     List<MasterDataRepository.CustomerRow> _customers = new();
 
     string    _fCustomer = "";

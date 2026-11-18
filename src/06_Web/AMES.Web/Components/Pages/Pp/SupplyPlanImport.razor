@@ -59,12 +59,15 @@
             @if (_canApprove)
             {
                 @* 한 버튼이 「오더 선택」 ↔ 「확정 (n)」으로 바뀐다 *@
-                <RadzenButton Text="@(_picking ? $"{L["Btn.Confirm"]} ({_selected.Count})" : L["PP.SupplyPlanImport.Btn.PickOrders"].Value)"
+                <RadzenButton Text="@(_picking ? $"{L["Btn.Confirm"]} ({SelectedConfirmable.Count()})" : L["PP.SupplyPlanImport.Btn.PickOrders"].Value)"
                               Icon="@(_picking ? "check" : "checklist")"
                               ButtonStyle="@(_picking ? ButtonStyle.Success : ButtonStyle.Primary)" Size="ButtonSize.Small" class="ames-rz-btn"
-                              Disabled="@(_picking && _selected.Count == 0)" Click="PrimaryClick" />
+                              Disabled="@(_picking && !SelectedConfirmable.Any())" Click="PrimaryClick" />
                 @if (_picking)
                 {
+                    <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.RevertSel"].Value, SelectedRevertable.Count())"
+                                  Icon="undo" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" class="ames-rz-btn"
+                                  Disabled="@(!SelectedRevertable.Any())" Click="RevertSelected" />
                     <RadzenButton Text="@L["Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Base"
                                   Size="ButtonSize.Small" class="ames-rz-btn" Click="CancelPicking" />
                 }
@@ -116,7 +119,7 @@ else
                            @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
                 <Template Context="r">
-                    <input type="checkbox" class="spi-ck" disabled="@(!IsSelectable(r))"
+                    <input type="checkbox" class="spi-ck" disabled="@(!IsPickable(r))"
                            checked="@_selected.Contains(r.SoId)"
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
@@ -191,30 +194,14 @@ else
                         <RadzenButton Text="@L["Btn.Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Confirm(r.SoId))" />
                     }
+                    else if (_canApprove && IsRevertable(r))
+                    {
+                        <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.RevertRow"].Value" Icon="undo" ButtonStyle="ButtonStyle.Warning"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => RevertOne(r.SoId))" />
+                    }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
-        <Template Context="r">
-            <div style="display:flex;gap:32px;flex-wrap:wrap;padding:8px 14px;">
-                <div>
-                    <div class="dim" style="font-size:.8em;">@L["PP.SupplyPlanImport.Detail.DDay"]</div>
-                    @{ var dd = DaysTo(r.RequestedDeliveryDate); }
-                    @if (dd is int n)
-                    {
-                        <div style="@(n <= 14 ? "color:var(--ames-tx-red-400);font-weight:600;" : "")">@(n >= 0 ? $"D-{n}" : $"D+{-n}")</div>
-                    }
-                    else { <div class="dim">—</div> }
-                </div>
-                <div>
-                    <div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["Col.Ship"]</div>
-                    <div>@r.OrderQty.ToString("#,0") / @r.ShippedQty.ToString("#,0")</div>
-                </div>
-                <div>
-                    <div class="dim" style="font-size:.8em;">@L["PP.SupplyPlanImport.Detail.WoStatus"]</div>
-                    <div>@(string.IsNullOrEmpty(r.WoNumber) ? "—" : $"{r.WoNumber} · {r.WoStatus}")</div>
-                </div>
-            </div>
-        </Template>
     </RadzenDataGrid>
 }
 </div>
@@ -249,8 +236,14 @@ else
     static bool IsOpen(PpRepository.SoRow r) => r.Status == "Open";
     // 품목 마스터에 없는 품번(미등록)은 확정할 수 없다 — WO·BOM 전개가 일어나면 안 된다
     static bool IsSelectable(PpRepository.SoRow r) => IsOpen(r) && r.ItemExists;
+    // 확정 취소 — 확정됐고 아직 활성 WO 가 없는 건만(WO 가 걸렸으면 WO 를 먼저 취소해야 한다)
+    static bool IsRevertable(PpRepository.SoRow r) => r.Status == "Confirmed" && r.WoCount == 0;
+    // 선택 모드에서 체크할 수 있는 행 = 확정 가능 또는 확정 취소 가능
+    static bool IsPickable(PpRepository.SoRow r) => IsSelectable(r) || IsRevertable(r);
+    IEnumerable<PpRepository.SoRow> SelectedConfirmable => _rows.Where(r => _selected.Contains(r.SoId) && IsSelectable(r));
+    IEnumerable<PpRepository.SoRow> SelectedRevertable  => _rows.Where(r => _selected.Contains(r.SoId) && IsRevertable(r));
     // 지금 화면에 보이는 페이지(정렬·필터·페이징 적용 뒤)의 선택 가능 행만
-    IEnumerable<PpRepository.SoRow> Selectable => (_grid?.PagedView ?? _view.AsQueryable()).Where(IsSelectable);
+    IEnumerable<PpRepository.SoRow> Selectable => (_grid?.PagedView ?? _view.AsQueryable()).Where(IsPickable);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 업로드·수주 확정
@@ -325,7 +318,7 @@ else
     {
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
-        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsSelectable(r)));
+        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsPickable(r)));
         FillFilterLabels();
         ApplyFilters();
     }
@@ -337,7 +330,7 @@ else
         {
             r.WoLinkLabel = !string.IsNullOrEmpty(r.WoNumber) ? (r.WoStatus ?? "—")
                           : r.Status == "Confirmed" ? L["PP.SupplyPlanImport.WoLink.Awaiting"].Value : "—";
-            r.ActionLabel = _canApprove && IsSelectable(r) ? L["Btn.Confirm"].Value : "—";
+            r.ActionLabel = !_canApprove ? "—" : IsSelectable(r) ? L["Btn.Confirm"].Value : IsRevertable(r) ? L["PP.SupplyPlanImport.Btn.RevertRow"].Value : "—";
         }
     }
 
@@ -407,7 +400,7 @@ else
     {
         if (!_canApprove) return;
 
-        var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsSelectable(r)).Select(r => r.SoId).ToList();
+        var ids = SelectedConfirmable.Select(r => r.SoId).ToList();
         if (ids.Count == 0) { ShowMsg(L["PP.SupplyPlanImport.Err.NoneSelected"], true); return; }
 
         try
@@ -433,6 +426,37 @@ else
                 ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, done), false);
             else
                 ShowMsg(string.Format(L["PP.SupplyPlanImport.Err.PartialConfirm"].Value, done, failed.Count, failed[0]), true);
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    // 확정 취소 — 잘못 확정한 수주를 Open 으로 되돌린다(활성 WO 가 없는 건만). 확인창 뒤 건마다 처리하고 감사 기록을 남긴다.
+    Task RevertOne(int soId) => RevertIds(new List<int> { soId });
+    Task RevertSelected() => RevertIds(SelectedRevertable.Select(r => r.SoId).ToList());
+
+    async Task RevertIds(List<int> ids)
+    {
+        if (!_canApprove || ids.Count == 0) return;
+
+        var go = await Dialog.Confirm(string.Format(L["PP.SupplyPlanImport.Revert.Confirm"].Value, ids.Count),
+            L["PP.SupplyPlanImport.Revert.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["PP.SupplyPlanImport.Btn.RevertRow"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+        if (go != true) return;
+
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+            int done = 0;
+            foreach (var id in ids)
+            {
+                var n = Pp.RevertCustomerOrder(id, actor);
+                if (n > 0) { done += n; Audit.Log("PP-002", "REVERT", "PP_CustomerOrder", id, new { Status = "Confirmed" }, new { Status = "Open" }); }
+            }
+            _selected.Clear();
+            _picking = false;
+            Search();
+            ShowMsg(string.Format(L[done == ids.Count ? "PP.SupplyPlanImport.Ok.Reverted" : "PP.SupplyPlanImport.Err.PartialRevert"].Value, done, ids.Count), done != ids.Count);
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
     }

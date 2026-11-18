@@ -89,12 +89,13 @@
         <span>@L["PP.Oee.ByLine.Hint"]</span>
         <span style="@(FillError ? "color:var(--ames-tx-red-400);" : "")">@FillText</span>
     </div>
-    <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid @ref="_rnGrid1" TItem="LineAgg" Data="@_rows" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center"
                     ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" Style="--ames-page-rows:5"
                     AllowSorting="true"
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
                     EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top pp-oee-lines">
         <Columns>
+<RadzenDataGridColumn TItem="LineAgg" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" MinWidth="130px" Property="LineId" Title="@L["Col.Line"]" Width="130px">
                 <Template Context="r"><span class="code">@r.LineId</span></Template>
             </RadzenDataGridColumn>
@@ -250,10 +251,11 @@
         }
         else if (_tab == "snaps")
         {
-            <RadzenDataGrid TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+            <RadzenDataGrid @ref="_rnGrid2" TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                             AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
                 <Columns>
+<RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid2, rowNoCtx)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="110px" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
                         <Template Context="s"><span class="code">@s.PeriodDate.ToString(DateFmt.Date)</span></Template>
                     </RadzenDataGridColumn>
@@ -307,6 +309,8 @@
 }
 
 @code {
+    RadzenDataGrid<LineAgg>? _rnGrid1;
+    RadzenDataGrid<OeeSnapshotDto>? _rnGrid2;
     // ── 상수 ─────────────────────────────────────────────────────────────
     const decimal WORLD_CLASS = 85m;
     const decimal GOOD        = 65m;

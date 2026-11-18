@@ -142,9 +142,10 @@
         <div class="ames-card-h" style="border-top:1px solid var(--ames-bd-white-a06);">
             ▼ @L["PP.LineSchedule.Lbl.SlotList"] · @_slots.Count @L["Lbl.Items"]
         </div>
-        <RadzenDataGrid TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
+        <RadzenDataGrid @ref="_rnGrid1" TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditSlot(a.Data.WoId); })" RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
             <Columns>
+<RadzenDataGridColumn TItem="StagedWo" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                     <Template Context="s"><span class="pill info">@SlotLabel(s)</span></Template>
                 </RadzenDataGridColumn>
@@ -189,9 +190,10 @@
         <div class="ames-card-h" style="border-top:1px solid var(--ames-bd-white-a06);">
             ▼ @L["PP.LineSchedule.Pm.ListTitle"] · @_pmBands.Count @L["Lbl.Items"]
         </div>
-        <RadzenDataGrid TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
+        <RadzenDataGrid @ref="_rnGrid2" TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditPm(a.Data.Id); })" RowRender="@PmRowRender" EmptyText="@L["PP.LineSchedule.Pm.Empty"]" Class="ames-rz-grid">
             <Columns>
+<RadzenDataGridColumn TItem="PmBand" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid2, rowNoCtx)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PmBand" MinWidth="200px" Title="@L["PP.LineSchedule.Pm.Name"]">
                     <Template Context="p"><span class="pill orange">@L["PP.LineSchedule.Lgd.Pm"]</span> <span>@(string.IsNullOrWhiteSpace(p.Title) ? "—" : p.Title)</span></Template>
                 </RadzenDataGridColumn>
@@ -401,6 +403,8 @@
 @* ── Render Fragment: Gantt (밴드 = 선택 패턴 세그먼트, WO 오버레이) ── *@
 @* ══════════════════════════════════════════════════════════════════ *@
 @code {
+    RadzenDataGrid<StagedWo>? _rnGrid1;
+    RadzenDataGrid<PmBand>? _rnGrid2;
     RenderFragment GanttView() => __b =>
     {
         int dayStart = _dayStart;

@@ -14076,4 +14076,22 @@
   <data name="PP.LotMove.Pv.PalletNote" xml:space="preserve">
     <value>바뀌지 않습니다</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertSel" xml:space="preserve">
+    <value>Cancel confirm ({0})</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertRow" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Title" xml:space="preserve">
+    <value>Revert confirmation</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Confirm" xml:space="preserve">
+    <value>Revert {0} confirmed order(s) back to Open? Orders that already have a work order cannot be reverted.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Reverted" xml:space="preserve">
+    <value>{0} order(s) reverted to Open.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.PartialRevert" xml:space="preserve">
+    <value>Reverted {0} of {1}. The rest have a work order or changed status.</value>
+  </data>
 </root>

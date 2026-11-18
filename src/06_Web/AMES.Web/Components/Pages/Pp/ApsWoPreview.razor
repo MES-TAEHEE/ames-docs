@@ -273,10 +273,11 @@ else if (_released)
             </span>
         </div>
         <div class="wp-table">
-            <RadzenDataGrid Data="@EffOrders" TItem="PpRepository.ApsWoOrder" AllowPaging="true" PageSize="25" AllowSorting="true" AllowColumnResize="true"
+            <RadzenDataGrid @ref="_rnGrid1" Data="@EffOrders" TItem="PpRepository.ApsWoOrder" AllowPaging="true" PageSize="25" AllowSorting="true" AllowColumnResize="true"
                             Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                             ShowPagingSummary="true" class="ames-rz-grid">
                 <Columns>
+<RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px" Frozen="true">
                         <Template Context="o"><WoLink WoNumber="@o.WoNumber" Style="font-weight:700;" /></Template>
                     </RadzenDataGridColumn>
@@ -346,6 +347,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
 </div>
 
 @code {
+    RadzenDataGrid<PpRepository.ApsWoOrder>? _rnGrid1;
     [Parameter] public int RunId { get; set; }
 
     const string Href = "pp/aps-plan";   // PP-APS 하위 경로 — 권한도 그 화면 것(A = WO 생성, E = 슬롯 편집)

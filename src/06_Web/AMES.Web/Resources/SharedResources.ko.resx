@@ -14076,4 +14076,22 @@
   <data name="PP.LotMove.Pv.PalletNote" xml:space="preserve">
     <value>바뀌지 않습니다</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertSel" xml:space="preserve">
+    <value>확정 취소 ({0})</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.RevertRow" xml:space="preserve">
+    <value>확정 취소</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Title" xml:space="preserve">
+    <value>확정 취소</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Revert.Confirm" xml:space="preserve">
+    <value>선택한 {0}건의 확정을 취소하고 Open 으로 되돌립니다. 이미 WO 가 만들어진 건은 되돌릴 수 없습니다. 계속할까요?</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Reverted" xml:space="preserve">
+    <value>{0}건의 확정을 취소했습니다(Open).</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.PartialRevert" xml:space="preserve">
+    <value>{1}건 중 {0}건만 취소했습니다. 나머지는 WO 가 있거나 상태가 바뀌었습니다.</value>
+  </data>
 </root>

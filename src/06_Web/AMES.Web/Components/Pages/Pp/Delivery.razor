@@ -58,8 +58,9 @@
 @* ── 고객별 준수율 ─────────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h">▼ @L["PP.Delivery.Cust.Title"] · @_custAgg.Count @L["Lbl.Items"]</div>
-    <RadzenDataGrid TItem="CustAgg" Data="@_custAgg" AllowPaging="false" AllowSorting="true" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+    <RadzenDataGrid @ref="_rnGrid1" TItem="CustAgg" Data="@_custAgg" AllowPaging="false" AllowSorting="true" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
         <Columns>
+<RadzenDataGridColumn TItem="CustAgg" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="CustAgg" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"]" Width="130px">
                 <Template Context="c"><span class="code">@c.CustomerId</span></Template>
             </RadzenDataGridColumn>
@@ -103,10 +104,11 @@
     </div>
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString(DateFmt.Date))</div>
 
-    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid @ref="_rnGrid2" TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+<RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid2, rowNoCtx)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="130px" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
                 <Template Context="r"><SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" ShowLine="true" /></Template>
             </RadzenDataGridColumn>
@@ -167,6 +169,8 @@
 </div>
 
 @code {
+    RadzenDataGrid<CustAgg>? _rnGrid1;
+    RadzenDataGrid<PpRepository.OtdRow>? _rnGrid2;
     const int LIMIT = 500;
     static readonly int[] _pageSizeOptions = [25, 50, 100];
     int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)

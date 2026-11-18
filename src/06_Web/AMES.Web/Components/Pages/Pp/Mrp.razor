@@ -73,10 +73,11 @@
 }
 else
 {
-    <RadzenDataGrid Data="_rows" TItem="PpRepository.MrpMaterialRow" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid @ref="_rnGrid1" Data="_rows" TItem="PpRepository.MrpMaterialRow" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     RowRender="@RowRender" class="ames-rz-grid">
         <Columns>
+<RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
             @* 선택은 PR 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
@@ -262,6 +263,7 @@ else
 }
 
 @code {
+    RadzenDataGrid<PpRepository.MrpMaterialRow>? _rnGrid1;
     PpRepository.MrpSnapshot?          _snap;
     List<PpRepository.MrpMaterialRow>  _rows = new();
     List<PpRepository.MrpMaterialRow>  Materials => _snap?.Materials ?? new();

@@ -62,11 +62,12 @@
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid @ref="_rnGrid1" Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>
+<RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
                 <Template Context="w"><WoLink WoNumber="@w.WoNumber" /></Template>
             </RadzenDataGridColumn>
@@ -219,6 +220,7 @@ else
 </div>
 
 @code {
+    RadzenDataGrid<WorkOrderDto>? _rnGrid1;
     List<WorkOrderDto> _rows = new();
     List<WorkOrderDto> _view = new();
 

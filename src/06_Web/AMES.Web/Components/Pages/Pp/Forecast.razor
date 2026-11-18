@@ -60,12 +60,16 @@
     }
     else
     {
-        <RadzenDataGrid Data="_view" TItem="ItemVm" AllowVirtualization="true" Style="height:100%"
+        <RadzenDataGrid @ref="_gItems" Data="_view" TItem="ItemVm" Style="height:100%"
+                        AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                         AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                         class="ames-rz-grid">
             <Columns>
+                <RadzenDataGridColumn TItem="ItemVm" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value">
+                    <Template Context="rn"><span class="dim">@RowNo(_gItems, rn)</span></Template>
+                </RadzenDataGridColumn>
                 @if (_showCustomerCol)
                 {
                     <RadzenDataGridColumn TItem="ItemVm" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
@@ -145,12 +149,16 @@
     }
     else
     {
-        <RadzenDataGrid Data="_dView" TItem="DailyVm" AllowVirtualization="true" Style="height:100%"
+        <RadzenDataGrid @ref="_gDaily" Data="_dView" TItem="DailyVm" Style="height:100%"
+                        AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                         AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                         class="ames-rz-grid">
             <Columns>
+                <RadzenDataGridColumn TItem="DailyVm" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value">
+                    <Template Context="rn"><span class="dim">@RowNo(_gDaily, rn)</span></Template>
+                </RadzenDataGridColumn>
                 @if (_dShowCustomer)
                 {
                     <RadzenDataGridColumn TItem="DailyVm" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
@@ -223,9 +231,13 @@
     }
     else
     {
-        <RadzenDataGrid Data="_recon" TItem="ReconVm" AllowVirtualization="true" Style="height:100%"
+        <RadzenDataGrid @ref="_gRecon" Data="_recon" TItem="ReconVm" Style="height:100%"
+                        AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact">
             <Columns>
+                <RadzenDataGridColumn TItem="ReconVm" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value">
+                    <Template Context="rn"><span class="dim">@RowNo(_gRecon, rn)</span></Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ReconVm" Property="Customer" Title="@L["Col.Customer"].Value" MinWidth="130px" />
                 <RadzenDataGridColumn TItem="ReconVm" Property="Item" Title="@L["Col.PartNo"].Value" MinWidth="150px" />
                 <RadzenDataGridColumn TItem="ReconVm" Property="Date" Title="@L["PP.Recon.Col.Date"].Value" MinWidth="120px">
@@ -266,9 +278,13 @@
     }
     else
     {
-        <RadzenDataGrid Data="_history" TItem="PpRepository.ImportHistoryRow" AllowVirtualization="true" Style="height:100%"
+        <RadzenDataGrid @ref="_gHist" Data="_history" TItem="PpRepository.ImportHistoryRow" Style="height:100%"
+                        AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact">
             <Columns>
+                <RadzenDataGridColumn TItem="PpRepository.ImportHistoryRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value">
+                    <Template Context="rn"><span class="dim">@RowNo(_gHist, rn)</span></Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PpRepository.ImportHistoryRow" Property="Kind" Title="@L["PP.Hist.Col.Kind"].Value" MinWidth="170px">
                     <Template Context="b">@KindName(b.Kind)</Template>
                 </RadzenDataGridColumn>
@@ -303,6 +319,19 @@
 </div>
 
 @code {
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
+    RadzenDataGrid<ItemVm>? _gItems;
+    RadzenDataGrid<DailyVm>? _gDaily;
+    RadzenDataGrid<ReconVm>? _gRecon;
+    RadzenDataGrid<PpRepository.ImportHistoryRow>? _gHist;
+
+    // 맨 왼쪽 순번 — 정렬·필터가 적용된 화면 순서 기준, 페이지를 이어서 센다
+    static int RowNo<T>(RadzenDataGrid<T>? g, T r)
+    {
+        if (g is null) return 0;
+        return g.CurrentPage * g.PageSize + g.PagedView.ToList().IndexOf(r) + 1;
+    }
+
     List<MasterDataRepository.CustomerRow> _customers = new();
 
     // 일별 발주 · 대조 탭
