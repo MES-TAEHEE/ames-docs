@@ -12496,6 +12496,9 @@
   <data name="FG.OrderCreate.Stock.Tip" xml:space="preserve">
     <value>Ver paletas, ubicaciones y pedidos / OT de origen</value>
   </data>
+  <data name="FG.OrderCreate.Stock.Unlocated" xml:space="preserve">
+    <value>+{0} sin ubicación (asigne ubicación primero)</value>
+  </data>
   <data name="FG.OrderCreate.Stock.None" xml:space="preserve">
     <value>Sin stock</value>
   </data>
@@ -13914,4 +13917,19 @@
   <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>No disponible para seleccionar</value></data>
   <data name="SCM.Label.TwoCopies" xml:space="preserve"><value>2 copias por etiqueta</value></data>
   <data name="SCM.Label.BoxBothSides" xml:space="preserve"><value>Imprima dos etiquetas idénticas por caja. Coloque una en cada lado de la caja.</value></data>
+  <data name="FG.ShipPlan.Release.Btn" xml:space="preserve">
+    <value>Liberar DCR</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Reason" xml:space="preserve">
+    <value>Motivo (obligatorio)</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Required" xml:space="preserve">
+    <value>Ingrese el motivo.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Done" xml:space="preserve">
+    <value>DCR liberado. Las órdenes volvieron a sin asignar.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Loaded" xml:space="preserve">
+    <value>Hay paletas cargadas. Descárguelas en la PDA primero.</value>
+  </data>
 </root>

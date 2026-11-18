@@ -12496,6 +12496,9 @@
   <data name="FG.OrderCreate.Stock.Tip" xml:space="preserve">
     <value>팔레트·위치와 만든 수주·작업지시를 봅니다</value>
   </data>
+  <data name="FG.OrderCreate.Stock.Unlocated" xml:space="preserve">
+    <value>+{0} 위치 미지정 (Set Location 먼저)</value>
+  </data>
   <data name="FG.OrderCreate.Stock.None" xml:space="preserve">
     <value>재고 없음</value>
   </data>
@@ -13914,4 +13917,19 @@
   <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>선택 불가</value></data>
   <data name="SCM.Label.TwoCopies" xml:space="preserve"><value>라벨당 2매</value></data>
   <data name="SCM.Label.BoxBothSides" xml:space="preserve"><value>동일한 라벨 2장을 출력하여 박스 양쪽에 한 장씩 부착해 주세요.</value></data>
+  <data name="FG.ShipPlan.Release.Btn" xml:space="preserve">
+    <value>DCR 해제</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Reason" xml:space="preserve">
+    <value>해제 사유(필수)</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Required" xml:space="preserve">
+    <value>해제 사유를 입력하세요.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Done" xml:space="preserve">
+    <value>DCR 을 해제했습니다. 오더는 미배정 상태로 돌아갔습니다.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Loaded" xml:space="preserve">
+    <value>이미 실은 팔레트가 있어 해제할 수 없습니다. PDA 에서 내린 뒤 해제하세요.</value>
+  </data>
 </root>

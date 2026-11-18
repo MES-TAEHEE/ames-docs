@@ -69,6 +69,29 @@ public sealed partial class FinishedGoodsRepository
     }
 
     /// <summary>재고 부족을 승인하고 오더를 만들 때의 예외 승인 — 사유 필수(승인 권한 확인은 호출한 화면 몫, 기록은 감사 로그).</summary>
+    /// <summary>PDA 적재(OutboundScan 52006)가 받는 위치 — 등록된 활성 FG 상세 위치(레벨 2). <paramref name="a"/> 는 WH_Inventory 별칭.</summary>
+    internal static string LoadableLocation(string a)=>
+        $"EXISTS(SELECT 1 FROM dbo.MD_Location LL WHERE LL.LocationID=NULLIF(LTRIM(RTRIM({a}.LocationNo)),'') COLLATE DATABASE_DEFAULT AND LL.LocationLevel=2 AND COALESCE(LL.ActiveFlag,1)=1 AND UPPER(ISNULL(LL.LocationType,''))='FG')";
+
+    /// <summary>품번별 출하 오더 재고 — Loadable=적재 가능(FG 위치 지정), Unlocated=재고는 있으나 Set Location 전. 오더 생성 팝업의 표시용.</summary>
+    public Dictionary<string,(decimal Loadable,int Pallets,decimal Unlocated)> ListShippableStock()
+    {
+        var sql=$$"""
+            SELECT i.PartNo,
+                   SUM(CASE WHEN {{LoadableLocation("i")}} THEN i.Qty ELSE 0 END) Loadable,
+                   COUNT(DISTINCT CASE WHEN {{LoadableLocation("i")}} THEN i.PalletNo END) Pallets,
+                   SUM(CASE WHEN {{LoadableLocation("i")}} THEN 0 ELSE i.Qty END) Unlocated
+            FROM dbo.WH_Inventory i
+            WHERE i.Qty>0 AND i.PartNo IS NOT NULL
+              AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting'))
+            GROUP BY i.PartNo;
+            """;
+        using var conn=_factory.OpenConnection();using var cmd=new SqlCommand(sql,conn){CommandTimeout=60};
+        using var r=cmd.ExecuteReader();var d=new Dictionary<string,(decimal,int,decimal)>(StringComparer.OrdinalIgnoreCase);
+        while(r.Read())d[r.GetString(0)]=(r.GetDecimal(1),r.GetInt32(2),r.GetDecimal(3));
+        return d;
+    }
+
     public sealed record StockOverride(string Reason);
     /// <summary>요청 수량이 출하 가능 재고를 넘는 품번 목록을 담아 오더 생성을 거부한다.</summary>
     public sealed class InsufficientStockException(List<(string Part,decimal Requested,decimal Available)> items)
@@ -109,13 +132,14 @@ public sealed partial class FinishedGoodsRepository
             selected.Add((line.SoId,r.GetString(0),r.GetString(1),line.Qty));
         }
         // 재고 검사 — 품번별로 (완제품 재고 − 이미 열린 출하 오더가 잡은 수량)보다 많이 요청하면 오더를 만들지 않는다.
-        // 재고 = WH_Inventory 양수 수량(위치 무관, 반품 검사 대기 제외 — PP-003·APS 와 같은 기준). 승인(StockOverride, 사유 필수)이 있으면 통과시킨다.
+        // 재고 = 실을 수 있는 재고 — WH_Inventory 양수 수량 중 등록된 FG 상세 위치(레벨 2)에 지정된 것(반품 검사 대기 제외).
+        // 위치 미지정 재고는 PDA 적재(52006)가 막으므로 세지 않는다(PP-003·APS 의 재고 요약과는 다른 기준). 승인(StockOverride, 사유 필수)이 있으면 통과시킨다.
         var lacking=new List<(string Part,decimal Requested,decimal Available)>();
         foreach(var part in selected.GroupBy(x=>x.Part,StringComparer.OrdinalIgnoreCase))
         {
-            using var cmd=new SqlCommand("""
+            using var cmd=new SqlCommand($$"""
                 SELECT (SELECT COALESCE(SUM(i.Qty),0) FROM dbo.WH_Inventory i
-                        WHERE i.PartNo=@Part AND i.Qty>0
+                        WHERE i.PartNo=@Part AND i.Qty>0 AND {{LoadableLocation("i")}}
                           AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting')))
                      - (SELECT COALESCE(SUM(L.Qty),0) FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
                         WHERE L.PartNo=@Part AND O.Status IN('Open','Loading')) AS Available;
@@ -203,9 +227,9 @@ public sealed partial class FinishedGoodsRepository
         foreach(var part in kept.GroupBy(x=>x.Part,StringComparer.OrdinalIgnoreCase))
         {
             if(part.All(l=>lineQty.GetValueOrDefault(l.LineId,l.Old)<=l.Old))continue;
-            using var cmd=new SqlCommand("""
+            using var cmd=new SqlCommand($$"""
                 SELECT (SELECT COALESCE(SUM(i.Qty),0) FROM dbo.WH_Inventory i
-                        WHERE i.PartNo=@Part AND i.Qty>0
+                        WHERE i.PartNo=@Part AND i.Qty>0 AND {{LoadableLocation("i")}}
                           AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting')))
                      - (SELECT COALESCE(SUM(L.Qty),0) FROM dbo.FG_ShippingOrderLine L JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
                         WHERE L.PartNo=@Part AND O.Status IN('Open','Loading') AND L.OrderID<>@Order);
@@ -259,6 +283,34 @@ public sealed partial class FinishedGoodsRepository
             cmd.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;cmd.Parameters.Add("@Id",SqlDbType.Int).Value=id;Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);cmd.ExecuteNonQuery();
         }
         tx.Commit();return number;
+    }
+
+    /// <summary>
+    /// DCR 해제 — 아직 하나도 싣지 않은(Open) DCR 에서 오더를 뺀다. <paramref name="orderId"/> 가 있으면 그 오더만, 없으면 DCR 의 오더 전부.
+    /// 풀린 오더는 DCR 미배정 Open 으로 돌아가 다시 묶거나 취소·수정할 수 있다. 오더가 하나도 남지 않으면 DCR 은 Cancelled 로 닫는다.
+    /// 이미 실은 팔레트가 있으면(Loading) 막는다 — PDA 에서 내린(Unload) 뒤에 해제한다. 출하 완료는 되돌리지 않는다.
+    /// </summary>
+    public void ReleaseShippingDelivery(int deliveryId,string actor,int? orderId=null)
+    {
+        CheckActor(actor);
+        using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
+        string? status;
+        using(var st=new SqlCommand("SELECT Status FROM dbo.FG_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@D",conn,tx))
+        {st.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;status=st.ExecuteScalar() as string;}
+        if(status is null)throw new InvalidOperationException("Delivery not found. Refresh and retry.");
+        if(status!="Open")throw new InvalidOperationException(status=="Loading"
+            ?"Pallets are already loaded on this DCR. Unload them on the PDA first, then release the DCR."
+            :$"A {status.ToLowerInvariant()} DCR cannot be released.");
+        using(var ld=new SqlCommand("SELECT COUNT(*) FROM dbo.FG_DeliveryLoad WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@D",conn,tx))
+        {ld.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;if((int)ld.ExecuteScalar()!>0)throw new InvalidOperationException("Pallets are already loaded on this DCR. Unload them on the PDA first, then release the DCR.");}
+        using(var rel=new SqlCommand("UPDATE dbo.FG_ShippingOrder SET DeliveryID=NULL,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@D AND Status='Open' AND (@O IS NULL OR OrderID=@O)",conn,tx))
+        {
+            rel.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;rel.Parameters.Add("@O",SqlDbType.Int).Value=(object?)orderId??DBNull.Value;Add(rel,"@Actor",SqlDbType.VarChar,20,actor);
+            if(rel.ExecuteNonQuery()<1)throw new InvalidOperationException("The order is not on this open DCR. Refresh and retry.");
+        }
+        using(var close=new SqlCommand("IF NOT EXISTS(SELECT 1 FROM dbo.FG_ShippingOrder WHERE DeliveryID=@D) UPDATE dbo.FG_Delivery SET Status='Cancelled' WHERE DeliveryID=@D",conn,tx))
+        {close.Parameters.Add("@D",SqlDbType.Int).Value=deliveryId;close.ExecuteNonQuery();}
+        tx.Commit();
     }
 
     public ShippingDeliveryDto GetShippingDelivery(string barcode)
@@ -315,6 +367,7 @@ public sealed partial class FinishedGoodsRepository
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
         var delivery=ReadDelivery(conn,tx,deliveryBarcode);
         if(delivery.Status=="Shipped")throw new InvalidOperationException("This delivery has already shipped.");
+        if(delivery.Status=="Cancelled")throw new InvalidOperationException("This DCR was released. Assign the shipment orders to a DCR on the web first.");
         var unit=ReadLoadUnit(conn,tx,palletBarcode);
         if(unit.Type is not ("PALLET" or "CASE"))throw new InvalidOperationException("Scan the parent pallet barcode, not an individual part or box.");
         if(unit.Customer is not null && unit.Customer!=delivery.CustomerId)throw new InvalidOperationException("The pallet customer does not match this delivery.");

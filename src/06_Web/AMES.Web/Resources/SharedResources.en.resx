@@ -12496,6 +12496,9 @@
   <data name="FG.OrderCreate.Stock.Tip" xml:space="preserve">
     <value>View pallets, locations and the orders / work orders that produced them</value>
   </data>
+  <data name="FG.OrderCreate.Stock.Unlocated" xml:space="preserve">
+    <value>+{0} unassigned location (Set Location first)</value>
+  </data>
   <data name="FG.OrderCreate.Stock.None" xml:space="preserve">
     <value>No stock</value>
   </data>
@@ -13914,4 +13917,19 @@
   <data name="FG.ShipOrders.Selection.Unavailable" xml:space="preserve"><value>Unavailable to select</value></data>
   <data name="SCM.Label.TwoCopies" xml:space="preserve"><value>2 copies per label</value></data>
   <data name="SCM.Label.BoxBothSides" xml:space="preserve"><value>Print two identical labels per box. Attach one to each side of the box.</value></data>
+  <data name="FG.ShipPlan.Release.Btn" xml:space="preserve">
+    <value>Release DCR</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Reason" xml:space="preserve">
+    <value>Release reason (required)</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Required" xml:space="preserve">
+    <value>Enter a release reason.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Done" xml:space="preserve">
+    <value>DCR released. The orders are unassigned again.</value>
+  </data>
+  <data name="FG.ShipPlan.Release.Loaded" xml:space="preserve">
+    <value>Pallets are loaded. Unload them on the PDA first.</value>
+  </data>
 </root>

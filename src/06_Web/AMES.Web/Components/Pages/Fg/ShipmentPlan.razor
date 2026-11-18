@@ -10,6 +10,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject ILogger<ShipmentPlan> Logger
 @inject DialogService Dialog
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>FG-03 @L["FG.ShipPlan.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="FG-03" TitleKey="FG.ShipPlan.Title" />
@@ -60,6 +61,11 @@
         <div class="ames-modal-h">@_detailDelivery.DeliveryNo</div>
         <ShippingDeliveryOrderSummary Orders="_detailDelivery.Orders" ShipDate="_detailDelivery.ShipDate" />
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            @if(_canEdit && _detailDelivery.Status=="Open")
+            {
+                <RadzenTextBox @bind-Value="_releaseReason" MaxLength="200" Placeholder='@L["FG.ShipPlan.Release.Reason"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
+                <RadzenButton Text="@L["FG.ShipPlan.Release.Btn"]" Icon="link_off" Click="ReleaseDelivery" Disabled="_loading" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+            }
             <RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="PrintDeliveryDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="CloseDeliveryDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
@@ -84,10 +90,26 @@
     string _error="",_search="";
     string? _customer;
     DateTime? _shipFrom,_shipTo;
-    bool _allowed,_loading;
+    bool _allowed,_loading,_canEdit;string _releaseReason="";
     void OpenDeliveryDetails(DataGridRowMouseEventArgs<ShipmentPlanRows.Delivery> args)=>_detailDelivery=args.Data;
     void DeliveryRowRender(RowRenderEventArgs<ShipmentPlanRows.Delivery> args)=>args.Attributes["class"]="ames-row-link";
-    void CloseDeliveryDetails()=>_detailDelivery=null;
+    void CloseDeliveryDetails(){_detailDelivery=null;_releaseReason="";}
+    async Task ReleaseDelivery()
+    {
+        if(_detailDelivery is null||_loading||!_canEdit)return;
+        if(string.IsNullOrWhiteSpace(_releaseReason)){_error=L["FG.ShipPlan.Release.Required"].Value;return;}
+        var d=_detailDelivery;var reason=_releaseReason.Trim();
+        try
+        {
+            var actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
+            await Task.Run(()=>Fg.ReleaseShippingDelivery(d.DeliveryId,actor));
+            Audit.Log("FG-03","RELEASE","FG_Delivery",d.DeliveryNo,new{d.Status,Orders=d.Orders.Select(o=>o.OrderNo)},new{Status="Cancelled",Reason=reason},note:reason);
+            CloseDeliveryDetails();
+            await Load();
+            _error="";
+        }
+        catch(Exception ex){Logger.LogWarning(ex,"DCR release failed");_error=ex.Message;}
+    }
     async Task PrintDeliveryDetails()
     {
         if(_detailDelivery is null)return;
@@ -108,6 +130,7 @@
     {
         await PermSvc.EnsureAsync(AuthPrvd);
         _allowed=PermSvc.CanOpen("fg/shipment-plan");
+        _canEdit=PermSvc.CanEdit("fg/shipping-orders");
         if(!_allowed){Nav.NavigateTo("/unauthorized",replace:true);return;}
         _shipFrom=From?.Date??DbClock.Today.AddMonths(-1);
         _shipTo=To?.Date??DbClock.Today.AddMonths(1);

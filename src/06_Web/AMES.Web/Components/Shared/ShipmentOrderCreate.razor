@@ -48,6 +48,7 @@
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Stock"]" Width="190px" MinWidth="190px" Sortable="false"><Template Context="r">
             @if(_stock.TryGetValue(r.ItemNo,out var st)){<a href="javascript:void(0)" class="order-fill" title="@L["FG.OrderCreate.Hint.FillStock"]" @onclick="@(()=>FillStock(r))">@UomFmt.Qty(st.Qty,null)</a> <a href="javascript:void(0)" class="code wo-link" title="@L["FG.OrderCreate.Stock.Tip"]" @onclick="@(()=>OpenStock(r.ItemNo))" @onclick:stopPropagation="true">· @st.Pallets PLT</a>}
             else{<span class="dim">@L["FG.OrderCreate.Stock.None"]</span>}
+            @if(_unloc.TryGetValue(r.ItemNo,out var un)){<div class="dim" style="font-size:.78em" title="@string.Format(L["FG.OrderCreate.Stock.Unlocated"].Value,UomFmt.Qty(un,null))">@string.Format(L["FG.OrderCreate.Stock.Unlocated"].Value,UomFmt.Qty(un,null))</div>}
         </Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["FG.OrderCreate.Col.DueDate"]" Width="120px" MinWidth="120px">
             <Template Context="r"><span class="@(r.RequestedDeliveryDate is {} due && due.Date < DbClock.Today ? "order-due-overdue" : null)">@(r.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
@@ -102,7 +103,7 @@
     // 재고보다 많이 잡은 품번(필요 / 출하 가능) — 승인 권한자가 사유와 함께 승인하면 만들 수 있다
     List<(string Item,decimal Need,decimal Have)> Lacking=>_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).GroupBy(r=>r.ItemNo,StringComparer.OrdinalIgnoreCase)
         .Select(g=>(Item:g.Key,Need:g.Sum(r=>_quantities.GetValueOrDefault(r.SoId)),Have:ItemAvail(g.Key))).Where(x=>x.Need>x.Have).ToList();
-    Dictionary<string,(decimal Qty,int Pallets)> _stock=[];Dictionary<string,decimal> _reservedItem=new(StringComparer.OrdinalIgnoreCase);
+    Dictionary<string,(decimal Qty,int Pallets)> _stock=[];Dictionary<string,decimal> _unloc=new(StringComparer.OrdinalIgnoreCase);Dictionary<string,decimal> _reservedItem=new(StringComparer.OrdinalIgnoreCase);
     // 출하 가능 재고 = 완제품 재고 − 이미 열린 출하 오더(Open·Loading)에 잡힌 같은 품번 수량
     decimal ItemAvail(string item)=>Math.Max(0,(_stock.TryGetValue(item,out var s)?s.Qty:0)-_reservedItem.GetValueOrDefault(item));
     decimal AvailForRow(PpRepository.SoRow r)=>Math.Max(0,ItemAvail(r.ItemNo)-_rows.Where(x=>x.SoId!=r.SoId&&string.Equals(x.ItemNo,r.ItemNo,StringComparison.OrdinalIgnoreCase)).Sum(x=>_quantities.GetValueOrDefault(x.SoId)));
@@ -160,7 +161,9 @@
             _reserved=reserved.Where(x=>x.Status is "Open" or "Loading").SelectMany(x=>x.Lines).GroupBy(x=>x.SoId).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.Qty));
             _rows=(await Task.Run(()=>Pp.ListShipmentPlanOrders(_from.Value.AddDays(-1),_to.Value.AddDays(-1))))
                 .Where(x=>x.ItemExists && x.OrderQty-x.ShippedQty>_reserved.GetValueOrDefault(x.SoId) && x.Status?.ToUpperInvariant() is not("CLOSED" or "CANCELLED" or "CANCELED")).ToList();
-            _stock=await Task.Run(()=>Pp.ListFgStockSummary());
+            var ship=await Task.Run(()=>Fg.ListShippableStock());
+            _stock=ship.Where(x=>x.Value.Loadable>0).ToDictionary(x=>x.Key,x=>(x.Value.Loadable,x.Value.Pallets),StringComparer.OrdinalIgnoreCase);
+            _unloc=ship.Where(x=>x.Value.Unlocated>0).ToDictionary(x=>x.Key,x=>x.Value.Unlocated,StringComparer.OrdinalIgnoreCase);
             _loadedFrom=_from;_loadedTo=_to;
             _reservedItem=reserved.Where(x=>x.Status is "Open" or "Loading").SelectMany(x=>x.Lines).GroupBy(x=>x.PartNo,StringComparer.OrdinalIgnoreCase).ToDictionary(x=>x.Key,x=>x.Sum(l=>l.Qty),StringComparer.OrdinalIgnoreCase);
             _quantities.Clear();_error="";

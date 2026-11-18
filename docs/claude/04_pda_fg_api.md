@@ -51,3 +51,6 @@ Minimal API, Bearer Token 인증. 기본 포트: `https://localhost:7xxx`
 Health check: `GET /api/health`
 
 ---
+
+- **출하 오더 재고 검사는 「적재 가능 재고」 기준**(11-18 사용자 결정): 오더 생성·수정의 재고 = `WH_Inventory` 양수 수량 중 등록된 활성 FG 상세 위치(레벨 2)에 지정된 것(반품 검사 대기 제외, `FinishedGoodsRepository.LoadableLocation`). 위치 미지정(Set Location 전) 재고는 PDA 적재(52006)가 막으므로 세지 않는다 — 생성 팝업 재고 칸에 「+N 위치 미지정」으로만 보인다(`ListShippableStock`). PP-003·APS 의 재고 요약(`PpRepository.ListFgStockSummary`)은 위치 무관 기준 그대로. 재고 부족 승인(override)은 그대로 쓴다.
+- **DCR 해제**(11-18): FG-03 DCR 상세 팝업의 「DCR 해제」(권한 `fg/shipping-orders` E, 사유 필수, 감사 `FG-03/RELEASE`) → `FinishedGoodsRepository.ReleaseShippingDelivery`. 아직 하나도 싣지 않은(Open·`FG_DeliveryLoad` 0건) DCR 만 가능 — 오더 `DeliveryID` 를 비워 미배정 Open 으로 되돌리고 DCR 은 `Cancelled`. 실은 팔레트가 있으면(Loading) 막으니 PDA 에서 내린 뒤 해제. 출하 완료는 되돌리지 않는다. 해제된 DCR 번호로는 PDA 적재가 거부된다.
