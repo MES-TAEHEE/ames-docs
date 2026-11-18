@@ -178,8 +178,10 @@
         .Select(g=>UomFmt.QtyUnit(g.Sum(l=>l.Qty),g.Key)));
     async Task PrintDelivery(ShipmentPlanRows.Delivery delivery)
     {
-        try{_printOrders=delivery.Orders;_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(delivery.DeliveryNo));}
-        catch(Exception ex){Logger.LogError(ex,"DCR print load failed");_error=L["FG.ShipPlan.Err.PrintLoad"].Value;}
+        _error="";_printOrders=[];_printDelivery=null;
+        try{var document=await Task.Run(()=>Fg.GetShippingDeliveryForPrint(delivery.DeliveryNo));_printOrders=delivery.Orders;_printDelivery=document;}
+        catch(InvalidOperationException ex){Logger.LogWarning(ex,"DCR {DeliveryNo} print document unavailable",delivery.DeliveryNo);_error=ex.Message;}
+        catch(Exception ex){Logger.LogError(ex,"DCR {DeliveryNo} print load failed",delivery.DeliveryNo);_error=L["FG.ShipPlan.Err.PrintLoad"].Value;}
     }
     void ClosePrint(){_printDelivery=null;_printOrders=[];}
 }

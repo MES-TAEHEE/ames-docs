@@ -176,6 +176,16 @@
         catch(Exception ex){_deliveryError=ex.Message;}finally{_busy=false;}
     }
     void PrintOrder(ShippingOrderDto row){_printDelivery=null;_printOrders=[row];}
-    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=(await Task.Run(()=>Fg.ListShippingOrders(_printDelivery.ShipDate,_printDelivery.ShipDate,byDeliveryDate:true))).Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
+    async Task PrintDelivery(string number)
+    {
+        _message="";_printDelivery=null;_printOrders=[];
+        try
+        {
+            var document=await Task.Run(()=>Fg.GetShippingDeliveryForPrint(number));
+            var orders=(await Task.Run(()=>Fg.ListShippingOrders(document.ShipDate,document.ShipDate,byDeliveryDate:true))).Where(x=>x.DeliveryId==document.DeliveryId).ToList();
+            _printOrders=orders;_printDelivery=document;
+        }
+        catch(Exception ex){_message=ex.Message;}
+    }
     void ClosePrint(){_printOrders=[];_printDelivery=null;}
 }
