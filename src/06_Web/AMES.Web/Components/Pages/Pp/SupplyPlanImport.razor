@@ -86,7 +86,9 @@
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" AllowVirtualization="true" Style="height:100%"
+    <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" Style="height:100%"
+                    AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions"
+                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
@@ -217,6 +219,7 @@ else
     readonly string[] _statuses = { "Open", "Confirmed" };
 
     List<PpRepository.SoRow> _rows = new();   // 조회 결과
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
     List<PpRepository.SoRow> _view = new();   // 텍스트·상태 필터 적용 표시용
     HashSet<int> _selected = new();           // 체크된 SoID
 
