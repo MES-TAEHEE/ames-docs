@@ -48,16 +48,26 @@
             <RadzenLabel Text="@L["Col.Status"]" />
             <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
                             AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenCheckBox Name="SpiHideUnreg" TValue="bool" @bind-Value="_fHideUnreg" @bind-Value:after="ApplyFilters" />
+            <RadzenLabel Text="@L["PP.SupplyPlanImport.Fld.HideUnregistered"]" Component="SpiHideUnreg" style="cursor:pointer;white-space:nowrap;" />
             <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
                            Placeholder="@L["PP.SupplyPlanImport.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
+            @* 평소엔 체크박스가 없다 — 「오더 선택」을 누르면 체크박스가 생기고, 같은 자리 버튼이 「선택 확정」(검토 대기로 보냄)이 된다 *@
             @if (_canApprove)
             {
-                <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.ConfirmSel"].Value, _selected.Count)"
-                              Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
-                              Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
+                @* 한 버튼이 「오더 선택」 ↔ 「확정 (n)」으로 바뀐다 *@
+                <RadzenButton Text="@(_picking ? $"{L["Btn.Confirm"]} ({_selected.Count})" : L["PP.SupplyPlanImport.Btn.PickOrders"].Value)"
+                              Icon="@(_picking ? "check" : "checklist")"
+                              ButtonStyle="@(_picking ? ButtonStyle.Success : ButtonStyle.Primary)" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_picking && _selected.Count == 0)" Click="PrimaryClick" />
+                @if (_picking)
+                {
+                    <RadzenButton Text="@L["Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Base"
+                                  Size="ButtonSize.Small" class="ames-rz-btn" Click="CancelPicking" />
+                }
             }
             @* 자동 확정 토글 — 수주 확정과 같은 승인 권한. 없으면 현재 상태만 보이는 비활성 스위치 *@
             <span style="display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap;" title="@L["PP.SupplyPlanImport.AutoConfirm.Hint"]">
@@ -86,7 +96,7 @@
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" Style="height:100%"
+    <RadzenDataGrid @ref="_grid" Data="_view" TItem="PpRepository.SoRow" Style="height:100%"
                     AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions"
                     ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                     AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
@@ -94,15 +104,19 @@ else
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                     class="ames-rz-grid">
         <Columns>
-            @* 선택은 확정 버튼에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canApprove"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="56px" Width="56px" Sortable="false" Filterable="false"
+                                  TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value">
+                <Template Context="r"><span class="dim">@RowNo(r)</span></Template>
+            </RadzenDataGridColumn>
+            @* 체크박스는 「오더 선택」 모드에서만 보인다. 머리글 체크는 지금 보이는 페이지의 행만 고른다 *@
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@(_canApprove && _picking)"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="spi-ck" checked="@AllSelected"
                            @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
                 <Template Context="r">
-                    <input type="checkbox" class="spi-ck" disabled="@(!IsOpen(r))"
+                    <input type="checkbox" class="spi-ck" disabled="@(!IsSelectable(r))"
                            checked="@_selected.Contains(r.SoId)"
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
@@ -172,7 +186,7 @@ else
             <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Property="ActionLabel" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
                                   TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
-                    @if (_canApprove && r.Status == "Open")
+                    @if (_canApprove && IsSelectable(r))
                     {
                         <RadzenButton Text="@L["Btn.Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Confirm(r.SoId))" />
@@ -213,6 +227,7 @@ else
     string    _fCustomer = "";
     string    _fText     = "";
     string    _fStatus   = "";
+    bool      _fHideUnreg;   // 품목 마스터 미등록 품번 제외
     DateTime? _fFrom;
     DateTime? _fTo;
 
@@ -228,8 +243,14 @@ else
     bool   _autoConfirm;   // SYS_Config PP_SO_AUTO_CONFIRM — 세 유입 경로의 신규 수주를 저장 즉시 Confirmed 로
     bool   _autoBusy;
 
+    RadzenDataGrid<PpRepository.SoRow>? _grid;
+    bool _picking;   // 「오더 선택」 모드 — 체크박스 표시
+
     static bool IsOpen(PpRepository.SoRow r) => r.Status == "Open";
-    IEnumerable<PpRepository.SoRow> Selectable => _view.Where(IsOpen);
+    // 품목 마스터에 없는 품번(미등록)은 확정할 수 없다 — WO·BOM 전개가 일어나면 안 된다
+    static bool IsSelectable(PpRepository.SoRow r) => IsOpen(r) && r.ItemExists;
+    // 지금 화면에 보이는 페이지(정렬·필터·페이징 적용 뒤)의 선택 가능 행만
+    IEnumerable<PpRepository.SoRow> Selectable => (_grid?.PagedView ?? _view.AsQueryable()).Where(IsSelectable);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 업로드·수주 확정
@@ -304,7 +325,7 @@ else
     {
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
-        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsOpen(r)));
+        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsSelectable(r)));
         FillFilterLabels();
         ApplyFilters();
     }
@@ -316,7 +337,7 @@ else
         {
             r.WoLinkLabel = !string.IsNullOrEmpty(r.WoNumber) ? (r.WoStatus ?? "—")
                           : r.Status == "Confirmed" ? L["PP.SupplyPlanImport.WoLink.Awaiting"].Value : "—";
-            r.ActionLabel = _canApprove && r.Status == "Open" ? L["Btn.Confirm"].Value : "—";
+            r.ActionLabel = _canApprove && IsSelectable(r) ? L["Btn.Confirm"].Value : "—";
         }
     }
 
@@ -333,6 +354,9 @@ else
 
         if (!string.IsNullOrEmpty(_fStatus))
             q = q.Where(r => r.Status == _fStatus);
+
+        if (_fHideUnreg)
+            q = q.Where(r => r.ItemExists);
 
         _view = q.ToList();
     }
@@ -356,6 +380,18 @@ else
         catch (Exception ex) { ShowMsg(ex.Message, true); }
     }
 
+    Task PrimaryClick() => _picking ? ConfirmSelected() : Task.Run(StartPicking);
+
+    // 맨 왼쪽 순번 — 정렬·필터·페이지가 적용된 화면 순서 기준(페이지가 바뀌어도 이어서 센다)
+    int RowNo(PpRepository.SoRow r)
+    {
+        var page = _grid?.PagedView.ToList() ?? new();
+        return (_grid?.CurrentPage ?? 0) * (_grid?.PageSize ?? 0) + page.IndexOf(r) + 1;
+    }
+
+    void StartPicking() { if (_canApprove) { _selected.Clear(); _picking = true; } }
+    void CancelPicking() { _selected.Clear(); _picking = false; }
+
     void ToggleRow(int soId, bool on)
     {
         if (on) _selected.Add(soId); else _selected.Remove(soId);
@@ -371,7 +407,7 @@ else
     {
         if (!_canApprove) return;
 
-        var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsOpen(r)).Select(r => r.SoId).ToList();
+        var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsSelectable(r)).Select(r => r.SoId).ToList();
         if (ids.Count == 0) { ShowMsg(L["PP.SupplyPlanImport.Err.NoneSelected"], true); return; }
 
         try
@@ -391,6 +427,7 @@ else
                 catch (Exception ex) { failed.Add($"{id}: {ex.Message}"); }
             }
             _selected.Clear();
+            _picking = false;
             Search();
             if (failed.Count == 0)
                 ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, done), false);

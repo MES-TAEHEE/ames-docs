@@ -533,7 +533,10 @@ public sealed partial class PpRepository
                    (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty,
                     OrderDate, RequestedDeliveryDate, Status, SapSyncedAt, CreatedBy)
             VALUES (@So, @Line, @Cust, @Item, @OrderQty, COALESCE(@ShippedQty, 0),
-                    @OrderDate, @ReqDate, @Status, SYSDATETIME(), @Actor);
+                    @OrderDate, @ReqDate,
+                    -- 품목 마스터에 없는 품번(미등록)은 자동 확정에서 제외 — Open 으로 남겨 WO·BOM 전개가 일어나지 않게 한다
+                    CASE WHEN @Status = 'Confirmed' AND NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @Item) THEN 'Open' ELSE @Status END,
+                    SYSDATETIME(), @Actor);
             """;
 
         using var conn = _f.OpenConnection();
@@ -1738,7 +1741,8 @@ public sealed partial class PpRepository
             SET    Status     = 'Confirmed',
                    ModifiedTS = SYSDATETIME(),
                    ModifiedBy = @Actor
-            WHERE  SoID = @SoID AND Status = 'Open';
+            WHERE  SoID = @SoID AND Status = 'Open'
+              AND  EXISTS (SELECT 1 FROM dbo.MD_Item i WHERE i.ItemNo = dbo.PP_CustomerOrder.ItemNo);   -- 미등록 품번은 확정 불가
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -1759,7 +1763,7 @@ public sealed partial class PpRepository
     public int CountOpenCustomerOrders()
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.PP_CustomerOrder WHERE Status = 'Open';", conn);
+        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.PP_CustomerOrder WHERE Status = 'Open' AND EXISTS (SELECT 1 FROM dbo.MD_Item i WHERE i.ItemNo = dbo.PP_CustomerOrder.ItemNo);", conn);
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -1777,7 +1781,8 @@ public sealed partial class PpRepository
             using var cmd = new SqlCommand("""
                 UPDATE dbo.PP_CustomerOrder
                 SET    Status = 'Confirmed', ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
-                WHERE  Status = 'Open';
+                WHERE  Status = 'Open'
+                  AND  EXISTS (SELECT 1 FROM dbo.MD_Item i WHERE i.ItemNo = dbo.PP_CustomerOrder.ItemNo);
                 """, conn, tx);
             cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = actor;
             var n = cmd.ExecuteNonQuery();
