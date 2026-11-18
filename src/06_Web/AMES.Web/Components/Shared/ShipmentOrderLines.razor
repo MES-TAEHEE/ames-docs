@@ -21,6 +21,19 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" MinWidth="160px" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="@L["Col.ItemName"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.LinkedPallets"]" Width="300px" MinWidth="220px" Sortable="false">
+                <Template Context="line">
+                    @if (_pallets.TryGetValue(line.PartNo, out var pl) && pl.Count > 0)
+                    {
+                        var tip = string.Join(" / ", pl.Select(PalletText));
+                        <span title="@tip">
+                            @foreach (var r in pl.Take(4)) { <span class="pill info" style="margin:0 4px 2px 0;white-space:nowrap;">@PalletText(r)</span> }
+                            @if (pl.Count > 4) { <span class="dim">+@(pl.Count - 4)</span> }
+                        </span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="@(CompactPallets ? "180px" : "310px")" MinWidth="@(CompactPallets ? "180px" : "310px")" Sortable="false">
                 <Template Context="line">
                     @if(CompactPallets)
@@ -53,8 +66,18 @@
     // 수주 라인에 연결된 작업지시(SoID 기준, 취소 제외) — 번호를 누르면 작업지시 팝업이 열린다
     readonly Dictionary<int, List<AMES.Data.Repositories.PpRepository.OrderLinkRow>> _wos = new();
 
+    // 품번별로 지금 연결된(재고에 실려 있는) 팔레트 — 팔레트·수량·위치. 출하가 끝난 품번은 재고에서 빠져 비어 보인다
+    readonly Dictionary<string, List<AMES.Data.Repositories.PpRepository.FgStockOriginRow>> _pallets = new(StringComparer.OrdinalIgnoreCase);
+    string PalletText(AMES.Data.Repositories.PpRepository.FgStockOriginRow r) =>
+        $"{r.PalletNo ?? "—"} · {r.Qty:#,0} · {(string.IsNullOrEmpty(r.LocationNo) ? L["PP.PlanConfirm.Stock.Unassigned"].Value : r.LocationNo)}";
+
     protected override void OnParametersSet()
     {
+        foreach (var part in Lines.Select(l => l.PartNo).Where(x => !string.IsNullOrEmpty(x) && !_pallets.ContainsKey(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            try { _pallets[part] = Pp.ListFgStockOrigins(part).Where(x => x.PalletNo is not null).ToList(); }
+            catch { _pallets[part] = new(); /* 팔레트 표시는 보조 정보 */ }
+        }
         var need = Lines.Select(l => l.SoId).Where(id => id > 0 && !_wos.ContainsKey(id)).Distinct().ToList();
         if (need.Count == 0) return;
         try

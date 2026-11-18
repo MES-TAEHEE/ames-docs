@@ -77,14 +77,15 @@ public sealed partial class FinishedGoodsRepository
     public Dictionary<string,(decimal Loadable,int Pallets,decimal Unlocated)> ListShippableStock()
     {
         var sql=$$"""
-            SELECT i.PartNo,
-                   SUM(CASE WHEN {{LoadableLocation("i")}} THEN i.Qty ELSE 0 END) Loadable,
-                   COUNT(DISTINCT CASE WHEN {{LoadableLocation("i")}} THEN i.PalletNo END) Pallets,
-                   SUM(CASE WHEN {{LoadableLocation("i")}} THEN 0 ELSE i.Qty END) Unlocated
-            FROM dbo.WH_Inventory i
-            WHERE i.Qty>0 AND i.PartNo IS NOT NULL
-              AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting'))
-            GROUP BY i.PartNo;
+            SELECT x.PartNo,
+                   SUM(CASE WHEN x.Ok=1 THEN x.Qty ELSE 0 END) Loadable,
+                   COUNT(DISTINCT CASE WHEN x.Ok=1 THEN x.PalletNo END) Pallets,
+                   SUM(CASE WHEN x.Ok=1 THEN 0 ELSE x.Qty END) Unlocated
+            FROM (SELECT i.PartNo,i.Qty,i.PalletNo,CASE WHEN {{LoadableLocation("i")}} THEN 1 ELSE 0 END Ok
+                  FROM dbo.WH_Inventory i
+                  WHERE i.Qty>0 AND i.PartNo IS NOT NULL
+                    AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=i.LotNo AND R.Status IN('Open','Inspecting'))) x
+            GROUP BY x.PartNo;
             """;
         using var conn=_factory.OpenConnection();using var cmd=new SqlCommand(sql,conn){CommandTimeout=60};
         using var r=cmd.ExecuteReader();var d=new Dictionary<string,(decimal,int,decimal)>(StringComparer.OrdinalIgnoreCase);

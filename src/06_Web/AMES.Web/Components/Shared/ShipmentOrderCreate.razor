@@ -29,7 +29,7 @@
     </RadzenStack>
 </div>
 @if(!string.IsNullOrEmpty(_error)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
-<RadzenDataGrid TItem="PpRepository.SoRow" Data="View" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
+<RadzenDataGrid TItem="PpRepository.SoRow" Data="View" AllowPaging="true" PageSize="10" AllowSorting="true" AllowColumnResize="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
     <Columns>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.Ship.Col.ShipQty"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputAttributes="_shipQtyInputAttributes" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Balance"]" Width="240px" MinWidth="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><a href="javascript:void(0)" class="order-fill" title="@L["FG.OrderCreate.Hint.FillRemaining"]" @onclick="@(()=>SetQty(r,Remaining(r)))"><strong title="@L["FG.OrderCreate.Hint.Remaining"]">@UomFmt.Qty(Remaining(r),null)</strong></a></div></Template></RadzenDataGridColumn>
@@ -115,16 +115,19 @@
     void AutoFillVisible()
     {
         var visible=View.Select(r=>r.SoId).ToHashSet();
-        _quantities.Clear();
+        _quantities.Clear();_error="";
+        var unplaced=new List<string>();
         foreach(var g in _rows.Where(r=>visible.Contains(r.SoId)).GroupBy(r=>r.ItemNo,StringComparer.OrdinalIgnoreCase))
         {
             var avail=ItemAvail(g.Key);
+            if(avail<=0&&_unloc.ContainsKey(g.Key))unplaced.Add(g.Key);
             foreach(var r in g.OrderBy(x=>x.RequestedDeliveryDate??DateTime.MaxValue).ThenBy(x=>x.SoId))
             {
                 var q=decimal.Truncate(Math.Min(Remaining(r),avail));
                 if(q>0){_quantities[r.SoId]=q;avail-=q;}
             }
         }
+        if(_quantities.Count==0&&unplaced.Count>0)_error=string.Format(L["FG.OrderCreate.AutoFill.NoLoadable"].Value,string.Join(", ",unplaced.Take(5))+(unplaced.Count>5?" …":""));
     }
     string _q="";DateTime? _loadedFrom,_loadedTo;
     // 수주번호/품번/품명/고객 부분일치 — 입력한 출하 수량은 그대로 둔다(보이는 목록만 거른다)
@@ -136,7 +139,7 @@
         new Dictionary<string,object?>{["ItemNo"]=itemNo},new DialogOptions{Width="min(860px,92vw)",Height="auto",Resizable=true,CloseDialogOnOverlayClick=true});Dictionary<int,decimal> _quantities=[],_reserved=[];
     Dictionary<string,MasterDataRepository.ItemRow> _packing=[];
     readonly Dictionary<string,object> _shipQtyInputAttributes = new() { ["data-shipment-qty"] = "" };
-    readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
+    readonly IEnumerable<int> _pageSizeOptions=[10,25,50];int _pageRows=10;
     decimal Remaining(PpRepository.SoRow row)=>Math.Max(0,row.OrderQty-row.ShippedQty-_reserved.GetValueOrDefault(row.SoId));
     decimal? Pallets(PpRepository.SoRow row)=>_packing.TryGetValue(row.ItemNo,out var item)
         ? FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(row.SoId),item.PalletQty,item.ToteFlag) : null;
