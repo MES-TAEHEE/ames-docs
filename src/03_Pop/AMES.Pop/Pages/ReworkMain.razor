@@ -35,6 +35,7 @@
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.ReworkHelp))" />
             <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
+            <CloseAppButton />
         </div>
     </div>
 

@@ -182,6 +182,10 @@
   <data name="Station" xml:space="preserve"><value>STATION</value></data>
   <data name="Status" xml:space="preserve"><value>STATUS</value></data>
   <data name="Status2" xml:space="preserve"><value>Status</value></data>
+  <data name="CloseApp" xml:space="preserve"><value>Exit</value></data>
+  <data name="CloseAppConfirm" xml:space="preserve"><value>Exit the program?</value></data>
+  <data name="CloseAppDetail" xml:space="preserve"><value>This force-closes the POP program. You are logged out and the window closes; start the program again to keep working.</value></data>
+  <data name="CloseAppDo" xml:space="preserve"><value>Exit</value></data>
   <data name="Stay" xml:space="preserve"><value>Stay</value></data>
   <data name="Stop" xml:space="preserve"><value>STOP</value></data>
   <data name="Success" xml:space="preserve"><value>SUCCESS</value></data>

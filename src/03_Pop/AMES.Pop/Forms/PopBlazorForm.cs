@@ -193,10 +193,21 @@ public class PopBlazorForm : PopForm
     /// WebView via NavigationManager — only 'shell-exit' bubbles up here
     /// to close the form (used by an explicit Exit button if we add one).
     /// </summary>
+    // 상단바 「종료」 — 창 닫기(세션 닫기·워터마크 저장은 FormClosing 이 최대 3초 안에 처리)에 이어 프로세스를 끝낸다.
+    // 닫기가 막히거나(열린 대화상자·WebView 정리 지연) 5초 안에 끝나지 않아도 반드시 종료되게 안전망을 둔다.
+    private void ForceExit()
+    {
+        _ = Task.Run(async () => { await Task.Delay(5000); Environment.Exit(0); });
+        try { Close(); } catch { }
+        Environment.Exit(0);
+    }
+
     protected virtual Task OnAction(string action)
     {
         if (action == "shell-exit")
             BeginInvoke(() => Close());
+        else if (action == "app-exit")
+            BeginInvoke(ForceExit);
         return Task.CompletedTask;
     }
 }

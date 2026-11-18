@@ -1,0 +1,20 @@
+@*
+    CloseAppButton — 상단바의 「종료」 칩. 로그아웃(로그인 화면으로)과 달리 프로그램 자체를 강제 종료한다.
+    POP 은 테두리 없는 전체화면이라 창 닫기 버튼이 없다. 확인을 받은 뒤 호스트(PopBlazorForm)에 "app-exit" 를 보낸다.
+
+        <CloseAppButton />
+*@
+@inject AMES.Pop.Services.ConfirmService Confirmer
+
+<button class="injm-close-btn" @onclick="CloseApp" title="@PopLang.T("CloseApp")">✕ @PopLang.T("CloseApp")</button>
+
+@code {
+    private async Task CloseApp()
+    {
+        if (!await Confirmer.AskAsync(
+                PopLang.T("CloseAppConfirm"),
+                PopLang.T("CloseAppDetail"),
+                PopLang.T("CloseAppDo"), PopLang.T("Stay"), destructive: true)) return;
+        await AMES.Pop.Services.BlazorHost.RaiseAction("app-exit");
+    }
+}

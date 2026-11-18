@@ -1582,6 +1582,15 @@ body {
 }
 .injm-logout-btn:hover { background: rgba(255, 80, 80, .20); border-color: rgba(255, 110, 110, .70); }
 
+.injm-close-btn {
+    padding: 8px 14px; border-radius: 6px;
+    border: 1px solid rgba(255, 70, 70, .70);
+    background: rgba(220, 40, 40, .30);
+    color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+}
+.injm-close-btn:hover { background: rgba(220, 40, 40, .55); }
+
 .injm-tbl        { font-size: 22px; }
 .injm-tbl th     { font-size: 14px; padding: 12px 14px; }
 .injm-tbl td     { padding: 15px 14px; }
