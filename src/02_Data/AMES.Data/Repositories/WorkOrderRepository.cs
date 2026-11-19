@@ -913,7 +913,7 @@ public sealed class WorkOrderRepository
             JOIN   dbo.PR_ProductionResult r ON r.WoID = me.WoID
             LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
             WHERE  me.LotCode = @Lot AND r.OperatorID IS NOT NULL
-            GROUP  BY r.ProcessCode, r.LineID, ps.TerminalID, r.OperatorID
+            GROUP  BY r.ProcessCode, r.LineID, COALESCE(r.StationCode, ps.TerminalID), r.OperatorID
             ORDER  BY MIN(r.EntryAt);
             """;
         using var conn = _factory.OpenConnection();
