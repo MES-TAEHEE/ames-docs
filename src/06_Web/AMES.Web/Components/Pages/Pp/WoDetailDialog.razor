@@ -57,6 +57,7 @@ else
             <div class="ipk-k">@L["PP.PlanConfirm.Col.Due"]</div><div class="ipk-v">@(_wo.DueDate?.ToString(DateFmt.Date) ?? "—")</div>
             <div class="ipk-k"></div><div class="ipk-v dim" style="font-weight:400;">@_wo.ItemName</div>
             <div class="ipk-k">@L["PP.WorkOrder.Detail.ProdDeadline"]</div><div class="ipk-v">@(_wo.ProdDeadline?.ToString(DateFmt.Date) ?? "—")</div>
+            <div class="ipk-k">@L["PP.WorkOrder.Detail.Reservation"]</div><div class="ipk-v">@(_wo.Status is "In Progress" or "Closed" ? L["PP.WorkOrder.Detail.Reserved"].Value : L["PP.WorkOrder.Detail.NotReserved"].Value)</div>
             <div class="ipk-k">SAP SO</div><div class="ipk-v">@(_wo.SoNumber ?? "—")</div>
             <div class="ipk-k">@L["PP.WoDetail.Priority"]</div><div class="ipk-v">@_wo.Priority</div>
             <div class="ipk-k">@L["Col.Routing"]</div><div class="ipk-v">@(_wo.RoutingType ?? "INJ") · @(_wo.RouteLines ?? "—")</div>

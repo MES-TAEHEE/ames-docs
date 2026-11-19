@@ -45,6 +45,10 @@
             <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" />
             <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
 
+            <RadzenCheckBox TValue="bool" @bind-Value="_showClosed" @bind-Value:after="ApplyFilters" Name="WoChkClosed" />
+            <RadzenLabel Text="Closed" Component="WoChkClosed" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_showCancelled" @bind-Value:after="ApplyFilters" Name="WoChkCancelled" />
+            <RadzenLabel Text="Cancelled" Component="WoChkCancelled" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
             <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
@@ -67,8 +71,8 @@ else
                     RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>
-<RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
+<RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="56px" Width="56px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Title="@L["Col.RowNo"].Value"><Template Context="rowNoCtx"><span class="dim">@AMES.Web.GridRowNo.Of(_rnGrid1, rowNoCtx)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px">
                 <Template Context="w"><WoLink WoNumber="@w.WoNumber" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="470px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="470px">
@@ -264,6 +268,8 @@ else
     readonly int[]    _dayOpts  = { 7, 30, 60, 90 };
 
     string _fStatus  = "";
+    // 마감(Closed)·취소(Cancelled) WO 보기 옵션 — 기본은 숨김(진행할 WO 만). 상태 필터에서 그 상태를 직접 고르면 체크와 상관없이 보인다.
+    bool _showClosed, _showCancelled;
     string _fRouting = "";
     string _fText    = "";
     int    _recentDays = 30;
@@ -313,6 +319,8 @@ else
     {
         IEnumerable<WorkOrderDto> q = _rows;
         if (!string.IsNullOrEmpty(_fStatus))  q = q.Where(r => r.Status == _fStatus);
+        if (!_showClosed    && _fStatus != "Closed")    q = q.Where(r => r.Status != "Closed");
+        if (!_showCancelled && _fStatus != "Cancelled") q = q.Where(r => r.Status != "Cancelled");
         if (!string.IsNullOrEmpty(_fRouting)) q = q.Where(r => (r.RoutingType ?? "") == _fRouting);
         if (!string.IsNullOrWhiteSpace(_fText))
             q = q.Where(r =>
@@ -320,12 +328,13 @@ else
                 r.ItemNo.Contains(_fText, StringComparison.OrdinalIgnoreCase) ||
                 (r.ItemName?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (r.SoNumber?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false));
-        _view = q.ToList();
+        // 기본 정렬: 작업지시 번호 최신(큰 번호)이 위 — 번호 형식 WO-yyyyMMdd-nnn 은 문자 순서가 곧 생성 순서. 열 제목을 눌러 바꿀 수 있다.
+        _view = q.OrderByDescending(r => r.WoNumber, StringComparer.Ordinal).ToList();
     }
 
     void Reset()
     {
-        _fStatus = ""; _fRouting = ""; _fText = ""; _recentDays = 30;
+        _fStatus = ""; _fRouting = ""; _fText = ""; _recentDays = 30; _showClosed = false; _showCancelled = false;
         Reload();
     }
 
