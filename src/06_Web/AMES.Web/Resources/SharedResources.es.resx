@@ -5365,7 +5365,7 @@
     <value>Esta franja de operación ya está llena.</value>
   </data>
   <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
-    <value>OEE(Overall Equipment Effectiveness) Global</value>
+    <value>OEE Global</value>
   </data>
   <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
     <value>clase mundial ≥ {0}%</value>
@@ -5743,7 +5743,7 @@
     <value>Reportado por</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
-    <value>OEE(Overall Equipment Effectiveness) promedio</value>
+    <value>OEE promedio</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
     <value>Disponibilidad A</value>
@@ -6673,7 +6673,7 @@
     <value>{0} filas exportadas a Excel.</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
-    <value>OEE(Overall Equipment Effectiveness) Global de Planta</value>
+    <value>OEE Global de Planta</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
     <value>mes seleccionado · ponderado</value>

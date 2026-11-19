@@ -20,6 +20,9 @@
     /// <summary>리소스를 거치지 않는 직접 지정 이름. 지정 시 TitleKey보다 우선.</summary>
     [Parameter] public string? Title { get; set; }
 
+    /// <summary>화면 이름 뒤에 덧붙이는 풀네임(예: OEE 의 영문 풀네임). 메뉴 이름은 그대로 두고 화면 상단 이름에만 붙는다.</summary>
+    [Parameter] public string? Suffix { get; set; }
+
     protected override void OnInitialized() => ScreenCatalog.Changed += OnScreensChanged;
 
     protected override void OnParametersSet() => UpdateHeader();
@@ -46,6 +49,7 @@
         var name = screen is null ? fallback
                  : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? screen.ScreenName
                  : string.IsNullOrWhiteSpace(screen.ScreenNameEn) ? screen.ScreenName : screen.ScreenNameEn;
+        if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(Suffix)) name = $"{name} {Suffix}";
         State.Set(screen?.LidLabel ?? screen?.ScreenCode ?? Code, name);
     }
 

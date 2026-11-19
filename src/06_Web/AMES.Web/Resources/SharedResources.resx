@@ -5392,7 +5392,7 @@
     <value>라우팅 템플릿이 없어 발행할 수 없습니다. 품목의 라우팅 유형을 확인하세요.</value>
   </data>
   <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
-    <value>종합 OEE(Overall Equipment Effectiveness)</value>
+    <value>종합 OEE</value>
   </data>
   <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
     <value>월드클래스 ≥ {0}%</value>
@@ -5770,7 +5770,7 @@
     <value>보고자</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
-    <value>평균 OEE(Overall Equipment Effectiveness)</value>
+    <value>평균 OEE</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
     <value>가용률 A</value>
@@ -6700,7 +6700,7 @@
     <value>엑셀 내보내기 완료: {0}건</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
-    <value>공장 종합 OEE(Overall Equipment Effectiveness)</value>
+    <value>공장 종합 OEE</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
     <value>선택 월 · 계획시간 가중</value>

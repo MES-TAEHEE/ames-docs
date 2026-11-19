@@ -5392,7 +5392,7 @@
     <value>No routing template; cannot release. Check the item's routing type.</value>
   </data>
   <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
-    <value>Overall OEE(Overall Equipment Effectiveness)</value>
+    <value>Overall OEE</value>
   </data>
   <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
     <value>world-class ≥ {0}%</value>
@@ -5770,7 +5770,7 @@
     <value>Reported By</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
-    <value>Avg OEE(Overall Equipment Effectiveness)</value>
+    <value>Avg OEE</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
     <value>Availability A</value>
@@ -6700,7 +6700,7 @@
     <value>Exported {0} rows to Excel.</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
-    <value>Overall Plant OEE(Overall Equipment Effectiveness)</value>
+    <value>Overall Plant OEE</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
     <value>selected month · weighted by planned time</value>
