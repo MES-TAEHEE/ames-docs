@@ -185,6 +185,8 @@ DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_PPT_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[WH_SET_LOT_STATUS];
 DROP VIEW IF EXISTS [dbo].[VW_MaterialLotUsage];
 DROP FUNCTION IF EXISTS [dbo].[FN_POP_DayCutoffMin];
+DROP FUNCTION IF EXISTS [dbo].[FN_POP_OpenStation];
+DROP FUNCTION IF EXISTS [dbo].[FN_StationOfLine];
 DROP FUNCTION IF EXISTS [dbo].[FN_POP_DayStart];
 DROP FUNCTION IF EXISTS [dbo].[FN_POP_ProdToday];
 DROP TABLE IF EXISTS [dbo].[AspNetRoleClaims];
@@ -1324,6 +1326,7 @@ CREATE TABLE [dbo].[MD_Equipment](
 	[PlcAddress] [varchar](40) COLLATE DATABASE_DEFAULT NULL,
 	[Status] [varchar](8) COLLATE DATABASE_DEFAULT NULL,
 	[ActiveFlag] [bit] NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -4848,6 +4851,7 @@ CREATE TABLE [dbo].[PP_EquipSignal](
 	[SignalTime] [datetime2](7) NOT NULL,
 	[IsRunning] [bit] NOT NULL,
 	[Source] [varchar](30) COLLATE DATABASE_DEFAULT NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -5982,6 +5986,7 @@ CREATE TABLE [dbo].[PR_DefectDetail](
 	[DispositionAt] [datetime2](7) NULL,
 	[PriorStatus] [varchar](16) COLLATE DATABASE_DEFAULT NULL,
 	[ReversalResultID] [int] NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -6068,6 +6073,7 @@ CREATE TABLE [dbo].[PR_EquipStatusLog](
 	[WoID] [int] NULL,
 	[StartedAt] [datetime2](7) NULL,
 	[DurationSec] [int] NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -6313,6 +6319,7 @@ CREATE TABLE [dbo].[PR_InjCondLog](
 	[SetValue] [decimal](18, 4) NULL,
 	[ActualValue] [decimal](18, 4) NULL,
 	[CollectedAt] [datetime2](7) NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_InjCondLog] PRIMARY KEY CLUSTERED 
@@ -8507,6 +8514,7 @@ CREATE TABLE [dbo].[tbl_Lot](
 	[CurrentLocationID] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[ExpiryDate] [date] NULL,
 	[InventoryStatus] [varchar](30) COLLATE DATABASE_DEFAULT NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -8975,6 +8983,32 @@ GO
 -- ===== POP 하루 경계 (10-27) =====
 -- POP 현황의 하루 = 전기일(SYS_Config.DAY_CUTOFF_TIME 'HH:mm', 이 시각 전은 전날 — 웹 보고서·실적 ProdDate 와 같다).
 -- 설정이 없거나 읽을 수 없으면 0(자정 — 종전 동작). C# 쪽은 AMES.Data.Services.PopDay 가 같은 값을 쓴다.
+CREATE   FUNCTION dbo.FN_POP_OpenStation(@Op VARCHAR(450), @Line VARCHAR(20))
+RETURNS VARCHAR(20)
+AS
+BEGIN
+    -- 사번(@Op)이 그 라인에서 열어 둔(로그아웃·만료 전) POP 세션의 스테이션(세션 TerminalID) — MD_Station 에 있는 코드만. 없으면 NULL.
+    RETURN (SELECT TOP 1 s.TerminalID
+            FROM   dbo.PR_PopSession s
+            JOIN   dbo.MD_Station st ON st.StationCode = s.TerminalID
+            WHERE  s.OperatorID = @Op AND s.LineID = @Line AND s.LoggedOutAt IS NULL AND s.ExpiresAt > SYSDATETIME()
+            ORDER  BY s.SessionID DESC);
+END;
+GO
+CREATE   FUNCTION dbo.FN_StationOfLine(@Line VARCHAR(20))
+RETURNS VARCHAR(20)
+AS
+BEGIN
+    -- 라인에 활성 스테이션이 정확히 하나일 때 그 코드, 둘 이상이거나 없으면 NULL(PLC 신호처럼 스테이션을 모르는 라인 단위 기록용).
+    RETURN (SELECT MIN(st.StationCode) FROM dbo.MD_Station st
+            WHERE st.LineID = @Line AND ISNULL(st.Status, 'ACTIVE') <> 'INACTIVE'
+            HAVING COUNT(*) = 1);
+END;
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE   FUNCTION dbo.FN_POP_DayCutoffMin()
 RETURNS INT
 AS
@@ -10247,8 +10281,9 @@ CREATE   PROCEDURE dbo.SP_POP_EQUIP_LogStatus
 AS
 BEGIN
     INSERT INTO dbo.PR_EquipStatusLog
-        (EquipID, LineID, Status, ReasonCode, WoID, StartedAt, CreatedBy, CreatedTS)
-    VALUES (@E, @L, @S, @R, @W, SYSDATETIME(), @By, SYSDATETIME());
+        (EquipID, LineID, Status, ReasonCode, WoID, StartedAt, CreatedBy, CreatedTS, StationCode)
+    VALUES (@E, @L, @S, @R, @W, SYSDATETIME(), @By, SYSDATETIME(),
+            COALESCE((SELECT StationCode FROM dbo.MD_Equipment WHERE EquipID = @E), dbo.FN_StationOfLine(@L)));
 
     UPDATE dbo.MD_Equipment SET Status = @S, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE EquipID = @E;
 END;
@@ -10357,7 +10392,8 @@ AS
 BEGIN
     UPDATE dbo.tbl_Lot
     SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME(),
+           StationCode = COALESCE(StationCode, (SELECT TOP 1 s.TerminalID FROM dbo.PR_PopSession s JOIN dbo.MD_Station st ON st.StationCode = s.TerminalID WHERE s.SessionID = @Sess))
     WHERE  LotID = @LotID;
 
     UPDATE dbo.PR_ImgLot
@@ -10658,11 +10694,11 @@ AS
 BEGIN
     INSERT INTO dbo.tbl_Lot
         (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ParentLotID,
-         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.LotID, INSERTED.CreatedTS
     VALUES
         (@LotCode, @ItemNo, NULL, @LineID, @Proc, 1, 1, @Parent,
-         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME(), dbo.FN_POP_OpenStation(@By, @LineID));
 END;
 GO
 SET ANSI_NULLS ON
@@ -10882,7 +10918,8 @@ AS
 BEGIN
     UPDATE dbo.tbl_Lot
     SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME(),
+           StationCode = COALESCE(StationCode, (SELECT TOP 1 s.TerminalID FROM dbo.PR_PopSession s JOIN dbo.MD_Station st ON st.StationCode = s.TerminalID WHERE s.SessionID = @Sess))
     WHERE  LotID = @LotID;
 
     UPDATE dbo.PR_InjLot
@@ -10974,11 +11011,11 @@ AS
 BEGIN
     INSERT INTO dbo.tbl_Lot
         (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
-         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.LotID, INSERTED.CreatedTS
     VALUES
         (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
-         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME(), dbo.FN_POP_OpenStation(@By, @LineID));
 END;
 GO
 SET ANSI_NULLS ON
@@ -11268,11 +11305,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_DefectDetail
         (ResultID, WoID, LotID, ProcessCode, DefectCode, Qty, ReasonNote,
-         PriorStatus, ReversalResultID, DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
+         PriorStatus, ReversalResultID, DetectedAt, RegisteredBy, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.DefectID
     VALUES
         (@R, @W, @L, @P, @C, 1, @N,
-         @Prior, @Rev, SYSDATETIME(), @Op, @By, SYSDATETIME());
+         @Prior, @Rev, SYSDATETIME(), @Op, @By, SYSDATETIME(),
+         COALESCE((SELECT StationCode FROM dbo.PR_ProductionResult WHERE ResultID = @R), (SELECT StationCode FROM dbo.tbl_Lot WHERE LotID = @L)));
 END;
 GO
 SET ANSI_NULLS ON
@@ -11545,7 +11583,8 @@ AS
 BEGIN
     UPDATE dbo.tbl_Lot
     SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME(),
+           StationCode = COALESCE(StationCode, (SELECT TOP 1 s.TerminalID FROM dbo.PR_PopSession s JOIN dbo.MD_Station st ON st.StationCode = s.TerminalID WHERE s.SessionID = @Sess))
     WHERE  LotID = @LotID;
 
     UPDATE dbo.PR_PntLot
@@ -11753,11 +11792,11 @@ AS
 BEGIN
     INSERT INTO dbo.tbl_Lot
         (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ParentLotID,
-         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.LotID, INSERTED.CreatedTS
     VALUES
         (@LotCode, @ItemNo, NULL, @LineID, @Proc, 1, 1, NULL,
-         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME(), dbo.FN_POP_OpenStation(@By, @LineID));
 END;
 GO
 SET ANSI_NULLS ON

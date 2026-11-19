@@ -394,12 +394,15 @@ public sealed class OeeRepository
     }
 
     // ── Equipment Signal (PP-ODM 실시간 신호) ────────────────────────────
-    /// <summary>라인 가동/정지 신호를 PP_EquipSignal에 기록한다.</summary>
-    public void SetEquipSignal(string lineId, bool isRunning, string? source = "WEB", string? createdBy = null)
+    /// <summary>
+    /// 라인 가동/정지 신호를 PP_EquipSignal에 기록한다. stationCode 는 PLC 브리지가 신호를 낸 워크스테이션을 알 때 넘긴다 —
+    /// 없으면 라인에 스테이션이 하나뿐일 때만 그 코드로 채운다(<c>FN_StationOfLine</c>), 둘 이상이면 NULL.
+    /// </summary>
+    public void SetEquipSignal(string lineId, bool isRunning, string? source = "WEB", string? createdBy = null, string? stationCode = null)
     {
         const string sql = """
-            INSERT INTO dbo.PP_EquipSignal (LineId, IsRunning, Source, CreatedBy)
-            VALUES (@LineId, @Running, @Source, @By);
+            INSERT INTO dbo.PP_EquipSignal (LineId, IsRunning, Source, CreatedBy, StationCode)
+            VALUES (@LineId, @Running, @Source, @By, COALESCE(@Station, dbo.FN_StationOfLine(@LineId)));
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -407,6 +410,7 @@ public sealed class OeeRepository
         cmd.Parameters.Add("@Running", SqlDbType.Bit).Value         = isRunning;
         cmd.Parameters.Add("@Source",  SqlDbType.VarChar, 30).Value = (object?)source    ?? DBNull.Value;
         cmd.Parameters.Add("@By",      SqlDbType.VarChar, 20).Value = (object?)createdBy ?? DBNull.Value;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = (object?)stationCode ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 

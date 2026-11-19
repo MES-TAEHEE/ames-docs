@@ -479,7 +479,7 @@ public sealed class WorkOrderRepository
                    p.LotCode AS ParentLotCode, f.OperatorID, f.Station, ISNULL(f.GoodQty, 0) AS GoodQty
             FROM   dbo.tbl_Lot l
             LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
-            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
+            OUTER APPLY (SELECT TOP 1 r.OperatorID, COALESCE(r.StationCode, ps.TerminalID) AS Station,
                                 (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
                          FROM   dbo.PR_ProductionResult r
                          LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
@@ -567,7 +567,7 @@ public sealed class WorkOrderRepository
             JOIN   dbo.tbl_Lot l ON l.LotID = k.LotID
             LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID
-            OUTER APPLY (SELECT TOP 1 r.OperatorID, ps.TerminalID AS Station,
+            OUTER APPLY (SELECT TOP 1 r.OperatorID, COALESCE(r.StationCode, ps.TerminalID) AS Station,
                                 (SELECT SUM(r2.GoodQty) FROM dbo.PR_ProductionResult r2 WHERE r2.LotID = l.LotID) AS GoodQty
                          FROM   dbo.PR_ProductionResult r
                          LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
@@ -892,7 +892,7 @@ public sealed class WorkOrderRepository
 
             SELECT c.LotCode FROM dbo.tbl_Lot c JOIN dbo.tbl_Lot l ON l.LotID = c.ParentLotID WHERE l.LotCode = @Lot ORDER BY c.LotID;
 
-            SELECT r.EntryAt, r.ProcessCode, r.LineID, r.GoodQty, r.OperatorID, r.MoldID, w.WoNumber, ps.TerminalID AS Station
+            SELECT r.EntryAt, r.ProcessCode, r.LineID, r.GoodQty, r.OperatorID, r.MoldID, w.WoNumber, COALESCE(r.StationCode, ps.TerminalID) AS Station
             FROM   dbo.PR_ProductionResult r
             JOIN   dbo.tbl_Lot l ON l.LotID = r.LotID
             LEFT JOIN dbo.PR_PopSession ps ON ps.SessionID = r.SessionID
@@ -906,7 +906,7 @@ public sealed class WorkOrderRepository
             SELECT x.PalletNo, x.LocationNo, x.Qty, x.PartNo FROM dbo.WH_Inventory x WHERE x.LotNo = @Lot AND x.Qty > 0;
 
             -- 이 LOT 이 속한 작업지시의 공정별 작업 이력(어느 공정·라인·스테이션·작업자) — 시간순
-            SELECT r.ProcessCode, r.LineID, ps.TerminalID AS Station, r.OperatorID,
+            SELECT r.ProcessCode, r.LineID, COALESCE(r.StationCode, ps.TerminalID) AS Station, r.OperatorID,
                    SUM(CASE WHEN r.GoodQty > 0 THEN r.GoodQty ELSE 0 END) AS GoodQty, MIN(r.EntryAt) AS FirstAt, MAX(r.EntryAt) AS LastAt,
                    MAX(CASE WHEN r.LotID = me.LotID THEN 1 ELSE 0 END) AS HasThisLot
             FROM   dbo.tbl_Lot me

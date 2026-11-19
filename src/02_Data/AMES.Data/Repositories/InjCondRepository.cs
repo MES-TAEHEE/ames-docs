@@ -36,13 +36,14 @@ public sealed class InjCondRepository
         return list;
     }
 
-    public void InsertLog(string lineId, string itemCode, long shotSeq, decimal? setValue, decimal? actualValue)
+    /// <summary>사출 조건 로그 한 건. stationCode 는 PLC 브리지가 알 때만 — 없으면 라인에 스테이션이 하나뿐일 때 그 코드(FN_StationOfLine).</summary>
+    public void InsertLog(string lineId, string itemCode, long shotSeq, decimal? setValue, decimal? actualValue, string? stationCode = null)
     {
         const string sql = """
             INSERT INTO dbo.PR_InjCondLog
-                (LineID, ItemCode, ShotSeq, SetValue, ActualValue, CollectedAt, CreatedBy, CreatedTS)
+                (LineID, ItemCode, ShotSeq, SetValue, ActualValue, CollectedAt, CreatedBy, CreatedTS, StationCode)
             VALUES
-                (@Line, @Item, @Seq, @Set, @Act, SYSDATETIME(), 'AGENT', SYSDATETIME());
+                (@Line, @Item, @Seq, @Set, @Act, SYSDATETIME(), 'AGENT', SYSDATETIME(), COALESCE(@Station, dbo.FN_StationOfLine(@Line)));
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -51,6 +52,7 @@ public sealed class InjCondRepository
         cmd.Parameters.Add("@Seq",  SqlDbType.BigInt      ).Value = shotSeq;
         cmd.Parameters.Add("@Set",  SqlDbType.Decimal     ).Value = (object?)setValue ?? DBNull.Value;
         cmd.Parameters.Add("@Act",  SqlDbType.Decimal     ).Value = (object?)actualValue ?? DBNull.Value;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = (object?)stationCode ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 }
