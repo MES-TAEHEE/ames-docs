@@ -32,3 +32,8 @@ POP 은 확정 때 라인·품번이 같은 열린 단계(Released·In Progress)
 
 **수량·순번 이동(11-18 추가)**: 팝업은 고른 LOT 이 속한 작업지시(재고 포함)의 확정 LOT 을 「작업지시 · 공정 · 라인 · 품번」 묶음(`ListLotMoveGroups`)으로 보여 주고, 받을 작업지시(원래 WO 는 후보에서 제외)와 **수량**·시작 LOT 번호를 입력하면 LOT 번호 순번(`ListLotMoveSequence` — 번호 길이 → 번호순)대로 그 수량만큼 옮긴다(이동 대상 범위를 미리 보여 줌). 품목이 다른 WO 는 후보에 없고 서버도 `ItemMismatch` 로 거부하며, 공정·라인이 다르면 `NoTargetStep` 으로 거부한다.
 
+### 워크스테이션별 실적 (StationCode, 11-18)
+
+- POP 은 로그인 때 라인 → **스테이션(워크스테이션)** 을 고르고 그 코드가 세션 `PR_PopSession.TerminalID` 로 들어간다. 실적 INSERT SP 5개(`SP_POP_{INJ,IMG,PNT}_ConfirmByLotCode_InsProductionResult`·`SP_POP_LOT_ReverseConfirmedResult_…`·`SP_POP_RWK_Rework_…`)가 세션 TerminalID 를 **`PR_ProductionResult.StationCode`** 로 같이 쓴다(SP 시그니처 변경 없음 — 구 바이너리 호환). 마이그레이션 `dist/migrate_result_station.sql`(기존 실적은 세션 TerminalID 로 채움, 없으면 NULL).
+- WO 흐름(WoFlowGraph)의 공정 단계 노드는 라인 줄 아래에 스테이션별 양품 수량(`ListStepStations`)을 보인다. 스테이션 미기록 실적(이전·PDA·웹)은 `—` 한 줄, 미기록뿐이면 줄을 더하지 않는다. WO 라우팅·슬롯은 라인 단위 그대로.
+- 아직 안 한 것: `tbl_Lot`(원천 LOT 생성은 라벨 발행·InjAgent 경로라 스테이션 전달이 없음)·`PR_DefectDetail` 의 스테이션 컬럼, PLC 신호의 스테이션 키.

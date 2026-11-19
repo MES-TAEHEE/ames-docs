@@ -984,6 +984,30 @@ public sealed class WorkOrderRepository
         return list;
     }
 
+    /// <summary>작업지시 공정별 워크스테이션 실적 — 실적(PR_ProductionResult.StationCode) 기준. StationCode NULL(스테이션 미기록: 이전 실적·PDA·웹 입력)은 한 줄로 묶는다.</summary>
+    public sealed record WoStationRow(string ProcessCode, string? StationCode, string? StationName, decimal GoodQty, int LotCount, DateTime? LastAt);
+
+    public List<WoStationRow> ListStepStations(int woId)
+    {
+        const string sql = """
+            SELECT p.ProcessCode, p.StationCode, MAX(st.StationName) AS StationName,
+                   ISNULL(SUM(p.GoodQty), 0) AS GoodQty, COUNT(DISTINCT p.LotID) AS LotCount, MAX(p.EntryAt) AS LastAt
+            FROM   dbo.PR_ProductionResult p
+            LEFT JOIN dbo.MD_Station st ON st.StationCode = p.StationCode
+            WHERE  p.WoID = @Wo
+            GROUP  BY p.ProcessCode, p.StationCode
+            ORDER  BY p.ProcessCode, p.StationCode;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<WoStationRow>();
+        while (r.Read())
+            list.Add(new((string)r["ProcessCode"], r["StationCode"] as string, r["StationName"] as string, Convert.ToDecimal(r["GoodQty"]), Convert.ToInt32(r["LotCount"]), r["LastAt"] as DateTime?));
+        return list;
+    }
+
     public WoTraceRow? GetTrace(int woId)
     {
         const string sql = """

@@ -35,7 +35,7 @@ public static class WoFlowGraph
 
     public static Graph Build(WorkOrderDto wo, IReadOnlyList<WorkOrderRepository.StepRow> steps, WorkOrderRepository.WoTraceRow? t, Texts x,
         IReadOnlyDictionary<string, IReadOnlyList<OperatorRow>>? operators = null, IReadOnlyList<WorkOrderRepository.WoLotRow>? lots = null, IReadOnlyList<WorkOrderRepository.WoStepTrace>? stepTrace = null,
-        IReadOnlyList<WorkOrderRepository.WoPalletRow>? pallets = null)
+        IReadOnlyList<WorkOrderRepository.WoPalletRow>? pallets = null, IReadOnlyList<WorkOrderRepository.WoStationRow>? stations = null)
     {
         var nodes = new List<Node>();
         var edges = new List<Edge>();
@@ -67,8 +67,14 @@ public static class WoFlowGraph
             var st = s.Status == "Closed" ? "done" : s.Status == "In Progress" ? "cur" : "todo";
             IReadOnlyList<OperatorRow>? rows = null;
             var hasOp = s.LineId is not null && operators is not null && operators.TryGetValue(s.LineId, out rows);
+            // 라인 아래 워크스테이션별 실적 — 라인 줄 다음에 스테이션 코드·양품 수량. 스테이션이 기록되지 않은 실적(이전·PDA·웹)은 "—" 한 줄.
+            var stLines = (stations ?? []).Where(z => z.ProcessCode == s.ProcessCode)
+                .OrderBy(z => z.StationCode is null).ThenBy(z => z.StationCode)
+                .Select(z => $"{z.StationCode ?? "—"} · {z.GoodQty:#,0} EA").ToList();
+            var lines = new List<string> { s.LineId ?? "—", $"{s.CompletedQty:#,0} / {wo.OrderQty:#,0} EA", s.Status };
+            if (stLines.Count > 0 && !(stLines.Count == 1 && stLines[0].StartsWith("— "))) lines.AddRange(stLines);   // 미기록만 있으면 보이지 않는다
             nodes.Add(new Node(id, "step", $"{x.Step} {s.StepSeq}", s.ProcessCode,
-                [s.LineId ?? "—", $"{s.CompletedQty:#,0} / {wo.OrderQty:#,0} EA", s.Status],
+                lines,
                 st, null, null, (3 + i) * ColW, 0, Label(st, x), Pct(s.CompletedQty, wo.OrderQty),
                 hasOp ? rows : null));
             edges.Add(new Edge($"{prev}-{id}", prev, id, st == "cur", null));

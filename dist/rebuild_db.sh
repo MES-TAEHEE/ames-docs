@@ -113,6 +113,7 @@ FILES=(
   migrate_img_core_lot.sql            # IMG 완제품↔사출 Core 1:1 필터 유니크 인덱스 UX_tbl_Lot_ImgParent (순서 무관, -I 필수)
   migrate_pnt_lot.sql                 # PNT 원천 LOT PR_PntLot + 구 SP_POP_PNT_* 17개 DROP (10-22, 순서 무관)
   migrate_lot_pallet.sql              # LOT↔팔레트 매핑 이력 PR_LotPallet(POP 공정 단계별, 순서 무관)
+  migrate_result_station.sql          # 실적 PR_ProductionResult.StationCode + 실적 INSERT SP 5개가 세션 스테이션 기록(11-18, 재실행 안전, 끝의 감사 컬럼 정리 필요)
   seed_defect_first_article.sql       # INJ·IMG 초품 불량코드 INJ-D07·IMG-D07 (재실행 안전, 기본 원인은 있을 때만 연결)
   seed_defect_robot_ng.sql            # INJ 로봇 NG 불량코드 INJ-D08 — InjAgent Agent:LateNgDefectCode 기본값(10-28, 재실행 안전)
   migrate_md_equipment_type_tonnage.sql # 설비 유형 공통코드 EQUIP_TYPE(INJ·WRAP·PNT) + 값 변환 + MD_Equipment.Tonnage (순서 무관)

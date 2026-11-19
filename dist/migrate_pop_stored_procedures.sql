@@ -1134,11 +1134,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 
@@ -1979,11 +1980,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, 'INJ', 1, @CT,
-         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 
@@ -2422,11 +2424,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 
@@ -2634,10 +2637,11 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, 'RWK', 1, 0,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 
@@ -2762,11 +2766,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, -1, 0,
-         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 

@@ -6670,6 +6670,7 @@ CREATE TABLE [dbo].[PR_ProductionResult](
 	[EntryAt] [datetime2](7) NULL,
 	[ProdDate] [date] NULL,
 	[ShiftCode] [varchar](10) COLLATE DATABASE_DEFAULT NULL,
+	[StationCode] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
 	[CreatedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE DATABASE_DEFAULT NULL,
@@ -10334,11 +10335,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 SET ANSI_NULLS ON
@@ -10858,11 +10860,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, 'INJ', 1, @CT,
-         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 SET ANSI_NULLS ON
@@ -11373,11 +11376,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, -1, 0,
-         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 SET ANSI_NULLS ON
@@ -11519,11 +11523,12 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     OUTPUT INSERTED.ResultID
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 SET ANSI_NULLS ON
@@ -12495,10 +12500,11 @@ AS
 BEGIN
     INSERT INTO dbo.PR_ProductionResult
         (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS, StationCode)
     VALUES
         (@EntryNo, @WoID, @LotID, @LineID, 'RWK', 1, 0,
-         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME(),
+         (SELECT TOP 1 TerminalID FROM dbo.PR_PopSession WHERE SessionID = @Sess));
 END;
 GO
 SET ANSI_NULLS ON

@@ -48,6 +48,23 @@ public class WoFlowGraphTests
     }
 
     [Fact]
+    public void Step_node_lists_workstation_results_under_the_line_and_hides_unrecorded_only()
+    {
+        var steps = new[] { new WorkOrderRepository.StepRow(1, 10, "INJ", "L1", "In Progress", 5m, "I"), new WorkOrderRepository.StepRow(2, 20, "IMG", "L2", "Pending", 0m, "I") };
+        var st = new[]
+        {
+            new WorkOrderRepository.WoStationRow("INJ", "INJ-S2", null, 3m, 3, null),
+            new WorkOrderRepository.WoStationRow("INJ", "INJ-S1", null, 2m, 2, null),
+            new WorkOrderRepository.WoStationRow("INJ", null, null, 1m, 1, null),
+            new WorkOrderRepository.WoStationRow("IMG", null, null, 4m, 4, null),   // 미기록뿐이면 줄을 더하지 않는다
+        };
+        var g = WoFlowGraph.Build(Wo("APS", "12"), steps, Trace("APS", "12"), T, stations: st);
+        var inj = g.Nodes.Single(n => n.Id == "step0").Lines;
+        Assert.Equal(new[] { "L1", "5 / 10 EA", "In Progress", "INJ-S1 · 2 EA", "INJ-S2 · 3 EA", "— · 1 EA" }, inj);   // 스테이션 코드순, 미기록은 맨 뒤
+        Assert.Equal(3, g.Nodes.Single(n => n.Id == "step1").Lines.Count);
+    }
+
+    [Fact]
     public void Pallet_node_follows_result_and_shows_location_or_shipped()
     {
         var pallets = new[]
