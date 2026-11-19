@@ -47,7 +47,7 @@
         </div>
     </div>
     <div class="ames-kpi @(Compliance is null ? "" : Compliance >= 90 ? "ok" : Compliance >= 70 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Compliance"]</div>
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Compliance"]<KpiHelp Key="MNT.PmSchedule.Kpi.Compliance" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(Compliance is { } c ? $"{c:0}%" : "—")</div>
             <div class="ames-kpi-s">@L["MNT.PmSchedule.Kpi.ComplianceSub"]</div>

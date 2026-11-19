@@ -18,7 +18,7 @@
 @* ── KPI strip: 종합 OTD · 준수 · 지연 · 평균 지연일 · 미달 고객 ───────── *@
 <div class="ames-kpis">
     <div class="ames-kpi @OtdCls(OverallOtd)">
-        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Overall"]</div>
+        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Overall"]<KpiHelp Key="RPT.OnTime.Kpi.Overall" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(OverallOtd)</div>
             <div class="ames-kpi-s">@L["RPT.OnTime.Kpi.OverallSub"]</div>
@@ -39,14 +39,14 @@
         </div>
     </div>
     <div class="ames-kpi @(AvgDelay is null ? "" : AvgDelay <= 2 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.AvgDelay"]</div>
+        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.AvgDelay"]<KpiHelp Key="RPT.OnTime.Kpi.AvgDelay" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(AvgDelay is { } d ? string.Format(L["RPT.OnTime.DaysFmt"].Value, d.ToString("0.0")) : "—")</div>
             <div class="ames-kpi-s">@L["RPT.OnTime.Kpi.AvgDelaySub"]</div>
         </div>
     </div>
     <div class="ames-kpi @(BelowTarget > 0 ? "warn" : "ok")">
-        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Below"]</div>
+        <div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Below"]<KpiHelp Key="RPT.OnTime.Kpi.Below" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@BelowTarget</div>
             <div class="ames-kpi-s">@L["RPT.OnTime.Kpi.BelowSub"]</div>

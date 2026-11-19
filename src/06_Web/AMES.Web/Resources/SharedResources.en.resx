@@ -5392,7 +5392,7 @@
     <value>No routing template; cannot release. Check the item's routing type.</value>
   </data>
   <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
-    <value>Overall OEE</value>
+    <value>Overall OEE(Overall Equipment Effectiveness)</value>
   </data>
   <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
     <value>world-class ≥ {0}%</value>
@@ -5770,7 +5770,7 @@
     <value>Reported By</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
-    <value>Avg OEE</value>
+    <value>Avg OEE(Overall Equipment Effectiveness)</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
     <value>Availability A</value>
@@ -6700,7 +6700,7 @@
     <value>Exported {0} rows to Excel.</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
-    <value>Overall Plant OEE</value>
+    <value>Overall Plant OEE(Overall Equipment Effectiveness)</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
     <value>selected month · weighted by planned time</value>
@@ -14093,5 +14093,134 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.PartialRevert" xml:space="preserve">
     <value>Reverted {0} of {1}. The rest have a work order or changed status.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Overall.Tip" xml:space="preserve">
+    <value>OEE (Overall Equipment Effectiveness) = Availability (A) × Performance (P) × Quality (Q)
+Calculated from the snapshots in the period.
+85%+ world class · 65%+ good · below that needs improvement</value>
+  </data>
+  <data name="PP.Oee.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Availability (A) = operating time ÷ loading time × 100
+Based on period totals; longer stops lower it.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Performance.Tip" xml:space="preserve">
+    <value>Performance (P) = snapshot performance weighted by operating time
+With no production it is a default (100%), shown as —.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Quality.Tip" xml:space="preserve">
+    <value>Quality (Q) = good quantity ÷ total produced quantity × 100</value>
+  </data>
+  <data name="PP.Oee.Kpi.TotalLoss.Tip" xml:space="preserve">
+    <value>Total loss (min) = planned stops + unplanned stops + performance loss + quality loss
+Performance loss = operating time × (1 − P)
+Quality loss = operating time × P × (1 − Q)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Oee.Tip" xml:space="preserve">
+    <value>Average OEE = daily equipment OEE weighted by planned time
+Respects the period, line, equipment and shift filters.
+85%+ world class · 65%+ good · below that needs improvement</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mtbf.Tip" xml:space="preserve">
+    <value>MTBF (mean time between failures, hours) = operating time ÷ number of failures
+Operating time = Σ(planned time − downtime). — when there are no failures.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mttr.Tip" xml:space="preserve">
+    <value>MTTR (mean time to repair, minutes) = average of (resolved time − reported time) of resolved failures
+Unresolved failures are excluded.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.FailureStop.Tip" xml:space="preserve">
+    <value>Failure stops = count and total time of downtime linked to failures
+A downtime linked to several failures is counted once.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Availability = daily equipment availability weighted by planned time</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Failures.Tip" xml:space="preserve">
+    <value>Failures = number of equipment failure reports matching the period and filters</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Overall.Tip" xml:space="preserve">
+    <value>Plant OEE = daily OEE (Overall Equipment Effectiveness) of all equipment in the month, weighted by planned time
+▲▼ is the %p difference from the previous month.
+85%+ world class · 65%+ good · below that needs improvement</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Availability (A) = planned-time weighted average of daily equipment availability in the month</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Performance.Tip" xml:space="preserve">
+    <value>Performance (P) = planned-time weighted average of daily equipment performance in the month</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Quality.Tip" xml:space="preserve">
+    <value>Quality (Q) = planned-time weighted average of daily equipment quality in the month</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Best.Tip" xml:space="preserve">
+    <value>Best line = line with the highest OEE in the month
+Line OEE is the planned-time weighted average of its equipment's daily OEE.</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Oee.Tip" xml:space="preserve">
+    <value>Average OEE = average equipment OEE (Overall Equipment Effectiveness) on the latest aggregation date
+OEE = Availability × Performance × Quality
+85%+ world class · 65%+ good · below that needs improvement</value>
+  </data>
+  <data name="MNT.EquipmentCard.Kpi.AvgOee.Tip" xml:space="preserve">
+    <value>Average OEE = simple average of today's OEE of the listed equipment that has a value
+OEE (Overall Equipment Effectiveness) = Availability × Performance × Quality</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Avail.Tip" xml:space="preserve">
+    <value>Availability = today's running minutes ÷ planned running minutes × 100
+90%+ normal · 80%+ caution · below that critical</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Achievement.Tip" xml:space="preserve">
+    <value>Achievement = actual quantity ÷ planned quantity × 100
+— when there is no plan.</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Yield.Tip" xml:space="preserve">
+    <value>Yield = good quantity ÷ actual quantity × 100</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Rate.Tip" xml:space="preserve">
+    <value>Defect rate = defect quantity ÷ (good + defect) × 100</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFew.Tip" xml:space="preserve">
+    <value>Vital Few = number of defect types, from the largest, needed to reach a cumulative 80% (including the type that reaches it)
+Used to focus improvement on a few key causes.</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Inspected.Tip" xml:space="preserve">
+    <value>Inspected = good quantity + defect quantity
+The denominator of the defect rate.</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Overall.Tip" xml:space="preserve">
+    <value>On-time delivery (OTD) = (all orders − late orders) ÷ all orders × 100
+Late = not shipped and past the requested delivery date</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelay.Tip" xml:space="preserve">
+    <value>Average delay = average days late of late orders only</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Below.Tip" xml:space="preserve">
+    <value>Below target = number of heat-map entries whose average OTD is under the 98% target</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adherence.Tip" xml:space="preserve">
+    <value>Schedule adherence = WOs completed by the planned date (deviation ≤ 0 days) ÷ all WOs × 100
+Late-completed or overdue WOs count as late; not yet completed as incomplete.</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Turnover.Tip" xml:space="preserve">
+    <value>Turnover = issued quantity in the period ÷ current stock quantity (warehouse stock only)
+Higher means stock is consumed faster.</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Compliance.Tip" xml:space="preserve">
+    <value>PM compliance = completed ÷ (completed + overdue) × 100
+90%+ normal · 70%+ caution · below that critical</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OtdSub.Tip" xml:space="preserve">
+    <value>On-time delivery (OTD) = (all orders − late orders) ÷ all orders × 100
+Late = not shipped and past the requested date
+95%+ normal · 85%+ caution · below that critical</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Util.Tip" xml:space="preserve">
+    <value>Utilization = WO and mold-change load time ÷ available operating time × 100
+Over 100% means overload that cannot fit in the day (shown up to 999%); 80%+ is the healthy range.</value>
+  </data>
+  <data name="Home.Kpi.OnTime.Tip" xml:space="preserve">
+    <value>On-time rate = orders not late ÷ all orders of the last 30 days × 100
+Late = not shipped and past the requested date
+95%+ normal · 85%+ caution · below that critical</value>
   </data>
 </root>

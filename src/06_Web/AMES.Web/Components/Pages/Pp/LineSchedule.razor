@@ -46,7 +46,7 @@
         </div>
     </div>
     <div class="ames-kpi @(OperatingMin == 0 ? "" : Utilization > 100 ? "bad" : Utilization >= 80 ? "ok" : "warn")">
-        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Util"]</div>
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Util"]<KpiHelp Key="PP.LineSchedule.Kpi.Util" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Utilization<span style="font-size:14px;margin-left:2px;">%</span></div>
             <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.UtilTarget"]</div>

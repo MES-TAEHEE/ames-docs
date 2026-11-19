@@ -18,35 +18,35 @@
 @* ── KPI strip: 종합 OEE(전월 대비) · A · P · Q · 최우수 라인 ─────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi @GradeCls(_cur.Oee)">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Overall"]</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Overall"]<KpiHelp Key="RPT.EquipmentOee.Kpi.Overall" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(_cur.Oee) @if (Delta(_cur.Oee, _prev.Oee) is { } od) { <span class="rpt-eo-delta @(od >= 0 ? "up" : "dn")" style="font-size:13px;margin-left:6px;">@DeltaText(od)</span> }</div>
             <div class="ames-kpi-s">@L["RPT.EquipmentOee.Kpi.OverallSub"]</div>
         </div>
     </div>
     <div class="ames-kpi @KpiCls(_cur.A, 80, 90)">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Availability"]</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Availability"]<KpiHelp Key="RPT.EquipmentOee.Kpi.Availability" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(_cur.A)</div>
             <div class="ames-kpi-s">@VsPrevText(_cur.A, _prev.A)</div>
         </div>
     </div>
     <div class="ames-kpi @KpiCls(_cur.P, 80, 90)">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Performance"]</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Performance"]<KpiHelp Key="RPT.EquipmentOee.Kpi.Performance" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(_cur.P)</div>
             <div class="ames-kpi-s">@VsPrevText(_cur.P, _prev.P)</div>
         </div>
     </div>
     <div class="ames-kpi @KpiCls(_cur.Q, 95, 99)">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Quality"]</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Quality"]<KpiHelp Key="RPT.EquipmentOee.Kpi.Quality" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(_cur.Q)</div>
             <div class="ames-kpi-s">@VsPrevText(_cur.Q, _prev.Q)</div>
         </div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Best"]</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Best"]<KpiHelp Key="RPT.EquipmentOee.Kpi.Best" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v" style="font-size:18px;">@(Best?.LineId ?? "—")</div>
             <div class="ames-kpi-s">@(Best is { } b ? $"{b.LineName} · {Pct(b.Oee)}" : "")</div>

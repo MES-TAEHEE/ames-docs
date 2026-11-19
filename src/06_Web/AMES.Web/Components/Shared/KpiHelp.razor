@@ -1,0 +1,20 @@
+@inject IStringLocalizer<SharedResources> L
+@* 성과지표 카드 제목 옆의 작은 ⓘ — 마우스를 올리거나(키보드는 포커스) 누르면 계산 방법이 툴팁으로 뜬다(js/kpi-tip.js).
+   사용: <div class="ames-kpi-l">@L["X.Kpi.Y"]<KpiHelp Key="X.Kpi.Y" /></div> — 설명은 리소스 "X.Kpi.Y.Tip" (ko·en·es). 키가 없으면 아무것도 그리지 않는다. *@
+@if (_tip is { Length: > 0 })
+{
+    <span class="ames-kpi-help" tabindex="0" role="note" aria-label="@_tip" data-tip="@_tip">ⓘ</span>
+}
+
+@code {
+    /// <summary>지표 제목의 리소스 키 — 설명은 이 키에 ".Tip" 을 붙인 리소스.</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    string? _tip;
+
+    protected override void OnParametersSet()
+    {
+        var r = L[Key + ".Tip"];
+        _tip = r.ResourceNotFound ? null : r.Value;
+    }
+}

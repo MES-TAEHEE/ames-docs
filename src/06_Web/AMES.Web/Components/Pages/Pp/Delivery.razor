@@ -45,7 +45,7 @@
         </div>
     </div>
     <div class="ames-kpi @(_rows.Count == 0 ? "" : OtdPct >= 95 ? "ok" : OtdPct >= 85 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.OtdSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.OtdSub"]<KpiHelp Key="PP.Delivery.Kpi.OtdSub" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(_rows.Count == 0 ? "—" : OtdPct.ToString("0.0"))<span style="font-size:14px;margin-left:2px;">%</span></div>
             <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OtdNote"]</div>

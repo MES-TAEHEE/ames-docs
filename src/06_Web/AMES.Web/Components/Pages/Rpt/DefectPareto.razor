@@ -26,7 +26,7 @@
         </div>
     </div>
     <div class="ames-kpi @(DefectRate is null ? "" : DefectRate <= 2 ? "ok" : DefectRate <= 5 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Rate"]</div>
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Rate"]<KpiHelp Key="RPT.DefectPareto.Kpi.Rate" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(DefectRate is { } r ? $"{r:0.00}%" : "—")</div>
             <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.RateSub"]</div>
@@ -40,14 +40,14 @@
         </div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.VitalFew"]</div>
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.VitalFew"]<KpiHelp Key="RPT.DefectPareto.Kpi.VitalFew" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(_pareto.Count > 0 ? string.Format(L["RPT.DefectPareto.Kpi.VitalFewFmt"].Value, _pareto.Count(p => p.Vital)) : "—")</div>
             <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.VitalFewSub"]</div>
         </div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Inspected"]</div>
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Inspected"]<KpiHelp Key="RPT.DefectPareto.Kpi.Inspected" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@UomFmt.Qty(Inspected, null)</div>
             <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.InspectedSub"]</div>

@@ -41,7 +41,7 @@
         </div>
     </div>
     <div class="ames-kpi @(PlanRunMin == 0 ? "" : AvgAvail >= 90 ? "ok" : AvgAvail >= 80 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Avail"]</div>
+        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Avail"]<KpiHelp Key="PP.DowntimeMonitor.Kpi.Avail" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(PlanRunMin == 0 ? "—" : AvgAvail.ToString("0.0"))<span style="font-size:14px;margin-left:2px;">%</span></div>
             <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.AvailSub"].Value, TodayWorkMin, PlanRunMin)</div>

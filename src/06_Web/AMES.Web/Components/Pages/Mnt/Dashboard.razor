@@ -48,7 +48,7 @@
         </div>
     </div>
     <div class="ames-kpi @OeeClass()">
-        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Oee"]</div>
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Oee"]<KpiHelp Key="MNT.Dashboard.Kpi.Oee" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(_k.OeeDate is null ? "—" : $"{_k.AvgOeeToday:0.0}%")</div>
             <div class="ames-kpi-s">@(_k.OeeDate is { } d ? string.Format(L["MNT.Dashboard.Kpi.OeeSub"].Value, d.ToString(DateFmt.Date)) : L["MNT.Dashboard.Kpi.OeeNone"].Value)</div>

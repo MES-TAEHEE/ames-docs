@@ -6001,3 +6001,32 @@ input[data-ames-x] {
 .react-flow__resize-control.handle.ames-flow-rhandle { width: 9px; height: 9px; border-radius: 3px; background: #60a5fa; border: 1px solid #fff; z-index: 21; }
 .ames-flow-linkbtn { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .ames-flow-linkbtn:hover { color: #60a5fa; text-decoration-style: solid; }
+
+/* ── KPI 성과지표 도움말(ⓘ) 툴팁 — KpiHelp 컴포넌트 · js/kpi-tip.js ──────────────────────────
+   평소엔 눈에 띄지 않는 작은 ⓘ 만 보이고, 지표 제목/ⓘ 에 마우스를 올릴 때만 계산 방법이 뜬다(포인터를 막지 않아 화면을 가리지 않음). */
+:root {
+    --ames-tip-bg: #0b1220;
+    --ames-tip-tx: #e2e8f0;
+    --ames-tip-bd: rgba(147,197,253,.35);
+}
+html[data-theme="light"] {
+    --ames-tip-bg: #fffdf6;
+    --ames-tip-tx: #3b2f14;
+    --ames-tip-bd: rgba(120,98,52,.45);
+}
+.ames-kpi-help {
+    display: inline-block; margin-left: 5px; font-size: .95em; line-height: 1;
+    letter-spacing: 0; text-transform: none; cursor: help; opacity: .4;
+    transition: opacity .15s; vertical-align: baseline;
+}
+.ames-kpi-l:hover .ames-kpi-help, .ames-kpi-help:hover, .ames-kpi-help:focus-visible { opacity: 1; }
+.ames-kpi-help:focus-visible { outline: 1px solid var(--ames-tip-bd); outline-offset: 2px; border-radius: 50%; }
+.ames-kpi-tip {
+    position: fixed; z-index: 100000; left: 0; top: 0; max-width: min(320px, calc(100vw - 16px));
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--ames-tip-bd);
+    background: var(--ames-tip-bg); color: var(--ames-tip-tx);
+    font-family: var(--ames-font-body, inherit); font-size: 12px; line-height: 1.5; letter-spacing: 0;
+    text-transform: none; white-space: pre-line; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .12s;
+}
+.ames-kpi-tip.on { opacity: 1; visibility: visible; }

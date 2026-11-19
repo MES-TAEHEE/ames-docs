@@ -5365,7 +5365,7 @@
     <value>Esta franja de operación ya está llena.</value>
   </data>
   <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
-    <value>OEE Global</value>
+    <value>OEE(Overall Equipment Effectiveness) Global</value>
   </data>
   <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
     <value>clase mundial ≥ {0}%</value>
@@ -5743,7 +5743,7 @@
     <value>Reportado por</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
-    <value>OEE promedio</value>
+    <value>OEE(Overall Equipment Effectiveness) promedio</value>
   </data>
   <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
     <value>Disponibilidad A</value>
@@ -6673,7 +6673,7 @@
     <value>{0} filas exportadas a Excel.</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
-    <value>OEE Global de Planta</value>
+    <value>OEE(Overall Equipment Effectiveness) Global de Planta</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
     <value>mes seleccionado · ponderado</value>
@@ -14093,5 +14093,134 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.PartialRevert" xml:space="preserve">
     <value>Revertidas {0} de {1}. Las demás tienen orden de trabajo o cambiaron de estado.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Overall.Tip" xml:space="preserve">
+    <value>OEE (Eficiencia Global del Equipo) = Disponibilidad (A) × Rendimiento (P) × Calidad (Q)
+Se calcula con las instantáneas del período.
+85%+ clase mundial · 65%+ bueno · menos requiere mejora</value>
+  </data>
+  <data name="PP.Oee.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Disponibilidad (A) = tiempo operativo ÷ tiempo de carga × 100
+Sobre los totales del período; más paradas la reducen.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Performance.Tip" xml:space="preserve">
+    <value>Rendimiento (P) = rendimiento de cada instantánea ponderado por el tiempo operativo
+Sin producción es un valor por defecto (100%), se muestra —.</value>
+  </data>
+  <data name="PP.Oee.Kpi.Quality.Tip" xml:space="preserve">
+    <value>Calidad (Q) = cantidad buena ÷ cantidad total producida × 100</value>
+  </data>
+  <data name="PP.Oee.Kpi.TotalLoss.Tip" xml:space="preserve">
+    <value>Pérdida total (min) = paradas planificadas + no planificadas + pérdida de rendimiento + pérdida de calidad
+Pérdida de rendimiento = tiempo operativo × (1 − P)
+Pérdida de calidad = tiempo operativo × P × (1 − Q)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Oee.Tip" xml:space="preserve">
+    <value>OEE promedio = OEE diario por equipo ponderado por el tiempo planificado
+Respeta los filtros de período, línea, equipo y turno.
+85%+ clase mundial · 65%+ bueno · menos requiere mejora</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mtbf.Tip" xml:space="preserve">
+    <value>MTBF (tiempo medio entre fallas, horas) = tiempo operativo ÷ número de fallas
+Tiempo operativo = Σ(tiempo planificado − paro). — si no hay fallas.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mttr.Tip" xml:space="preserve">
+    <value>MTTR (tiempo medio de reparación, min) = promedio de (hora de resolución − hora de aviso) de fallas resueltas
+Se excluyen las no resueltas.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.FailureStop.Tip" xml:space="preserve">
+    <value>Paradas por falla = número y tiempo total de paros vinculados a fallas
+Un paro con varias fallas se cuenta una vez.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Disponibilidad = disponibilidad diaria por equipo ponderada por el tiempo planificado</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Failures.Tip" xml:space="preserve">
+    <value>Fallas = número de avisos de falla de equipos que cumplen el período y los filtros</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Overall.Tip" xml:space="preserve">
+    <value>OEE de planta = OEE diario de todos los equipos del mes, ponderado por el tiempo planificado
+▲▼ es la diferencia en %p frente al mes anterior.
+85%+ clase mundial · 65%+ bueno · menos requiere mejora</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Availability.Tip" xml:space="preserve">
+    <value>Disponibilidad (A) = promedio ponderado por tiempo planificado de la disponibilidad diaria del mes</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Performance.Tip" xml:space="preserve">
+    <value>Rendimiento (P) = promedio ponderado por tiempo planificado del rendimiento diario del mes</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Quality.Tip" xml:space="preserve">
+    <value>Calidad (Q) = promedio ponderado por tiempo planificado de la calidad diaria del mes</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Best.Tip" xml:space="preserve">
+    <value>Mejor línea = línea con el OEE más alto del mes
+El OEE de línea es el promedio ponderado por tiempo planificado del OEE diario de sus equipos.</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Oee.Tip" xml:space="preserve">
+    <value>OEE promedio = promedio del OEE de equipos en la última fecha de agregación
+OEE = Disponibilidad × Rendimiento × Calidad
+85%+ clase mundial · 65%+ bueno · menos requiere mejora</value>
+  </data>
+  <data name="MNT.EquipmentCard.Kpi.AvgOee.Tip" xml:space="preserve">
+    <value>OEE promedio = promedio simple del OEE de hoy de los equipos listados que tienen valor
+OEE (Eficiencia Global del Equipo) = Disponibilidad × Rendimiento × Calidad</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Avail.Tip" xml:space="preserve">
+    <value>Disponibilidad = minutos operativos de hoy ÷ minutos operativos planificados × 100
+90%+ normal · 80%+ precaución · menos crítico</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Achievement.Tip" xml:space="preserve">
+    <value>Cumplimiento = cantidad real ÷ cantidad planificada × 100
+— si no hay plan.</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Yield.Tip" xml:space="preserve">
+    <value>Rendimiento = cantidad buena ÷ cantidad real × 100</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Rate.Tip" xml:space="preserve">
+    <value>Tasa de defectos = cantidad defectuosa ÷ (buena + defectuosa) × 100</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFew.Tip" xml:space="preserve">
+    <value>Vital Few = número de tipos de defecto, del mayor al menor, necesarios para alcanzar el 80% acumulado (incluido el que lo alcanza)
+Para concentrar la mejora en pocas causas clave.</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Inspected.Tip" xml:space="preserve">
+    <value>Inspeccionado = cantidad buena + defectuosa
+Denominador de la tasa de defectos.</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Overall.Tip" xml:space="preserve">
+    <value>Entrega a tiempo (OTD) = (todos los pedidos − pedidos tardíos) ÷ todos los pedidos × 100
+Tardío = no enviado y con fecha solicitada vencida</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelay.Tip" xml:space="preserve">
+    <value>Retraso promedio = promedio de días de retraso de los pedidos tardíos</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Below.Tip" xml:space="preserve">
+    <value>Bajo objetivo = número de elementos del mapa de calor con OTD promedio inferior al 98%</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adherence.Tip" xml:space="preserve">
+    <value>Cumplimiento del programa = OT completadas en la fecha planificada (desviación ≤ 0 días) ÷ todas las OT × 100
+Las completadas tarde o vencidas cuentan como tardías; las no completadas como incompletas.</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Turnover.Tip" xml:space="preserve">
+    <value>Rotación = cantidad despachada en el período ÷ stock actual (solo almacén)
+Más alto indica consumo más rápido.</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Compliance.Tip" xml:space="preserve">
+    <value>Cumplimiento PM = completados ÷ (completados + vencidos) × 100
+90%+ normal · 70%+ precaución · menos crítico</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OtdSub.Tip" xml:space="preserve">
+    <value>Entrega a tiempo (OTD) = (todos los pedidos − tardíos) ÷ todos los pedidos × 100
+Tardío = no enviado y con fecha vencida
+95%+ normal · 85%+ precaución · menos crítico</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Util.Tip" xml:space="preserve">
+    <value>Utilización = tiempo de carga de OT y cambio de molde ÷ tiempo operativo disponible × 100
+Más de 100% es sobrecarga (hasta 999%); 80%+ es el rango sano.</value>
+  </data>
+  <data name="Home.Kpi.OnTime.Tip" xml:space="preserve">
+    <value>Entrega a tiempo = pedidos no tardíos ÷ todos los pedidos de los últimos 30 días × 100
+Tardío = no enviado y con fecha vencida
+95%+ normal · 85%+ precaución · menos crítico</value>
   </data>
 </root>

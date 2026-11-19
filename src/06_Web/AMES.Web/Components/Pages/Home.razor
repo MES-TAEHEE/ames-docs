@@ -38,7 +38,7 @@
         </div>
     </div>
     <div class="ames-kpi @(_kpiOtdPct >= 95 ? "ok" : _kpiOtdPct >= 85 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["Home.Kpi.OnTime"]</div>
+        <div class="ames-kpi-l">@L["Home.Kpi.OnTime"]<KpiHelp Key="Home.Kpi.OnTime" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
             <div class="ames-kpi-s">@L["Home.Kpi.OnTimeSub"]</div>

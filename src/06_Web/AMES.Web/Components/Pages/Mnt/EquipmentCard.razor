@@ -44,7 +44,7 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == EquipStatusRules.Pm)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["MNT.EquipmentCard.Kpi.AvgOee"]</div>
+        <div class="ames-kpi-l">@L["MNT.EquipmentCard.Kpi.AvgOee"]<KpiHelp Key="MNT.EquipmentCard.Kpi.AvgOee" /></div>
         <div class="ames-kpi-v">@(AvgOee is { } a ? $"{a:0.0}%" : "—")</div>
     </div>
 </div>

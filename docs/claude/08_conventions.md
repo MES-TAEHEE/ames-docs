@@ -23,3 +23,10 @@
 - **Pop 화면 파일명**: `{ModuleCode}{화면번호}{기능명}.razor` (e.g. `Inj04ProductionEntry.razor`)
 
 ---
+
+## KPI 성과지표 툴팁 (KpiHelp, 11-19)
+
+- 지표 카드 제목 옆에 작은 ⓘ 를 두고, 제목/ⓘ 에 마우스를 올리면(키보드는 포커스, 터치는 ⓘ 탭) 계산 방법이 뜬다. 평소엔 거의 안 보이고 포인터를 막지 않아 화면을 가리지 않는다.
+- 사용: `<div class="ames-kpi-l">@L["X.Kpi.Y"]<KpiHelp Key="X.Kpi.Y" /></div>` + 리소스 `X.Kpi.Y.Tip`(resx 4개, 줄바꿈 가능). `.Tip` 리소스가 없으면 아무것도 그리지 않는다.
+- 구현: `Components/Shared/KpiHelp.razor` · `wwwroot/js/kpi-tip.js`(body 에 fixed 박스 — KPI 카드가 overflow:hidden 이라 카드 안에서는 잘림) · `app.css` 끝의 `.ames-kpi-help`/`.ames-kpi-tip`.
+- 설명 문구는 **화면의 실제 계산식과 일치**해야 한다 — 계산을 바꾸면 `.Tip` 도 같이 고칠 것. 적용: PP-OEE, MNT-003·대시보드·설비카드, RPT-001·004·005·006·007·008·재고, PP 납기·비가동 모니터·라인 스케줄, MNT PM 일정판, 홈.

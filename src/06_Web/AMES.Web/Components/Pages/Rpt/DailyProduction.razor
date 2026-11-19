@@ -26,14 +26,14 @@
         </div>
     </div>
     <div class="ames-kpi @(Achievement is null ? "" : Achievement >= 100 ? "ok" : Achievement >= 90 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Achievement"]</div>
+        <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Achievement"]<KpiHelp Key="RPT.DailyProduction.Kpi.Achievement" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(Achievement)</div>
             <div class="ames-kpi-s">@L["RPT.DailyProduction.Kpi.AchievementSub"]</div>
         </div>
     </div>
     <div class="ames-kpi @YieldCls(Yield)">
-        <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Yield"]</div>
+        <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Yield"]<KpiHelp Key="RPT.DailyProduction.Kpi.Yield" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@Pct(Yield)</div>
             <div class="ames-kpi-s">@L["RPT.DailyProduction.Kpi.YieldSub"]</div>

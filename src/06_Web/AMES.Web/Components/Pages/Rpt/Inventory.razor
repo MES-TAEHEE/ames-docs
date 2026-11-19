@@ -47,7 +47,7 @@
         </div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Turnover"]</div>
+        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Turnover"]<KpiHelp Key="RPT.Inventory.Kpi.Turnover" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(AvgTurnover is { } t ? t.ToString("0.0") : "—")</div>
             <div class="ames-kpi-s">@(AvgTurnover is { } ? L["RPT.Inventory.Kpi.TurnoverSub"].Value : L["RPT.Inventory.Kpi.TurnoverNone"].Value)</div>

@@ -21,35 +21,35 @@
 }
 <div class="ames-kpis pp-oee-kpis">
     <div class="ames-kpi @(ov is null ? "" : KpiCls(ov.Oee))">
-        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Overall"]</div>
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Overall"]<KpiHelp Key="PP.Oee.Kpi.Overall" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Oee:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
             <div class="ames-kpi-s">@string.Format(L["PP.Oee.Kpi.WorldClass"].Value, WORLD_CLASS)@(ov is null ? "" : $" · {GradeText(ov.Oee)}")@(ov is { HasProduction: false } ? $" · {L["PP.Oee.AOnly"]}" : "")</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-a">
-        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Availability"]</div>
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Availability"]<KpiHelp Key="PP.Oee.Kpi.Availability" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.A:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
             <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Operating:N0} / {ov.Loading:N0} {L["Lbl.Min"]}")</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-p">
-        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]</div>
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]<KpiHelp Key="PP.Oee.Kpi.Performance" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null || !ov.HasProduction ? "—" : $"{ov.P:F1}")<span style="font-size:14px;margin-left:2px;">@(ov is { HasProduction: true } ? "%" : "")</span></div>
             <div class="ames-kpi-s">@(ov is null ? "" : ov.HasProduction ? $"{UomFmt.Qty(ov.Produced, null)} ea" : L["PP.Oee.NoProduction"].Value)</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-q">
-        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]</div>
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]<KpiHelp Key="PP.Oee.Kpi.Quality" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null || !ov.HasProduction ? "—" : $"{ov.Q:F1}")<span style="font-size:14px;margin-left:2px;">@(ov is { HasProduction: true } ? "%" : "")</span></div>
             <div class="ames-kpi-s">@(ov is null ? "" : ov.HasProduction ? $"{UomFmt.Qty(ov.Good, null)} / {UomFmt.Qty(ov.Produced, null)} ea" : L["PP.Oee.NoProduction"].Value)</div>
         </div>
     </div>
     <div class="ames-kpi bad">
-        <div class="ames-kpi-l">@L["PP.Oee.Kpi.TotalLoss"]</div>
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.TotalLoss"]<KpiHelp Key="PP.Oee.Kpi.TotalLoss" /></div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : ov.TotalLoss.ToString("N0"))<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
             <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Count} snapshots")</div>
