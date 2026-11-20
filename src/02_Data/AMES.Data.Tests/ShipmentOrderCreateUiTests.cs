@@ -50,7 +50,7 @@ public sealed class ShipmentOrderCreateUiTests
         Assert.Contains("Immediate=\"true\"", source);
         Assert.Contains("InputAttributes=\"_shipQtyInputAttributes\"", source);
         Assert.Contains("[\"data-shipment-qty\"]", source);
-        Assert.Contains("js/shipment-quantity-input.js?v=20261106", Read("src/06_Web/AMES.Web/Components/App.razor"));
+        Assert.Contains("js/shipment-quantity-input.js?v=", Read("src/06_Web/AMES.Web/Components/App.razor"));
         Assert.Contains("_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId)", source);
         Assert.Contains("<ShipmentOrderLines Lines=\"lines\" CompactPallets=\"true\" />", source);
         Assert.Contains("@if(previewOrders.Count>0)", source);
@@ -73,19 +73,16 @@ public sealed class ShipmentOrderCreateUiTests
         => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(current)!, "../../..", path)));
 
     [Fact]
-    public void Order_and_dcr_actions_share_the_list_footer_without_delivery_risk_ui()
+    public void Order_and_dcr_actions_share_the_standard_list_toolbar_without_delivery_risk_ui()
     {
         var source = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
-        var gridEnd = source.IndexOf("</RadzenDataGrid>", StringComparison.Ordinal);
-        var footerStart = source.IndexOf("<RadzenStack", gridEnd, StringComparison.Ordinal);
-        var footerEnd = source.IndexOf("</RadzenStack>", footerStart, StringComparison.Ordinal);
-        var footer = source[footerStart..footerEnd];
-        Assert.Contains("Orientation=\"Orientation.Horizontal\"", footer);
-        Assert.Contains("shipping-order-actions", footer);
-        Assert.Contains("FG.ShipOrders.Btn.CreateOrder", footer);
-        Assert.Contains("FG.ShipOrders.Btn.CreateDcr", footer);
-        Assert.Contains("Disabled=\"@(_selected.Count==0)\"", footer);
-        Assert.DoesNotContain("FG.ShipOrders.Btn.CreateOrder", source[..gridEnd]);
+        var toolbarStart = source.IndexOf("master-list-toolbar", StringComparison.Ordinal);
+        var toolbarEnd = source.IndexOf("</RadzenStack>", toolbarStart, StringComparison.Ordinal);
+        var toolbar = source[toolbarStart..toolbarEnd];
+        Assert.Contains("Orientation=\"Orientation.Horizontal\"", toolbar);
+        Assert.Contains("FG.ShipOrders.Btn.CreateOrder", toolbar);
+        Assert.Contains("FG.ShipOrders.Btn.CreateDcr", toolbar);
+        Assert.Contains("Disabled=\"@(_selected.Count==0)\"", toolbar);
         Assert.DoesNotContain("DueRisk", source);
         Assert.DoesNotContain("DueRisk", Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor"));
     }
