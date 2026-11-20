@@ -14225,4 +14225,5 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   </data>
   <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>입고일</value></data>
   <data name="FG.Inventory.Title" xml:space="preserve"><value>완반제품 재고조회</value></data>
+  <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>출하 오더 / 계획</value></data>
 </root>

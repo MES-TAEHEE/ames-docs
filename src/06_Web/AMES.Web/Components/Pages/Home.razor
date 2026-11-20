@@ -133,7 +133,7 @@
     public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;
 
     // 좌측 메뉴(NavMenu.V)와 같은 판정 — DB 폴백 시 전부 허용
-    bool Vis(string href) => Catalog.UsingFallback || PermSvc.IsVisible(href.TrimStart('/'));
+    bool Vis(string href) => Catalog.UsingFallback || (href.TrimStart('/') == "fg/shipping-orders" ? PermSvc.CanOpen(href) : PermSvc.IsVisible(href.TrimStart('/')));
 
     string GroupLabel(MenuCatalog.MdGroup g) => _lang switch { "en" => g.En, "es" => g.Es, _ => g.Ko };
 

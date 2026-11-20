@@ -223,6 +223,8 @@ public sealed class PermissionService
         var path = Key(relativePath.Split('?', '#')[0]);
         if (_hrefLevel is null || _loadFailed)
             return OpenWhenFailed.Any(p => path == p || (p.Length > 0 && path.StartsWith(p + "/", StringComparison.Ordinal)));
+        if (path == "fg/shipping-orders")
+            return IsVisible("fg/shipping-orders") || IsVisible("fg/shipment-plan");
         var href = _screenHrefs.FirstOrDefault(h => path == h || path.StartsWith(h + "/", StringComparison.Ordinal));
         return href is null || IsVisible(href);
     }

@@ -225,7 +225,7 @@
         // 외부 개방 화면(portal/…)은 내부 메뉴·검색·즐겨찾기에 내지 않는다 — 외부 포탈 셸(PortalLayout)에서만 보인다
         if (normalized.StartsWith(AMES.Web.Services.PortalAuth.Prefix.TrimStart('/') + "/", StringComparison.OrdinalIgnoreCase)) return false;
         return !MenuCatalog.IsHidden(normalized)
-            && (Catalog.UsingFallback || PermSvc.IsVisible(normalized));
+            && (Catalog.UsingFallback || (normalized == "fg/shipping-orders" ? PermSvc.CanOpen(normalized) : PermSvc.IsVisible(normalized)));
     }
 
 
@@ -417,7 +417,6 @@
             $"{WebUtility.HtmlEncode(p)}<span class=\"ames-nav-alt\">{WebUtility.HtmlEncode(s)}</span>");
     }
 
-    // 화면 표기(lid)는 SYS_Screen.LidLabel 그대로 — WH·FG 도 다른 모듈과 같다
     static string DisplayLid(MenuCatalog.Item item) => item.Lid;
 
     MarkupString NavLabel(MenuCatalog.Item item) => NL(item.Ko, item.En, MenuCatalog.EsFor(item.Href));

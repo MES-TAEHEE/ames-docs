@@ -70,6 +70,29 @@ public sealed class InventoryLotViewTests
     }
 
     [Fact]
+    public void Inventory_pages_are_separate_and_the_shipment_tabs_keep_their_own_read_permissions()
+    {
+        static string Read(string path, [System.Runtime.CompilerServices.CallerFilePath] string file = "")
+            => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, "../../..", path)));
+        var workspace = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentManagement.razor");
+        Assert.Contains("@page \"/fg/shipping-orders\"", workspace);
+        Assert.Contains("@page \"/fg/shipment-plan\"", workspace);
+        Assert.Contains("Permissions.IsVisible(\"fg/shipping-orders\")", workspace);
+        Assert.Contains("Permissions.IsVisible(\"fg/shipment-plan\")", workspace);
+        Assert.Contains("@if (_showOrders)", workspace);
+        Assert.Contains("@if (_showPlan)", workspace);
+        Assert.Contains("<ShippingOrders Embedded=\"true\"", workspace);
+        Assert.Contains("<ShipmentPlan Embedded=\"true\"", workspace);
+        var inventory = Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
+        Assert.DoesNotContain("<AmesTabs", inventory);
+        Assert.Contains("IsFinishedGoods => FinishedGoodsOnly", inventory);
+        var catalog = Read("src/06_Web/AMES.Web/Services/MenuCatalog.cs");
+        foreach(var (route,code) in new[]{("fg/inventory","FG-01"),("fg/shipments","FG-03"),("fg/customer-returns","FG-04")})
+            Assert.Contains($"\"{route}\" => \"{code}\"", catalog);
+        Assert.DoesNotContain("path.Equals(\"fg/inventory\"", catalog);
+    }
+
+    [Fact]
     public void Zero_floor_rows_and_historical_defects_do_not_return_to_the_stock_list()
     {
         LocationMapStock[] stock = [

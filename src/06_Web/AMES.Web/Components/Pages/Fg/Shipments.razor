@@ -9,7 +9,7 @@
 @inject FinishedGoodsRepository Fg
 
 <PageTitle>@L["FG.Shipments.Title"]</PageTitle>
-<AmesPageHeader Code="FG-04" TitleKey="FG.Shipments.Title" />
+<AmesPageHeader Code="FG-03" TitleKey="FG.Shipments.Title" />
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Shipments"]</div><div class="ames-kpi-v">@_rows.Select(x=>x.Shipment.Key).Distinct().Count()</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["Shipment.Customers"]</div><div class="ames-kpi-v">@_rows.Select(x=>x.Shipment.CustomerId).Distinct().Count()</div></div>
