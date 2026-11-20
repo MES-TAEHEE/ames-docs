@@ -17,11 +17,13 @@
     <link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=eos1" />
     <link rel="icon" type="image/png" sizes="16x16" href="brand/favicon-16.png?v=eos1" />
     <link rel="shortcut icon" href="favicon.png?v=eos1" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
 <body>
-    <Routes />
+    @* 실시간 연결 전 첫 화면 로딩 표시 — 화면(레이아웃)이 그려지면 CSS(#ames-boot)가 숨긴다 *@
+    <div id="ames-boot" aria-hidden="true"></div>
+    <Routes @rendermode="PageRenderMode" />
     <script src='js/gantt-drag.js'></script>
     <script src='js/wo-preview-drag.js'></script>
     <script src='js/line-pattern-drag.js?v=20260721b'></script>
@@ -38,6 +40,7 @@
     <script src='js/nav-keep.js?v=20261010'></script>
     <script src='js/modal-keys.js?v=20261116'></script>
     <script src='js/kpi-tip.js?v=20261119'></script>
+    <script src='js/nav-keepalive.js?v=20261119'></script>
     <script src='js/shipment-quantity-input.js?v=20261117'></script>
     <script src='js/theme.js?v=20260930'></script>
     <script src='js/location-map-scroll.js?v=20260903'></script>
@@ -61,6 +64,12 @@
     [CascadingParameter] public HttpContext? HttpContext { get; set; }
     string? _theme;
     bool _portal;
+
+    // 앱 전체를 하나의 실시간 연결로(11-19 화면 로딩 개선 D) — 화면 이동이 연결 안에서 끝나 레이아웃·메뉴를 다시 그리지 않는다.
+    // HttpContext 가 필요한 화면([ExcludeFromInteractiveRouting]: 로그인·계정 관리·오류·포탈 로그인)은 정적 렌더(null)로 남고,
+    // 연결 안에서 그 화면으로 이동하면 라우터가 전체 새로고침으로 연다.
+    IComponentRenderMode? PageRenderMode =>
+        HttpContext?.AcceptsInteractiveRouting() == true ? AmesRender.Server : null;
     protected override void OnInitialized()
     {
         _theme = HttpContext?.Request.Cookies["ames.theme"] == "light" ? "light" : null;

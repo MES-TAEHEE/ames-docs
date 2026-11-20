@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthPrvd
-@inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.ScreenAccessCache ScreenCache
 @using System.Security.Claims
 
 <header class="ames-topbar">
@@ -93,7 +93,7 @@
             var userId = user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
             if (!string.IsNullOrEmpty(userId))
             {
-                var roles = await Task.Run(() => Sys.ListUserRoles(userId));
+                var roles = await Task.Run(() => ScreenCache.UserRoles(userId));
                 _roleIds = new HashSet<string>(roles.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
             }
         }

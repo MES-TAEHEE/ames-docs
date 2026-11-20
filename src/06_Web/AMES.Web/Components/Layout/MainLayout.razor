@@ -42,26 +42,43 @@
     [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
     bool _allowed, _dbDown;
 
-    // 화면 읽기 권한(R) 공통 검사 — 라우터가 정적이라 화면 이동마다 이 레이아웃이 서버에서 먼저 돈다.
-    // 화면마다 검사를 넣지 않아도 SYS_Screen 에 등록된 내부 화면은 모두 막히고, 권한이 없으면 화면 본문을 그리지 않는다.
+    string? _checkedPath;   // 마지막으로 열어도 된다고 판정한 화면 경로(쿼리 제외)
+    int _checkSeq;          // 판정 순번 — 가장 최근 이동의 판정만 반영
+
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    // 화면 읽기 권한(R) 공통 검사 — 화면을 열거나 옮길 때마다 돈다.
+    // 앱 전체가 하나의 실시간 연결이라(11-19 D) 이 레이아웃은 화면을 옮겨도 그대로 살아 있다 — 그래서 첫 초기화(OnInitialized)가 아니라
+    // 화면이 바뀔 때마다 새 본문(Body)과 함께 불리는 OnParametersSetAsync 에서 검사한다. 정적 렌더 화면(계정 관리)도 같은 경로로 검사한다.
+    // 화면마다 검사를 넣지 않아도 SYS_Screen 에 등록된 내부 화면은 모두 막히고, 권한이 없으면 화면 본문을 그리지도(초기화하지도) 않는다.
     // 로그인 안 한 사용자는 AuthorizeRouteView 가 로그인으로 보내므로 내부 계정만 검사한다.
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        Nav.LocationChanged += OnLocationChanged;
-        var user = AuthState is null ? null : (await AuthState).User;
-        if (AMES.Web.Services.PortalAuth.IsInternalUser(user))
-        {
-            await PermSvc.EnsureAsync(AuthState!);
-            if (!PermSvc.CanOpen(Nav.ToBaseRelativePath(Nav.Uri)))
-            {
-                // 권한을 못 읽은 원인이 DB 장애면 "권한 없음" 대신 장애 안내를 그린다
-                if (PermSvc.LoadFailed && AMES.Data.Connection.DbHealth.IsDown) { _dbDown = true; return; }
-                Nav.NavigateTo("/unauthorized", replace: true);
-                return;
-            }
-        }
-        _allowed = true;
+        var path = CurrentPath();
+        // 다른 화면으로 옮길 때는 판정이 끝날 때까지 본문을 그리지 않는다(권한 없는 화면이 잠깐이라도 초기화되지 않게).
+        // 같은 화면의 쿼리만 바뀐 경우(탭 등)는 화면을 다시 만들지 않도록 그대로 두고 다시 확인만 한다.
+        if (!(_allowed && path == _checkedPath)) { _allowed = false; _dbDown = false; }
+        var seq = ++_checkSeq;
+        var ok = await CanOpenCurrentAsync();
+        // 판정을 기다리는 사이 다른 화면으로 또 옮겼으면 이 결과는 버린다(늦게 끝난 앞 화면 판정이 뒤 화면을 열지 않게)
+        if (seq != _checkSeq) return;
+        if (ok) { _allowed = true; _checkedPath = path; }
+        else { _allowed = false; _checkedPath = null; }
     }
+
+    async Task<bool> CanOpenCurrentAsync()
+    {
+        var user = AuthState is null ? null : (await AuthState).User;
+        if (!AMES.Web.Services.PortalAuth.IsInternalUser(user)) return true;
+        await PermSvc.EnsureAsync(AuthState!);   // 권한 캐시(60초·변경 알림 시 다시 읽음)
+        if (PermSvc.CanOpen(Nav.ToBaseRelativePath(Nav.Uri))) return true;
+        // 권한을 못 읽은 원인이 DB 장애면 "권한 없음" 대신 장애 안내를 그린다
+        if (PermSvc.LoadFailed && AMES.Data.Connection.DbHealth.IsDown) { _dbDown = true; return false; }
+        Nav.NavigateTo("/unauthorized", replace: true);
+        return false;
+    }
+
+    string CurrentPath() => Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/').ToLowerInvariant();
 
     void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
         => InvokeAsync(StateHasChanged);

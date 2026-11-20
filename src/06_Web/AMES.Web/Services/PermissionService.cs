@@ -23,7 +23,7 @@ public sealed class PermissionService
     // 권한을 못 읽었을 때도 여는 경로 — /unauthorized 까지 막으면 그리로 보내는 것이 되돌아와 반복된다
     static readonly string[] OpenWhenFailed = ["", "unauthorized", "error", "account"];
 
-    private readonly SysRepository _sys;
+    private readonly ScreenAccessCache _cache;
     private readonly ScreenCatalogNotifier _notifier;
     private Dictionary<string, string>? _hrefLevel; // normalised href → "REA" string
     private List<string> _screenHrefs = new();      // 권한 대상 내부 화면 href (긴 것 먼저)
@@ -34,9 +34,9 @@ public sealed class PermissionService
     public bool LoadFailed => _loadFailed;
     private Task? _refreshing;                      // 진행 중인 다시 읽기(메뉴·홈이 같은 알림으로 동시에 불러도 한 번만)
 
-    public PermissionService(SysRepository sys, ScreenCatalogNotifier notifier)
+    public PermissionService(ScreenAccessCache cache, ScreenCatalogNotifier notifier)
     {
-        _sys = sys;
+        _cache = cache;
         _notifier = notifier;
     }
 
@@ -62,14 +62,14 @@ public sealed class PermissionService
 
     private sealed record Snapshot(List<string> Hrefs, Dictionary<string, string> Levels);
 
-    /// DB 에서 화면 목록·사용자 역할·역할 권한을 읽는다(실패하면 예외).
-    private Snapshot Read(string userId)
+    /// 화면 목록·사용자 역할·역할 권한을 읽는다(실패하면 예외) — 서버 공용 캐시(ScreenAccessCache)에서, fresh 면 DB 에서 바로.
+    private Snapshot Read(string userId, bool fresh = false)
     {
-        var roles   = userId.Length == 0 ? [] : _sys.ListUserRoles(userId);
+        var roles   = userId.Length == 0 ? [] : _cache.UserRoles(userId, fresh);
         var roleIds = new HashSet<string>(roles.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
         // RoleID 가 빈 옛 권한 행만 이름으로 맞춘다(기동 시드가 채우기 전)
         var roleNames = new HashSet<string>(roles.Select(r => r.Name).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase);
-        var screens = _sys.ListScreens();
+        var screens = _cache.Screens(fresh);
         // 외부 화면(PORTAL)은 RBAC 대상이 아니다
         var hrefs = screens
             .Where(s => !string.IsNullOrEmpty(s.HRef) && !string.Equals(s.ProcessCode, "PORTAL", StringComparison.OrdinalIgnoreCase))
@@ -82,7 +82,7 @@ public sealed class PermissionService
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (roleIds.Count > 0)
         {
-            var perms = _sys.ListRolePermissions();
+            var perms = _cache.RolePermissions(fresh);
             var codeToHref = screens
                 .Where(s => !string.IsNullOrEmpty(s.HRef))
                 .ToDictionary(s => s.ScreenCode, s => Key(s.HRef!), StringComparer.OrdinalIgnoreCase);
@@ -142,14 +142,14 @@ public sealed class PermissionService
         await _refreshing;
     }
 
-    private async Task RefreshAsync()
+    private async Task RefreshAsync(bool fresh = false)
     {
         var userId = _userId!;
         var version = _notifier.Version;
         try
         {
             // DB 조회는 스레드 풀에서 — DB 가 느리거나 끊겨도 회로(화면) 스레드가 멈추지 않는다
-            var snap = await Task.Run(() => Read(userId));
+            var snap = await Task.Run(() => Read(userId, fresh));
             Apply(snap, userId, version);
         }
         catch
@@ -197,7 +197,7 @@ public sealed class PermissionService
     public async Task<bool> RecheckEditAsync(AuthenticationStateProvider provider, string href)
     {
         await EnsureAsync(provider);
-        await RefreshAsync();
+        await RefreshAsync(fresh: true);   // 저장·승인 직전 — 캐시를 건너뛰고 DB 에서 다시
         return CanEdit(href);
     }
 
@@ -206,7 +206,7 @@ public sealed class PermissionService
     public async Task<bool> RecheckApproveAsync(AuthenticationStateProvider provider,string href)
     {
         await EnsureAsync(provider);
-        await RefreshAsync();
+        await RefreshAsync(fresh: true);   // 저장·승인 직전 — 캐시를 건너뛰고 DB 에서 다시
         return CanApprove(href);
     }
 

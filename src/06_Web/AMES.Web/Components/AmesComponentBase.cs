@@ -1,6 +1,9 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace AMES.Web.Components;
@@ -26,8 +29,40 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
     [Inject] IJSRuntime AmesBusyJs { get; set; } = default!;
     [Inject] NavigationManager AmesNavigation { get; set; } = default!;
 
+    [Inject] ILoggerFactory AmesLoggerFactory { get; set; } = default!;
+
     readonly HashSet<MethodInfo> _runningClicks = new();
     DateTime _slowClickEndUtc = DateTime.MinValue;
+
+    // ── 화면 초기화 시간 기록(11-19, 느린 화면 찾기) ─────────────────────────────────────
+    // 화면(@page)이 처음 열릴 때 OnInitialized(Async)+OnParametersSet(Async) 가 끝날 때까지 걸린 시간을 남긴다.
+    // 300ms 이상이면 Information, 1초 이상이면 Warning — 로그 범주 "AMES.Web.PageInit". 그보다 빠르면 Debug.
+    static readonly ConcurrentDictionary<Type, bool> RoutedPage = new();
+    bool _initTimed;
+
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        if (_initTimed || !RoutedPage.GetOrAdd(GetType(), static t => t.IsDefined(typeof(RouteAttribute), inherit: false)))
+        {
+            await base.SetParametersAsync(parameters);
+            return;
+        }
+        _initTimed = true;
+        var sw = Stopwatch.StartNew();
+        try { await base.SetParametersAsync(parameters); }
+        finally
+        {
+            sw.Stop();
+            try
+            {
+                var ms = sw.ElapsedMilliseconds;
+                var level = ms >= 1000 ? LogLevel.Warning : ms >= 300 ? LogLevel.Information : LogLevel.Debug;
+                AmesLoggerFactory.CreateLogger("AMES.Web.PageInit")
+                    .Log(level, "Page init {Page} {ElapsedMs} ms ({Path})", GetType().Name, ms, new Uri(AmesNavigation.Uri).AbsolutePath);
+            }
+            catch { /* 기록 실패는 화면에 영향 없게 */ }
+        }
+    }
 
     Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem callback, object? arg)
     {

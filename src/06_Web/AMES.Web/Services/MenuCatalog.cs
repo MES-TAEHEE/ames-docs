@@ -9,11 +9,11 @@ namespace AMES.Web.Services;
 /// </summary>
 public sealed class MenuCatalog
 {
-    private readonly SysRepository _sys;
+    private readonly ScreenAccessCache _cache;
     private readonly MasterDataRepository _md;
     private bool _loaded;
 
-    public MenuCatalog(SysRepository sys, MasterDataRepository md) { _sys = sys; _md = md; }
+    public MenuCatalog(ScreenAccessCache cache, MasterDataRepository md) { _cache = cache; _md = md; }
 
     public record Section(string Key, string Icon, string Ko, string En, string Es);
     public record Item(string Section, string Href, string Lid, string Ko, string En, string? Sub = null);
@@ -216,7 +216,7 @@ public sealed class MenuCatalog
         _loaded = true;
         try
         {
-            var rows = _sys.ListScreens("WEB")
+            var rows = _cache.Screens("WEB")   // 서버 공용 캐시 — 화면 변경 알림이 오면 다시 읽는다
                 .Where(s => s.IsVisible && !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
                 .Where(s => !IsRemovedMenu(s.HRef!))
                 .OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode)

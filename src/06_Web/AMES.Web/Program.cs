@@ -61,6 +61,7 @@ builder.Services.AddLocalization();
 
 builder.Services.AddScoped<AMES.Web.Services.PageHeaderState>();
 builder.Services.AddSingleton<ScreenCatalogNotifier>();
+builder.Services.AddSingleton<ScreenAccessCache>();   // 화면 목록·권한·역할 서버 공용 캐시(화면 이동마다 반복 조회 제거)
 builder.Services.AddSingleton<AMES.Web.Services.SignInRefreshTickets>();   // 상단바 비밀번호 변경 후 쿠키 재발급용 1회용 표
 builder.Services.AddSingleton<AMES.Web.Services.TrustedDevices>();   // 내부 로그인 신뢰 기기 쿠키(잠금 공격 완화)
 

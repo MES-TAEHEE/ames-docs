@@ -22,9 +22,24 @@
         bar.classList.add('active');
         clearTimeout(safety);
         safety = setTimeout(finish, 10000); // 안전장치: 종료 신호 누락 대비
+        watchContent();
+    }
+
+    // 실시간 연결 안의 화면 이동(11-19 D)은 enhancedload 가 오지 않는다 — 본문(.ames-content)의 내용이 바뀌면 끝낸다
+    var observer = null;
+    function watchContent() {
+        if (observer) observer.disconnect();
+        var content = document.querySelector('.ames-content');
+        if (!content || typeof MutationObserver !== 'function') return;
+        observer = new MutationObserver(function () {
+            if (!content.querySelector('*')) return;   // 판정 중이라 비어 있는 순간은 넘긴다
+            finish();
+        });
+        observer.observe(content, { childList: true });
     }
 
     function finish() {
+        if (observer) { observer.disconnect(); observer = null; }
         if (!active) return;
         active = false;
         clearTimeout(safety);

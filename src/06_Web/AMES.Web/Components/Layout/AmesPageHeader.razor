@@ -5,7 +5,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject PageHeaderState State
 @inject NavigationManager Nav
-@inject SysRepository Sys
+@inject ScreenAccessCache ScreenCache
 @inject ScreenCatalogNotifier ScreenCatalog
 
 @* 화면엔 아무것도 렌더링하지 않는다 — 경로/이름은 TopBar 브레드크럼에 표시된다. *@
@@ -34,7 +34,7 @@
         var href = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].Trim('/');
         try
         {
-            return Sys.ListScreens("WEB").FirstOrDefault(s =>
+            return ScreenCache.Screens("WEB").FirstOrDefault(s =>
                 string.Equals(s.HRef?.Trim('/'), href, StringComparison.OrdinalIgnoreCase));
         }
         catch { return null; /* DB unavailable: keep the page's fallback header */ }

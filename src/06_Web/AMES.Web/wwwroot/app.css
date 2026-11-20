@@ -6030,3 +6030,25 @@ html[data-theme="light"] {
     pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .12s;
 }
 .ames-kpi-tip.on { opacity: 1; visibility: visible; }
+
+/* ── 화면 연결 전 로딩 표시 (11-19) ─────────────────────────────────────────
+   화면은 미리 그리기 없이(AmesRender.Server) 실시간 연결 뒤 한 번만 그린다 — 그 사이 본문(.ames-content)에 요소가 없으면
+   가운데에 작은 회전 표시를 0.2초 뒤에 띄운다(빨리 열리는 화면은 깜박이지 않음). 화면이 그려지면 요소가 생겨 자동으로 사라진다. */
+.ames-content:not(:has(*))::before {
+    content: ''; display: block; width: 28px; height: 28px; margin: 18vh auto 0;
+    border: 3px solid var(--ames-tip-bd, rgba(147,197,253,.35)); border-top-color: var(--ames-accent, #60a5fa);
+    border-radius: 50%; opacity: 0;
+    animation: ames-page-spin .8s linear infinite, ames-page-wait-in .2s ease .2s forwards;
+}
+@keyframes ames-page-spin { to { transform: rotate(360deg); } }
+@keyframes ames-page-wait-in { to { opacity: 1; } }
+
+/* 첫 접속(실시간 연결 전) 로딩 표시 — App.razor 의 #ames-boot. 앱 전체가 미리 그리기 없이 연결 뒤 그려지므로(11-19 D)
+   그 사이 빈 화면 대신 가운데 회전 표시를 0.3초 뒤 보인다. 뒤에 화면 요소(레이아웃·정적 화면)가 생기면 숨긴다. */
+#ames-boot {
+    position: fixed; left: 50%; top: 40%; width: 32px; height: 32px; margin: -16px 0 0 -16px;
+    border: 3px solid var(--ames-tip-bd, rgba(147,197,253,.35)); border-top-color: var(--ames-accent, #60a5fa);
+    border-radius: 50%; opacity: 0; pointer-events: none;
+    animation: ames-page-spin .8s linear infinite, ames-page-wait-in .2s ease .3s forwards;
+}
+body:has(> #ames-boot ~ :not(script):not(#blazor-error-ui):not(#components-reconnect-modal)) > #ames-boot { display: none; }
