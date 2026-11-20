@@ -3,6 +3,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject AuthenticationStateProvider AuthPrvd
 @inject NavigationManager Nav
@@ -97,7 +98,7 @@ else
                            @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
                 <Template Context="r">
-                    <input type="checkbox" class="pc-ck" disabled="@(!r.PlanHold && (r.Blocked || r.FullyIssued))"
+                    <input type="checkbox" class="pc-ck" disabled="@(!r.PlanHold && (IsBlocked(r) || r.FullyIssued))"
                            checked="@_selected.Contains(r.SoId)"
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
@@ -172,9 +173,15 @@ else
                     {
                         <SoLink SoId="@r.SoId" SoNumber="@r.SoNumber" SoLineNo="@r.SoLineNo" Text="@L["PP.PlanConfirm.Status.Issued"].Value" PillClass="ok" />
                     }
-                    else if (r.Blocked)
+                    else if (IsBlocked(r))
                     {
-                        <span class="pill bad">@L[r.NoRouting ? "PP.PlanConfirm.Status.NoRouting" : "PP.PlanConfirm.Status.Blocked"]</span>
+                        <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
+                            @foreach (var b in (_why.TryGetValue(r.SoId, out var why) ? why : new List<WoBlocker>()))
+                            {
+                                <a class="pill bad wo-link" href="@b.Href" target="_blank" rel="noopener" title="@L["PP.PlanConfirm.Why.Tip"]" @onclick:stopPropagation="true">@L["PP.PlanConfirm.Why." + b.Code]</a>
+                                <span class="dim" style="font-size:.85em;">@b.Detail</span>
+                            }
+                        </div>
                     }
                     else if (r.IssuedQty > 0)
                     {
@@ -226,12 +233,15 @@ else
     string _msg = "";
     bool   _isErr;
 
-    int BlockedCount => _rows.Count(r => r.Blocked);
+    // 막힘 = 마스터 미완성(품목·라우팅) + WO 생성 때 서버가 거부할 사유(코어·LOT PREFIX·라인·금형). 사유는 Search() 가 수주마다 미리 계산한다.
+    Dictionary<int, List<WoBlocker>> _why = new();
+    bool IsBlocked(PpRepository.PlanLineRow r) => r.Blocked || _why.ContainsKey(r.SoId);
+    int BlockedCount => _rows.Count(IsBlocked);
     // 보류한 수주는 보류를 풀기 위해, 그 밖은 WO 생성·보류를 위해 고를 수 있다(막힘·발행 완료 수주는 제외)
-    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => r.PlanHold || (!r.Blocked && !r.FullyIssued));
+    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => r.PlanHold || (!IsBlocked(r) && !r.FullyIssued));
     int SelectedToHold => _rows.Count(r => _selected.Contains(r.SoId) && !r.PlanHold);
     int SelectedHeld => _rows.Count(r => _selected.Contains(r.SoId) && r.PlanHold);
-    int SelectedToCreate => _rows.Count(r => _selected.Contains(r.SoId) && !r.PlanHold && !r.Blocked && !r.FullyIssued);
+    int SelectedToCreate => _rows.Count(r => _selected.Contains(r.SoId) && !r.PlanHold && !IsBlocked(r) && !r.FullyIssued);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = WO 일괄 생성
@@ -262,8 +272,27 @@ else
             _heldCount = Pp.CountPlanHeld(_fCustomer ?? "", _fFrom, _fTo);
         }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
+        ComputeWhy();
         _selected.RemoveWhere(id => _rows.All(r => r.SoId != id));
         ApplyFilters();
+    }
+
+    // 같은 품번·라우팅은 한 번만 진단한다(마스터를 고치고 돌아와 다시 조회하면 새로 계산).
+    void ComputeWhy()
+    {
+        _why = new();
+        var cache = new Dictionary<string, List<WoBlocker>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in _rows.Where(r => !r.FullyIssued && !r.PlanHold))
+        {
+            var key = $"{r.ItemNo}|{r.RoutingType}|{r.ItemExists}";
+            if (!cache.TryGetValue(key, out var list))
+            {
+                try { list = WoBlockers.Diagnose(r, Wos, MD); }
+                catch (Exception ex) { list = [new WoBlocker(WoBlockers.Error, ex.Message, "/md/fd/items?q=" + Uri.EscapeDataString(r.ItemNo))]; }
+                cache[key] = list;
+            }
+            if (list.Count > 0) _why[r.SoId] = list;
+        }
     }
 
     // SO 번호 / 품번·품명 부분일치 클라이언트 필터.
@@ -336,7 +365,7 @@ else
     // 상태 배지(검토 대기·부분 발행)를 누르면 그 수주 하나만 골라 바로 WO 생성 창으로 간다 — 다음 순서로 이동
     async Task CreateFor(PpRepository.PlanLineRow r)
     {
-        if (!_canEdit || r.Blocked || r.FullyIssued || r.PlanHold) return;
+        if (!_canEdit || IsBlocked(r) || r.FullyIssued || r.PlanHold) return;
         _selected.Clear();
         _selected.Add(r.SoId);
         await OpenBatch();
@@ -362,7 +391,7 @@ else
     {
         if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
 
-        var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.PlanHold && !r.Blocked && !r.FullyIssued).ToList();
+        var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.PlanHold && !IsBlocked(r) && !r.FullyIssued).ToList();
         if (lines.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
 
         var result = await Dialog.OpenAsync<PlanConfirmBatchDialog>(

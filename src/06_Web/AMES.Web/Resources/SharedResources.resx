@@ -14226,4 +14226,28 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>Received At</value></data>
   <data name="FG.Inventory.Title" xml:space="preserve"><value>FG Inventory Search</value></data>
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Shipment Orders / Plan</value></data>
+  <data name="PP.PlanConfirm.Why.NoItem" xml:space="preserve">
+    <value>Item missing from master — register it</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoRouting" xml:space="preserve">
+    <value>No routing set — set it in the item master</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoCore" xml:space="preserve">
+    <value>Core item unknown — check the BOM</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLotPrefix" xml:space="preserve">
+    <value>Line has no LOT PREFIX — set it in the line master</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLine" xml:space="preserve">
+    <value>No production line — set it in BOP</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoMold" xml:space="preserve">
+    <value>No mold registered — link the item in the mold master</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Error" xml:space="preserve">
+    <value>Could not check the process</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Tip" xml:space="preserve">
+    <value>Click to open the screen where you can fix it in a new tab</value>
+  </data>
 </root>

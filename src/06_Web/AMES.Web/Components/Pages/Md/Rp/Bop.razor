@@ -419,6 +419,9 @@
         if (item is not null) SelectItem(item);
     }
 
+    // PP-003 막힘 사유에서 ?q=검색어 로 넘어오면 검색칸에 미리 넣는다
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
@@ -431,6 +434,7 @@
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
+        if (!string.IsNullOrWhiteSpace(QueryText)) _search = QueryText.Trim();
         LoadItems();
     }
 

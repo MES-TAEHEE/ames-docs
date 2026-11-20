@@ -335,6 +335,9 @@
     private IEnumerable<DropDownItem> ActiveFilterOptions =>
         _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
+    // PP-003 막힘 사유에서 ?q=검색어 로 넘어오면 검색칸에 미리 넣는다
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
@@ -347,6 +350,7 @@
         try { _procureItems = MD.ListCodeItems(MasterDataRepository.ProcureTypeGroup); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _uomList = MD.ListUoms(); } catch { }
+        if (!string.IsNullOrWhiteSpace(QueryText)) _fSearch = QueryText.Trim();
         Reload();
     }
 

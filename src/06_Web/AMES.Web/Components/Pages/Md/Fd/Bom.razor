@@ -393,6 +393,9 @@
         return item is null ? code ?? "" : MasterDataRepository.LocalName(item);
     }
 
+    // PP-003 막힘 사유에서 ?q=검색어 로 넘어오면 검색칸에 미리 넣는다
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
@@ -403,6 +406,7 @@
         try { _itemList = MD.ListItems(); } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         try { _statusItems   = MD.ListCodeItems("BOM_STATUS"); } catch { }
+        if (!string.IsNullOrWhiteSpace(QueryText)) _search = QueryText.Trim();
         LoadVersions();
     }
 

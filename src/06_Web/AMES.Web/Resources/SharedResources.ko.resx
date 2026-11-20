@@ -14226,4 +14226,28 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>입고일</value></data>
   <data name="FG.Inventory.Title" xml:space="preserve"><value>완반제품 재고조회</value></data>
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>출하 오더 / 계획</value></data>
+  <data name="PP.PlanConfirm.Why.NoItem" xml:space="preserve">
+    <value>품목 마스터에 없음 — 등록 필요</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoRouting" xml:space="preserve">
+    <value>라우팅 미지정 — 품목 마스터에서 지정</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoCore" xml:space="preserve">
+    <value>코어 품번 불명 — BOM 확인</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLotPrefix" xml:space="preserve">
+    <value>라인에 LOT PREFIX 없음 — 라인 마스터에서 지정</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLine" xml:space="preserve">
+    <value>생산 라인 없음 — BOP 에서 지정</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoMold" xml:space="preserve">
+    <value>금형 미등록 — 금형 마스터에서 품번 연결</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Error" xml:space="preserve">
+    <value>공정 확인 실패</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Tip" xml:space="preserve">
+    <value>누르면 고칠 수 있는 화면이 새 탭으로 열립니다</value>
+  </data>
 </root>

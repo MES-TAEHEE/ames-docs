@@ -14226,4 +14226,28 @@ Tardío = no enviado y con fecha vencida
   <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>Fecha de entrada</value></data>
   <data name="FG.Inventory.Title" xml:space="preserve"><value>Inventario de Semielaborados / Terminados</value></data>
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Órdenes / Plan de Envío</value></data>
+  <data name="PP.PlanConfirm.Why.NoItem" xml:space="preserve">
+    <value>Artículo no está en el maestro — registrarlo</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoRouting" xml:space="preserve">
+    <value>Sin ruta — defínala en el maestro de artículos</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoCore" xml:space="preserve">
+    <value>Artículo núcleo desconocido — revise la BOM</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLotPrefix" xml:space="preserve">
+    <value>La línea no tiene PREFIJO DE LOTE — defínalo en el maestro de líneas</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoLine" xml:space="preserve">
+    <value>Sin línea de producción — defínala en BOP</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.NoMold" xml:space="preserve">
+    <value>Sin molde registrado — vincule el artículo en el maestro de moldes</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Error" xml:space="preserve">
+    <value>No se pudo comprobar el proceso</value>
+  </data>
+  <data name="PP.PlanConfirm.Why.Tip" xml:space="preserve">
+    <value>Clic para abrir en una pestaña nueva la pantalla donde corregirlo</value>
+  </data>
 </root>

@@ -286,6 +286,9 @@
     private IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID ?? "", Text = $"[{w.WCID}]{(w.WCName != null ? $" {w.WCName}" : "")}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftCodes.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
+    // PP-003 막힘 사유에서 ?q=검색어 로 넘어오면 검색칸에 미리 넣는다
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryText { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
@@ -296,6 +299,7 @@
         try { _plantCodes = MD.ListCodeItems("PLANT"); } catch { }
         try { _shiftCodes = MD.ListCodeItems("SHIFT_PATTERN"); } catch { }
         try { _wcList = MD.ListWorkCenters(); } catch { }
+        if (!string.IsNullOrWhiteSpace(QueryText)) _fSearch = QueryText.Trim();
         Reload();
     }
 
