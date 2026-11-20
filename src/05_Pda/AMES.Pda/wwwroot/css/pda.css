@@ -9649,6 +9649,7 @@ body:has(.pda-shell.wh),
 
 /* Finished Goods reuses the final Warehouse visual system. */
 .pda-shell.wh.fg-home-shell .wh-home-tile.schedule { border-top-color: #93c5fd !important; }
+.pda-shell.wh.fg-home-shell .wh-home-tile.defect { border-top-color: #c4b5fd !important; }
 
 .pda-shell.wh .fg-selected,
 .pda-shell.wh .wh01-po-card.selected {

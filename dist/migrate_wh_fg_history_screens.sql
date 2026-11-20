@@ -14,17 +14,31 @@ DECLARE @Before nvarchar(max)=(SELECT ScreenID,ScreenCode,HRef,ScreenName,Screen
     FROM dbo.SYS_Screen WHERE ModuleCode='WEB' AND ProcessCode IN('WH','FG')
     ORDER BY ScreenID FOR JSON PATH,INCLUDE_NULL_VALUES);
 
+IF NOT EXISTS(SELECT 1 FROM dbo.SYS_Screen WITH(UPDLOCK,HOLDLOCK) WHERE ModuleCode='WEB' AND TRIM('/' FROM HRef)='fg/inventory')
+BEGIN
+    IF EXISTS(SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='FG-INV')
+        THROW 51826,'FG-INV is already assigned to another screen.',1;
+    INSERT dbo.SYS_Screen(ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,PermissionCriteria,SortOrder,IsVisible,CreatedBy,CreatedTS)
+    VALUES('FG-INV','WEB','FG',N'완반제품 재고조회',N'FG Inventory Search','fg/inventory','FG-01','R__',1,1,'wh-fg-layout',SYSDATETIME());
+    -- These roles already viewed FG stock in the former shared inventory screen; preserve read access only.
+    INSERT dbo.SYS_RolePermission(RoleID,RoleName,ModuleCode,ScreenCode,PermissionLevel,IsSystemRole,EffectiveTS,CreatedBy,CreatedTS)
+    SELECT DISTINCT P.RoleID,P.RoleName,'WEB','FG-INV','R',P.IsSystemRole,SYSDATETIME(),'wh-fg-layout',SYSDATETIME()
+    FROM dbo.SYS_RolePermission P JOIN dbo.SYS_Screen S ON S.ScreenCode=P.ScreenCode AND S.ModuleCode=P.ModuleCode
+    WHERE S.ModuleCode='WEB' AND TRIM('/' FROM S.HRef)='wh/inventory' AND P.PermissionLevel LIKE '%R%';
+END;
+
 DECLARE @Screens table(HRef varchar(200),ProcessCode varchar(20),ScreenName nvarchar(120),
     ScreenNameEn nvarchar(120),LidLabel varchar(20),SortOrder int,IsVisible bit);
 INSERT @Screens VALUES
-    ('wh/inventory','WH',N'재고 조회',N'Inventory Search','WH-01',1,1),
-    ('wh/location-map','WH',N'로케이션 맵',N'Location Map','WH-02',2,1),
-    ('wh/picking-orders','WH',N'피킹 오더',N'Picking Orders','WH-03',3,1),
-    ('wh/log-history','WH',N'이력',N'History','WH-04',4,1),
-    ('fg/customer-returns','FG',N'고객사 리턴',N'Customer Returns','FG-01',1,1),
-    ('fg/shipping-orders','FG',N'출하 오더',N'Shipment Orders','FG-02',2,1),
-    ('fg/shipment-plan','FG',N'출하 계획',N'Shipment Plan','FG-03',3,1),
-    ('fg/shipments','FG',N'출하 목록',N'Shipments','FG-04',4,1);
+    ('wh/inventory','WH',N'자재 재고조회',N'Material Inventory Search','WH-01',1,1),
+    ('wh/location-map','WH',N'로케이션 맵',N'Location Map','WH-MAP',99,0),
+    ('wh/picking-orders','WH',N'피킹 오더',N'Picking Orders','WH-02',2,1),
+    ('wh/log-history','WH',N'이력',N'History','WH-03',3,1),
+    ('fg/inventory','FG',N'완반제품 재고조회',N'FG Inventory Search','FG-01',1,1),
+    ('fg/shipping-orders','FG',N'출하 오더 / 계획',N'Shipment Orders / Plan','FG-02',2,1),
+    ('fg/shipment-plan','FG',N'출하 계획',N'Shipment Plan','FG-02',99,0),
+    ('fg/shipments','FG',N'출하 목록',N'Shipments','FG-03',3,1),
+    ('fg/customer-returns','FG',N'고객사 리턴',N'Customer Returns','FG-04',4,1);
 
 IF EXISTS(SELECT 1 FROM @Screens V WHERE
     (SELECT COUNT(*) FROM dbo.SYS_Screen S WITH(UPDLOCK,HOLDLOCK)

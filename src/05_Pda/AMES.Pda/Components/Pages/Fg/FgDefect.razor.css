@@ -1,0 +1,4 @@
+.defect-photo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.defect-photo-actions ::deep button { display: flex; align-items: center; justify-content: center; min-height: 48px; }
+.defect-photo { display: block; width: 100%; max-height: 260px; object-fit: contain; margin: 12px 0; border: 1px solid var(--wh-line, #334155); border-radius: 4px; }
+::deep .defect-reason { width: 100%; min-height: 100px; }

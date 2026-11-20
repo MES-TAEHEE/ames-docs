@@ -29,6 +29,7 @@
 
     /// <summary>탭 전환 시 발생. 인자는 0-based 활성 탭 인덱스.</summary>
     [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+    [Parameter] public int InitialIndex { get; set; }
 
     private readonly List<AmesTab> _tabs = new();
     private AmesTab? _active;
@@ -37,6 +38,7 @@
     {
         _tabs.Add(tab);
         _active ??= tab;
+        if (_tabs.Count - 1 == InitialIndex) _active = tab;
         StateHasChanged();
     }
 

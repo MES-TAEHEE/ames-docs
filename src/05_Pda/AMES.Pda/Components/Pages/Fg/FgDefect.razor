@@ -1,0 +1,178 @@
+@page "/fg/defect"
+@inject FinishedGoodsApi Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh02-shell fg-defect-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <span class="pda-tbar-brand">DEFECT REGISTRATION</span>
+    </div>
+    <div class="pda-bd wh02-body">
+        <RadzenCard class="wh02-panel hardware-scan-panel">
+            <div class="pda-fld">
+                <label>PRODUCT LOT BARCODE</label>
+                <RadzenTextBox Value="@_barcode" @oninput="@(e => _barcode = e.Value?.ToString() ?? "")"
+                               @onkeydown="ScanKey" Disabled="@(_busy || !_allowed)" Placeholder="Scan Barcode"
+                               class="pda-input pda-scan-input pda-barcode-input" />
+            </div>
+            @if (MauiProgram.IsDeveloperMode)
+            {
+                <RadzenButton Text="SCAN" Click="Scan" Disabled="@(_busy || !_allowed)" class="wh02-scan-btn" />
+            }
+        </RadzenCard>
+        @if (_lot is { } lot)
+        {
+            <RadzenCard class="wh02-lot-card">
+                <div class="fg-return-product-head">
+                    <div><span>PRODUCT LOT</span><strong>@lot.LotNo</strong></div>
+                    <RadzenBadge class="wh02-status-chip" Text="@(lot.DefectId.HasValue ? "AWAITING DISPOSITION" : "1 EA")" />
+                </div>
+                <div class="fg-return-detail-rows">
+                    <div class="fg-return-detail-row"><span>PART NO</span><strong>@lot.PartNo</strong></div>
+                    <div class="fg-return-detail-row"><span>PART NAME</span><strong>@Display(lot.PartName)</strong></div>
+                    <div class="fg-return-detail-row"><span>LOCATION</span><strong>@Display(lot.LocationNo)</strong></div>
+                    <div class="fg-return-detail-row"><span>PALLET</span><strong>@Display(lot.PalletNo)</strong></div>
+                </div>
+            </RadzenCard>
+            @if (lot.DefectId.HasValue)
+            {
+                <RadzenCard class="wh03-action-card">
+                    <div class="pda-fld"><label>DEFECT REASON</label><strong>@Display(lot.Reason)</strong></div>
+                    <div class="pda-status dim">Defect #@lot.DefectId · Awaiting disposition</div>
+                    @if (_savedPhoto is not null) { <img src="@_savedPhoto" class="defect-photo" alt="Registered defect evidence" /> }
+                </RadzenCard>
+            }
+            else
+            {
+                <RadzenCard class="wh03-action-card fg-form-card">
+                    <div class="pda-fld">
+                        <label>DEFECT PHOTO</label>
+                        <div class="defect-photo-actions">
+                            <RadzenButton Icon="photo_camera" Text="TAKE PHOTO" Click="@(() => PickPhoto(true))" Disabled="_busy" class="wh02-clear-btn" />
+                            <RadzenButton Icon="photo_library" Text="SELECT PHOTO" Click="@(() => PickPhoto(false))" Disabled="_busy" class="wh02-clear-btn" />
+                        </div>
+                        @if (_photo is not null) { <img src="@_photo.Preview" class="defect-photo" alt="Defect photo preview" /> }
+                    </div>
+                    <div class="pda-fld">
+                        <label>DEFECT REASON</label>
+                        <RadzenTextArea @bind-Value="_reason" Rows="3" MaxLength="500" Disabled="_busy"
+                                        Placeholder="Enter defect reason" class="pda-input defect-reason" />
+                    </div>
+                </RadzenCard>
+            }
+        }
+        <div class="wh02-action-bar has-reset">
+            <RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" class="wh02-clear-btn" />
+            <RadzenButton Text="REGISTER DEFECT" Click="AskRegister" Disabled="@(_busy || !_allowed || _lot is null || _lot.DefectId.HasValue)"
+                          class="pda-btn-pri wh02-receive-btn" />
+        </div>
+    </div>
+    @if (_modal)
+    {
+        <div class="wh-modal-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="fg-defect-modal-title">
+            <RadzenCard class="@($"wh-modal-card {_kind}")">
+                <div class="wh-modal-mark">@(_kind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title" id="fg-defect-modal-title">@_title</div>
+                <div class="wh-modal-message">@_message</div>
+                <div class="wh-modal-actions">
+                    @if (_confirm) { <RadzenButton Text="CONFIRM" Click="Register" Disabled="_busy" class="wh-modal-btn primary" /> }
+                    <RadzenButton Text="@(_confirm ? "CANCEL" : "OK")" Click="CloseModal" Disabled="_busy" class="wh-modal-btn primary" />
+                </div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@code {
+    private PdaFgDefectLot? _lot;
+    private PdaDefectPhoto? _photo;
+    private string? _savedPhoto;
+    private string _barcode = "", _reason = "", _title = "", _message = "", _kind = "info";
+    private bool _busy, _allowed, _modal, _confirm;
+    private Guid _requestId;
+    private DotNetObjectReference<FgDefect>? _scanner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { await Api.FgDefectAccessAsync(); _allowed = true; }
+        catch (Exception ex) { Show("Defect Registration Unavailable", ex.Message, "fail"); }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += NativeScan;
+        _scanner = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scanner, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        await Focus();
+    }
+    private void NativeScan(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+    [JSInvokable] public async Task OnHardwareScanAsync(string barcode)
+    {
+        if (_busy || _modal || !_allowed) return;
+        _barcode = barcode.Replace("\u0002", "").Replace("\u0003", "").Trim();
+        await Scan();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task ScanKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Scan(); }
+    private async Task Scan()
+    {
+        if (_busy || _modal || !_allowed) return;
+        if (string.IsNullOrWhiteSpace(_barcode)) { Show("Barcode Required", "Scan Barcode first.", "warn"); return; }
+        _busy = true; _lot = null; _photo = null; _savedPhoto = null; _reason = "";
+        try
+        {
+            _lot = await Api.FgDefectScanAsync(_barcode.Trim());
+            _barcode = _lot.LotNo; _requestId = Guid.NewGuid();
+            if (_lot.DefectId is int id)
+            {
+                _savedPhoto = await Api.FgDefectPhotoAsync(id);
+                Show("Already Registered", "This LOT is already awaiting defect disposition.", "warn");
+            }
+        }
+        catch (Exception ex) { Show("LOT Scan Failed", ex.Message, "fail"); }
+        finally { _busy = false; await Focus(); }
+    }
+    private async Task PickPhoto(bool capture)
+    {
+        if (_busy || _lot is null || _lot.DefectId.HasValue) return;
+        _busy = true;
+        try { var photo = await PdaDefectPhoto.PickAsync(capture); if (photo is not null) { _photo = photo; _requestId = Guid.NewGuid(); } }
+        catch (Exception ex) { Show("Photo Unavailable", ex.Message, "warn"); }
+        finally { _busy = false; }
+    }
+    private void AskRegister()
+    {
+        if (_busy || !_allowed || _lot is null || _lot.DefectId.HasValue) return;
+        if (_photo is null) { Show("Photo Required", "Take or select a defect photo.", "warn"); return; }
+        if (string.IsNullOrWhiteSpace(_reason)) { Show("Reason Required", "Enter the defect reason.", "warn"); return; }
+        _confirm = true;
+        Show("Confirm Defect Registration", $"{_lot.LotNo}\n{_lot.PartNo} · 1 EA\nRegister this LOT for defect disposition? It will be removed from available stock.", "warn");
+    }
+    private async Task Register()
+    {
+        if (_busy || !_confirm || _lot is null || _photo is null) return;
+        _busy = true; _confirm = false;
+        try
+        {
+            var result = await Api.RegisterFgDefectAsync(new(_requestId, _lot.LotNo, _lot.PartNo, _lot.Qty,
+                _lot.LocationNo, _lot.PalletNo, _reason.Trim(), _photo.Bytes, _photo.ContentType));
+            Clear();
+            Show("Defect Registered", $"{result.LotNo}\nDefect #{result.DefectId} · {result.Status}", "success");
+        }
+        catch (Exception ex) { Show("Defect Registration Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+    private void Clear() { _lot = null; _photo = null; _savedPhoto = null; _barcode = ""; _reason = ""; _requestId = Guid.Empty; _ = Focus(); }
+    private void Show(string title, string message, string kind) { _title = title; _message = message; _kind = kind; _modal = true; }
+    private void CloseModal() { _modal = false; _confirm = false; _ = Focus(); }
+    private async Task Focus() { if (!_modal && _allowed) try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg-defect-shell .pda-scan-input"); } catch { } }
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= NativeScan;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scanner?.Dispose();
+    }
+}

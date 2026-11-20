@@ -1,0 +1,38 @@
+@page "/fg/shipping-orders"
+@page "/fg/shipment-plan"
+@rendermode AmesRender.Server
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>FG-02 @L["FG.ShipmentManagement.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="FG-02" TitleKey="FG.ShipmentManagement.Title" />
+
+@if (_ready)
+{
+    <AmesTabs @key="_openPlan" InitialIndex="@(_openPlan && _showOrders && _showPlan ? 1 : 0)">
+        @if (_showOrders)
+        {
+            <AmesTab Title='@L["FG.ShipOrders.Title"]'><ShippingOrders Embedded="true" /></AmesTab>
+        }
+        @if (_showPlan)
+        {
+            <AmesTab Title='@L["FG.ShipPlan.Title"]'><ShipmentPlan Embedded="true" /></AmesTab>
+        }
+    </AmesTabs>
+}
+
+@code {
+    private bool _ready, _showOrders, _showPlan, _openPlan;
+    protected override async Task OnParametersSetAsync()
+    {
+        await Permissions.EnsureAsync(Auth);
+        _showOrders = Permissions.IsVisible("fg/shipping-orders");
+        _showPlan = Permissions.IsVisible("fg/shipment-plan");
+        if (!_showOrders && !_showPlan) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _openPlan = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].Trim('/').Equals("fg/shipment-plan", StringComparison.OrdinalIgnoreCase);
+        _ready = true;
+    }
+}

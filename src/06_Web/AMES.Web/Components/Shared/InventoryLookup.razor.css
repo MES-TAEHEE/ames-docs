@@ -1,6 +1,12 @@
-::deep .inventory-summary-grid .rz-cell-data { font-size:.84rem; line-height:1.4; }
-::deep .inventory-summary-grid .rz-state-highlight > td { background:var(--ames-sf-172238)!important; color:var(--ames-tx-dbe5ef)!important; }
-::deep .inventory-summary-grid .rz-state-highlight .rz-cell-data,
-::deep .inventory-summary-grid .rz-state-highlight .code,
-::deep .inventory-summary-grid .rz-state-highlight .dim { color:inherit!important; }
-::deep .inventory-summary-grid .rz-state-highlight > td:first-child { box-shadow:inset 3px 0 var(--ames-tx-blue-300); }
+.inventory-floor { color: var(--ames-tx-red-300, #ef4444); font-weight: 600; }
+.inventory-lookup, .inventory-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Let column widths override content sizing when the user drags a header edge. */
+.inventory-summary-panel ::deep .inventory-lot-grid .rz-data-grid-data > table {
+    table-layout: fixed !important;
+}

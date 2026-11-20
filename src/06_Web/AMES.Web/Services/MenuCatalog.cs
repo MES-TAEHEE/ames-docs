@@ -57,16 +57,16 @@ public sealed class MenuCatalog
         new("portal", "portal/deliveries", "PORTAL-002", "납품서 관리", "Delivery Management"),
         new("portal", "portal/packing-quantities", "PORTAL-003", "적입량 관리", "Packing Quantities"),
         // -- WH --
-        new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
+        new("wh", "wh/inventory",       "WH-01", "자재 재고조회",   "Material Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
-        new("wh", "wh/picking-orders",  "WH-03", "피킹 오더",   "Picking Orders"),
-        new("wh", "wh/log-history",     "WH-04", "이력",       "History"),
+        new("wh", "wh/picking-orders",  "WH-02", "피킹 오더",   "Picking Orders"),
+        new("wh", "wh/log-history",     "WH-03", "이력",       "History"),
 
         // -- FG --
-        new("fg", "fg/customer-returns", "FG-01", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipping-orders",  "FG-02", "출하 오더",   "Shipment Orders"),
-        new("fg", "fg/shipment-plan",    "FG-03", "출하 계획",   "Shipment Plan"),
-        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
+        new("fg", "fg/inventory",       "FG-01", "완반제품 재고조회", "FG Inventory Search"),
+        new("fg", "fg/shipping-orders",  "FG-02", "출하 오더 / 계획", "Shipment Orders / Plan"),
+        new("fg", "fg/shipments",        "FG-03", "출하 목록",   "Shipments"),
+        new("fg", "fg/customer-returns", "FG-04", "고객사 리턴", "Customer Returns"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -164,12 +164,22 @@ public sealed class MenuCatalog
         "portal/delivery-notes",
         "portal/receipts",
         "wh/locations",
+        "wh/location-map",
         "wh/picking-requests",
+        "fg/location-map",
+        "fg/shipment-plan",
         "fg/history",
     };
 
-    public static string? PortalDisplayCode(string href) => href.Trim('/').ToLowerInvariant() switch
+    public static string? DisplayCode(string href) => href.Trim('/').ToLowerInvariant() switch
     {
+        "wh/inventory" => "WH-01",
+        "wh/picking-orders" => "WH-02",
+        "wh/log-history" => "WH-03",
+        "fg/inventory" => "FG-01",
+        "fg/shipping-orders" or "fg/shipment-plan" => "FG-02",
+        "fg/shipments" => "FG-03",
+        "fg/customer-returns" => "FG-04",
         "portal/orders" or "portal/due-orders" => "PORTAL-001",
         "portal/deliveries" => "PORTAL-002",
         "portal/packing-quantities" => "PORTAL-003",
@@ -186,7 +196,6 @@ public sealed class MenuCatalog
             || path.Equals("fg/history", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("fg/inventory", StringComparison.OrdinalIgnoreCase)
             || path.Equals("portal/shipment-plan", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -223,7 +232,7 @@ public sealed class MenuCatalog
                 .Select(s => new Item(
                     s.ProcessCode!.ToLowerInvariant(),
                     s.HRef!.TrimStart('/'),
-                    PortalDisplayCode(s.HRef!) ?? s.LidLabel ?? s.ScreenCode,
+                    DisplayCode(s.HRef!) ?? s.LidLabel ?? s.ScreenCode,
                     s.HRef!.TrimStart('/') == "portal/orders" ? "발주 조회" : s.ScreenName,
                     s.HRef!.TrimStart('/') == "portal/orders" ? "Orders" : s.ScreenNameEn ?? s.ScreenName,
                     s.SubProcessCode))
@@ -299,6 +308,7 @@ public sealed class MenuCatalog
         ["portal/packing-quantities"] = "Cantidades de empaque",
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
+        ["fg/inventory"] = "Inventario de Semielaborados / Terminados",
         ["wh/picking-orders"] = "Órdenes de Picking",
         ["wh/picking-requests"] = "Solicitud de picking",
         ["wh/log-history"] = "Historial",

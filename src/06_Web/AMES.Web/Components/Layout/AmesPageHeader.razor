@@ -50,7 +50,8 @@
                  : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? screen.ScreenName
                  : string.IsNullOrWhiteSpace(screen.ScreenNameEn) ? screen.ScreenName : screen.ScreenNameEn;
         if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(Suffix)) name = $"{name} {Suffix}";
-        State.Set(screen?.LidLabel ?? screen?.ScreenCode ?? Code, name);
+        var href = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0];
+        State.Set(MenuCatalog.DisplayCode(href) ?? screen?.LidLabel ?? screen?.ScreenCode ?? Code, name);
     }
 
     // 알림은 스레드 풀에서 온다(ScreenCatalogNotifier) — DB 조회는 회로 밖, 제목 반영만 회로에서

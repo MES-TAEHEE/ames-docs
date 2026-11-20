@@ -35,7 +35,7 @@ public sealed record LocationMapStock(
     string AreaName = "",
     decimal DefectQty = 0,
     string ItemType = "",
-    string ItemCategory = "", decimal InspectionQty = 0);
+    string ItemCategory = "", decimal InspectionQty = 0, DateTime? ReceivedAt = null, string? VendorCode = null);
 
 public sealed record LocationMapArea(string WarehouseCode, string WarehouseName, string AreaCode, string AreaName, string? Prefix,
     string StorageMode = "GRID", bool IsLineArea = false);

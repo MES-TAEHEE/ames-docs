@@ -5,26 +5,28 @@ namespace AMES.Data.Tests;
 public sealed class LocationMapLineGroupTests
 {
     [Fact]
-    public void Initial_map_renders_loading_before_any_database_load_or_empty_cards()
+    public void Initial_map_shows_loading_and_persists_prerendered_data_without_a_second_load()
     {
         foreach(var module in new[]{"Wh","Fg"})
         {
             var page=Read($"src/06_Web/AMES.Web/Components/Pages/{module}/LocationMap.razor");
             Assert.Contains("private bool _loading = true;",page);
-            Assert.Contains("OnAfterRenderAsync(bool firstRender)",page);
-            Assert.Contains("if (!firstRender) return;",page);
-            Assert.Contains("finally { _loading = false; await InvokeAsync(StateHasChanged); }",page);
+            Assert.Contains("OnInitializedAsync()",page);
+            Assert.Contains("PageState.TryTakeFromJson<MapState>",page);
+            Assert.Contains("PageState.PersistAsJson(StateKey",page);
+            Assert.Contains("if (!restored) await Reload();",page);
+            Assert.Contains("finally { _loading = false; }",page);
             Assert.Contains("<LocationMapLoading />",page);
             Assert.DoesNotContain("Msg.Loading",page);
             Assert.True(page.IndexOf("@if (_loading)",StringComparison.Ordinal)<page.IndexOf("<LocationMapExplorer",StringComparison.Ordinal));
-            Assert.DoesNotContain("OnInitializedAsync",page);
+            Assert.DoesNotContain("OnAfterRenderAsync",page);
         }
     }
     [Fact]
     public void Cards_wait_for_interactivity_show_loading_and_reject_duplicate_or_stale_clicks()
     {
         var page=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
-        Assert.Contains("if (!_interactiveReady || _navigating)",page);
+        Assert.Contains("if (!_interactiveReady || _navigating || _saving || _dialog is not null || scope != SelectionScope) return;",page);
         Assert.Contains("Disabled=\"@(!_interactiveReady || _navigating || _saving)\"",page);
         Assert.Contains("<LocationMapLoading />",page);
         Assert.DoesNotContain("Msg.Loading",page);

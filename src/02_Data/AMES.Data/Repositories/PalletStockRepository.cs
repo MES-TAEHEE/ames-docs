@@ -278,7 +278,8 @@ public sealed class PalletStockRepository
     /// 이미 위치를 받은 행(PDA FG 입고 뒤)도 지운다 — 물건이 라인으로 돌아왔으니 창고 재고에서도 빠져야 한다; 결과의 LocationNo 로 화면이 경고한다.
     /// </summary>
     internal static PalletUnloadResult Unload(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                              string sourceType, string reason, string operatorId, string employeeNo)
+                                              string sourceType, string reason, string operatorId, string employeeNo,
+                                              string transactionType = "OUT")
     {
         using (var rel = new SqlCommand("""
             IF OBJECT_ID(N'dbo.PR_LotPallet', N'U') IS NOT NULL
@@ -303,7 +304,7 @@ public sealed class PalletStockRepository
             locationNo = r["LocationNo"] as string;
         }
         if (before > 0m)
-            WriteTxn(conn, tx, "OUT", sourceType, lotId, lotCode, itemNo, before, -before, 0m,
+            WriteTxn(conn, tx, transactionType, sourceType, lotId, lotCode, itemNo, before, -before, 0m,
                      $"{lotCode} {itemNo} {reason}{(palletNo is null ? "" : $" ← {palletNo}")}", operatorId, employeeNo, locationNo);
         return new PalletUnloadResult(true, palletNo, locationNo);
     }

@@ -7,7 +7,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>@L["WH.Inventory.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="WH-006" TitleKey="WH.Inventory.Title" />
+<AmesPageHeader Code="WH-01" TitleKey="WH.Inventory.Title" />
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
@@ -15,7 +15,7 @@
 }
 else
 {
-    <InventoryLookup Inventory="_inventory" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="wh-inventory-search" AllowLotDefect="true" InventoryChanged="ReloadInventory" />
+    <InventoryLookup Inventory="_inventory" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="wh-inventory-search" InventoryChanged="ReloadInventory" />
 }
 
 @code {
@@ -31,12 +31,13 @@ else
         try
         {
             _error = null;
-            var stock = InventoryRepo.ListUnifiedInventory(finishedGoods: false, includeFinishedGoods: true, includeDefects: true)
+            var stock = InventoryRepo.ListUnifiedInventory(finishedGoods: false, includeFinishedGoods: true)
                 .Select(x => new LocationMapStock(
                     x.LocationNo, x.PartNo, x.PartName, x.LotNo, x.Qty, x.Unit,
-                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName, x.DefectQty, InspectionQty:x.InspectionQty))
+                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName, InspectionQty:x.InspectionQty,
+                    ReceivedAt:x.ReceivedAt, VendorCode:x.VendorCode))
                 .ToList();
-            _inventory = InventorySearchRows.FromMaster(MD.ListItems(), stock);
+            _inventory = InventorySearchRows.FromMaster(MD.ListItems().Where(x => !InventorySearchRows.IsSemiFinished(x.ItemType)), stock);
             _itemVendors = SCM.ListItemVendors();
             _itemCodes = MD.ListCodeItems("ITEM_TYPE").Concat(MD.ListCodeItems("ITEM_CATEGORY")).ToList();
         }

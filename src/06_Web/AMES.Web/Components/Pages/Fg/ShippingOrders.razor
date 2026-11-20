@@ -1,5 +1,3 @@
-@page "/fg/shipping-orders"
-@rendermode AmesRender.Server
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using AMES.Contracts.Dto
 @inject FinishedGoodsRepository Fg
@@ -10,8 +8,11 @@
 @inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>FG-02 @L["FG.ShipOrders.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="FG-02" TitleKey="FG.ShipOrders.Title" />
+@if (!Embedded)
+{
+    <PageTitle>FG-02 @L["FG.ShipOrders.Title"] · AMES</PageTitle>
+    <AmesPageHeader Code="FG-02" TitleKey="FG.ShipOrders.Title" />
+}
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(ShipmentPlanRows.IsUnshipped)</div></div>
@@ -23,7 +24,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />}
             @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />}
-            <RadzenTextBox @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
+            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem">
@@ -101,6 +102,7 @@
     <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
 }
 @code {
+    [Parameter] public bool Embedded { get; set; }
     bool _includeShipped=true;
     RadzenDataGrid<ShippingOrderDto>? _grid;
     IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase))

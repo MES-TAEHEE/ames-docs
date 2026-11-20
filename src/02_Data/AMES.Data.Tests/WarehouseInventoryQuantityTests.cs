@@ -68,29 +68,29 @@ public sealed class WarehouseInventoryQuantityTests
     }
 
     [Fact]
-    public void Inventory_search_omits_production_requirements_and_retains_stock_and_export_columns()
+    public void Inventory_search_shows_lot_receipt_storage_and_vendor_code_columns()
     {
         var lookup = Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
-        foreach (var column in new[] { "Qty", "StoredQty", "UnassignedQty", "RequiredQty", "DefectQty" })
+        foreach (var column in new[] { "PartNo", "LotNo", "LocationNo", "ReceivedAt", "StoredQty", "FloorQty", "VendorCodes" })
             Assert.Contains($"Property=\"{column}\"", lookup);
-        foreach (var removed in new[] { "InspectionQty", "LocationCount", "LotCount" })
+        foreach (var removed in new[] { "Qty", "UnassignedQty", "RequiredQty", "DefectQty", "InspectionQty", "LocationCount", "LotCount" })
             Assert.DoesNotContain($"Property=\"{removed}\"", lookup);
-        Assert.DoesNotContain("WH.Inventory.AvailableQty", lookup);
-        Assert.DoesNotContain("WH.Inventory.Col.InspectionQty", lookup);
-        Assert.Contains("row.Qty > row.InspectionQty", lookup);
-        Assert.Contains("lot.Qty<=lot.InspectionQty", lookup);
-        Assert.Contains("ProductionRequirements is null ? null", lookup);
-        Assert.Contains("row.StoredQty, row.UnassignedQty", lookup);
-        Assert.Contains(".Append(row.DefectQty)", lookup);
-        Assert.Contains("new object?[] { row.RequiredQty }", lookup);
+        Assert.Contains("AllowColumnResize=\"true\"", lookup);
+        Assert.Contains("Immediate=\"true\"", lookup);
+        Assert.Contains("args.Key == \"Enter\"", lookup);
+        Assert.Contains("Data=\"@LotRows\"", lookup);
+        Assert.DoesNotContain("@LotGrid(false)", lookup);
+        Assert.DoesNotContain("@LotGrid(true)", lookup);
+        Assert.DoesNotContain("InventoryType", lookup);
+        Assert.DoesNotContain("Icon=\"map\"", lookup);
+        Assert.Contains("row.StoredQty, row.FloorQty, row.VendorCodes", lookup);
+        var columns = lookup[lookup.IndexOf("<Columns>")..lookup.IndexOf("</Columns>")];
+        Assert.True(columns.IndexOf("Property=\"LocationNo\"") < columns.IndexOf("Property=\"LotNo\""));
+        Assert.True(columns.IndexOf("Property=\"LotNo\"") < columns.IndexOf("Property=\"PartNo\""));
+        Assert.True(columns.LastIndexOf("Property=\"VendorCodes\"") > columns.LastIndexOf("Property=\"FloorQty\""));
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Wh/Inventory.razor");
-        Assert.DoesNotContain("x.Qty-x.InspectionQty", page);
         Assert.DoesNotContain("GetRemainingMaterialRequirements", page);
-        Assert.DoesNotContain("ProductionRequirements", page);
-        Assert.DoesNotContain("LoadRequirements", page);
-        Assert.DoesNotContain("_requirementsWarning", page);
-        Assert.Contains("if (ShowProductionRequirements)", lookup);
-        Assert.Contains("public bool ShowProductionRequirements { get; set; }", lookup);
+        Assert.DoesNotContain("AllowLotDefect", page);
     }
 
     [Theory]
@@ -102,7 +102,7 @@ public sealed class WarehouseInventoryQuantityTests
     {
         var document = XDocument.Parse(Read("src/06_Web/AMES.Web/Resources/" + resource));
         var keys = document.Root!.Elements("data").Select(e => e.Attribute("name")!.Value).ToList();
-        foreach (var suffix in new[] { "CurrentQty", "StoredQty", "UnassignedQty", "RequiredQty", "RequiredQtyHint", "RequirementsFailed", "RequirementsMissingBom" })
+        foreach (var suffix in new[] { "ReceivedAt", "ExportConfirm", "Ph.Search" })
             Assert.Single(keys, key => key == "WH.Inventory." + suffix);
     }
 }

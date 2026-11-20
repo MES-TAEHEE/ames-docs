@@ -9,8 +9,8 @@
 @using AMES.Data.Repositories
 @using Radzen
 
-<PageTitle>WH-004 @L["WH.LogHistory.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="WH-004" TitleKey="WH.LogHistory.Title" />
+<PageTitle>WH-03 @L["WH.LogHistory.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-03" TitleKey="WH.LogHistory.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Events"]</div><div class="ames-kpi-v">@EventCount</div></div>
@@ -27,7 +27,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' />
+            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' />
             <RadzenDropDown @bind-Value="_eventType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
