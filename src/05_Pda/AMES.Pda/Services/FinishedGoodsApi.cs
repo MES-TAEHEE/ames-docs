@@ -7,6 +7,29 @@ namespace AMES.Pda.Services;
 
 public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
+    public Task<System.Text.Json.JsonElement> FgDefectAccessAsync()
+        => GetRequiredAsync<System.Text.Json.JsonElement>("/api/fg/defects/access", "Defect registration service is unavailable.");
+    public Task<AMES.Contracts.Dto.PdaFgDefectLot> FgDefectScanAsync(string barcode)
+        => GetRequiredAsync<AMES.Contracts.Dto.PdaFgDefectLot>($"/api/fg/defects/scan?barcode={Uri.EscapeDataString(barcode)}", "Defect registration service is unavailable.");
+    public async Task<string?> FgDefectPhotoAsync(int id)
+    {
+        Authorize();
+        using var response = await _http.GetAsync($"/api/fg/defects/{id}/photo");
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Defect photo could not be loaded."));
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        return $"data:{response.Content.Headers.ContentType?.MediaType};base64,{Convert.ToBase64String(bytes)}";
+    }
+    public async Task<AMES.Contracts.Dto.PdaFgDefectResult> RegisterFgDefectAsync(AMES.Contracts.Dto.PdaFgDefectRequest body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/fg/defects", body);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Defect registration could not be confirmed. Scan the LOT to check its status before retrying."));
+        return await response.Content.ReadFromJsonAsync<AMES.Contracts.Dto.PdaFgDefectResult>()
+            ?? throw new InvalidOperationException("Invalid defect registration response. Scan the LOT to check its status.");
+    }
     public Task<List<AMES.Contracts.Dto.AssyReadyPalletDto>> AssyReadyPalletsAsync()
         =>GetRequiredAsync<List<AMES.Contracts.Dto.AssyReadyPalletDto>>("/api/fg/putaway/ready-pallets",
             "Assy Ready could not be loaded. Please retry.");

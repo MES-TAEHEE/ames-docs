@@ -77,6 +77,7 @@ public static partial class FgEndpoints
         g.MapPalletReturns(factory);
         MapPutAwayBatch(g,factory);
         g.MapAssyReady(factory);
+        g.MapFgDefects(factory, app.Logger);
 
         if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {

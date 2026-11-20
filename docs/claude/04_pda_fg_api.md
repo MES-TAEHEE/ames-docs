@@ -62,3 +62,5 @@ Health check: `GET /api/health`
 - 출하 대기 수량과 추천 가능한 FG 재고를 합해도 필요량보다 적으면 파트에 빨간색 `SHORTAGE · N EA`를 표시한다. 재고가 전혀 없을 때도 표시하며 일부 재고가 있으면 위치 추천을 함께 유지한다. 부족 수량은 추천 50행 표시 제한과 별도로 전체 적합 재고에서 계산한다.
 - **출하 오더 재고 집계 오류 수정**: ListShippableStock에서 위치 EXISTS를 SUM/COUNT 인수에 직접 넣지 않고 파생 테이블에서 위치 판정을 먼저 계산한다. SQL Server 오류 130을 임시 DB에서 재현·회귀 검사한다.
 - DCR 인쇄는 `GetShippingDeliveryForPrint`로 문서 헤더만 조회하고 화면의 출하 오더 품목을 사용한다. PDA용 `GetShippingDelivery`의 출하 대기·창고 추천 조회와 분리하므로 `FG_DeliveryLoad`/재고 조회 오류로 문서 인쇄가 막히지 않는다. 인쇄 조회 실패 시 이전 미리보기를 비우며, 존재하지 않는 DCR은 조회 실패 원인을 표시한다.
+
+- **PDA FG Defect Registration** (`/fg/defect`, `/api/fg/defects`): 개별 ASSY LOT → 사진 1장(JPEG/PNG, 3 MB 이하)·사유 → 확인 후 판정 대기 등록. 기존 `FG-DEFECT` Inventory Defect 승인(A) 권한을 사용하며 API가 스캔·사진 조회·저장 시 확인하고 저장 트랜잭션에서도 재확인한다. `PR_DefectDetail`의 Disposition NULL 및 기존 DEFECT 상태/생산 역분개·팔렛 재고 분리 로직을 재사용하므로 가용 재고에서 빠지지만 폐기로 확정되지는 않는다. 등록 뒤 재작업/폐기는 기존 REWORK 판정 경로를 따른다. 사진은 `FG_DefectPhoto`에 같은 트랜잭션으로 저장하고 RequestID로 재전송의 이중 역분개를 방지한다. 고객 반품 검사 대기·출하 준비/적재 중·비ASSY·양수 1 EA가 아닌 LOT는 거부하고, 기존 판정 대기는 재스캔 조회만 허용한다. API 교체 전 `dist/migrate_fg_defect_photo.sql`을 대상 DB에 적용한다. 마이그레이션은 사진 테이블만 추가하며 재구축/재고 변경을 실행하지 않는다.
