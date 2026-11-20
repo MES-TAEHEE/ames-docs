@@ -25,7 +25,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.ShipPlan.List"] · @_view.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-            <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Load();}' />
+            <RadzenTextBox Immediate="true" @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Load();}' />
             <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
                 AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
             <RadzenDatePicker Name="ShipDateFrom" TValue="DateTime?" @bind-Value="_shipFrom" @bind-Value:after="Load" Disabled="_loading"

@@ -21,7 +21,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Shipments.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder='@L["FG.Shipments.Ph.SearchLot"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
+            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder='@L["FG.Shipments.Ph.SearchLot"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />

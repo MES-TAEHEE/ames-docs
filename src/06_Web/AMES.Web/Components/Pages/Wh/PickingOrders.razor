@@ -28,7 +28,7 @@
         <div class="ames-card-h master-list-toolbar picking-orders-toolbar">
             <span>@L["WH.Picking.Title"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+                <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" @onkeydown='e => { if (e.Key == "Enter") Load(); }' />
                 <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
@@ -78,7 +78,7 @@
         <div class="ames-card-h master-list-toolbar">
             <span>@L["WH.Picking.Releases"] · @_releases.Count</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                <RadzenTextBox @bind-Value="_releaseSearch" MaxLength="120" Placeholder='@L["WH.Picking.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" />
+                <RadzenTextBox Immediate="true" @bind-Value="_releaseSearch" MaxLength="120" Placeholder='@L["WH.Picking.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" @onkeydown='async e => { if (e.Key == "Enter") await LoadReleases(); }' />
                 <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
                 <span>~</span>
                 <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />

@@ -74,7 +74,7 @@
     </div>
 
     <div class="location-search-bar">
-        <input type="search" class="ames-input location-search-input" placeholder="@L["WH.LocMap.Ph.Search"].Value" aria-label="@L["WH.LocMap.Ph.Search"].Value" @bind="_search" @bind:event="oninput" />
+        <RadzenTextBox Name="@SearchId" @bind-Value="_search" Immediate="true" InputSize="InputSize.Small" class="ames-rz-input location-search-input" Placeholder="@L["WH.LocMap.Ph.Search"].Value" aria-label="@L["WH.LocMap.Ph.Search"].Value" @onkeydown='e => { if (e.Key == "Enter" && SearchHits.FirstOrDefault() is {} hit) GoToLocation(hit.Cell); }' />
         @if (!string.IsNullOrWhiteSpace(_search))
         {
             <div class="location-search-hits">
