@@ -61,7 +61,7 @@ else { <LocationMapExplorer Locations="_locations" Inventory="_inventory" Areas=
     {
         try
         {
-            (_areas, _locations, _inventory) = await Task.Run(() => LocationMapDatabase.Load(MD, Warehouse, finishedGoods: false));
+            (_areas, _locations, _inventory) = await Task.Run(() => LocationMapDatabase.Load(MD, Warehouse, finishedGoods: true));
             _error = null;
         }
         catch (Exception ex) { _error = $"Unable to load Location Map: {ex.Message}"; }

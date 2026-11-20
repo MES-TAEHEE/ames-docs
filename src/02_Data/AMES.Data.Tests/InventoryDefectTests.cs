@@ -52,17 +52,6 @@ public sealed class InventoryDefectTests
         Assert.DoesNotContain("UPDATE dbo.tbl_Lot",source);Assert.DoesNotContain("UPDATE dbo.PR_ProductionResult",source);
         Assert.Contains("This LOT was rejected as defective",PdaFinishedGoodsSql.PutAway);
         Assert.Contains("SourceType IN('FG_DEFECT','INV_DEFECT') AND QtyAfter=0",PdaFinishedGoodsSql.PutAway);
-        var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
-        var defect=Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor");
-        Assert.DoesNotContain("RadzenNumeric",lookup);
-        Assert.DoesNotContain("RadzenNumeric",defect);
-        Assert.Contains("MarkInventoryDefective",defect);
-        Assert.Contains("_eligibleLots.Remove",lookup);
-        Assert.Contains("ValidateDefectQuantity(lot.Qty,lot.Qty",defect);
-        Assert.DoesNotContain("_defectQty",lookup);
-        var rowAction=lookup.Split('\n').Single(line=>line.Contains("Click=\"@(()=>OpenDefect(row))\""));
-        Assert.DoesNotContain("Text=",rowAction);Assert.Contains("Icon=\"report_problem\"",rowAction);
-        Assert.Contains("aria-label=",rowAction);
     }
     [Fact]
     public void Web_inbound_uses_PDA_validation_and_does_not_seed_or_reset()
@@ -125,18 +114,18 @@ public sealed class InventoryDefectTests
         var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
         Assert.DoesNotContain("Col.Status",lookup);Assert.Contains("RecheckApproveAsync",Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor"));
         Assert.DoesNotContain("Reject LOT",lookup);
-        Assert.Contains("WH.Inventory.DefectAction",lookup);
-        Assert.Contains("@if(_eligibleLots.Contains(row.LotNo",lookup);
+        Assert.DoesNotContain("WH.Inventory.DefectAction",lookup);
+        Assert.DoesNotContain("OpenDefect",lookup);
     }
 
     [Fact]
-    public void Lot_defect_is_in_Warehouse_and_all_master_items_are_shown_by_default()
+    public void Inventory_reads_master_classification_and_removes_web_defect_actions()
     {
         var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/Inventory.razor");
-        Assert.Contains("AllowLotDefect=\"true\"",page);
+        Assert.DoesNotContain("AllowLotDefect",page);
         Assert.DoesNotContain("IncludeFinishedGoods",page);
         Assert.Contains("includeFinishedGoods: true",page);
-        Assert.Contains("InventorySearchRows.FromMaster(MD.ListItems(), stock)",page);
+        Assert.Contains("MD.ListItems().Where(x => !InventorySearchRows.IsSemiFinished(x.ItemType))",page);
         Assert.Contains("SCM.ListItemVendors()",page);
         Assert.DoesNotContain("AllowLotDefect=\"true\"",Read("src/06_Web/AMES.Web/Components/Pages/Fg/Inventory.razor"));
         Assert.Equal("wh/inventory/defect",FinishedGoodsRepository.DefectPermissionHref);
@@ -166,26 +155,21 @@ public sealed class InventoryDefectTests
     }
 
     [Fact]
-    public void Defect_quantity_is_shown_in_both_inventory_grids_without_inflating_available_stock()
+    public void Inventory_and_map_no_longer_load_or_display_historical_defect_quantities()
     {
-        var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
-        Assert.Equal(2,lookup.Split("Property=\"DefectQty\"").Length-1);
-        Assert.Contains("group.Sum(x => x.DefectQty)",lookup);
-        Assert.Contains("FilteredInventory.Sum(x => x.Qty)",lookup);
-        Assert.Contains("includeDefects: true",Read("src/06_Web/AMES.Web/Components/Pages/Wh/Inventory.razor"));
-        var map=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapDatabase.cs");
-        Assert.Contains("includeDefects: true",map);
-        Assert.Contains("x.Sum(y => y.Qty)",map);
-        Assert.Contains("x.Sum(y => y.DefectQty)",map);
-        Assert.Contains("Icon=\"task_alt\"",lookup);
-        Assert.Contains("else if(row.DefectQty <= 0)",lookup);
-        Assert.Contains("row.Qty, row.StoredQty, row.UnassignedQty",lookup);
-        Assert.Contains(".Append(row.DefectQty)",lookup);
-        Assert.Contains("Property=\"DefectQty\"",Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor"));
+        foreach(var file in new[]{"InventoryLookup.razor", "LocationMapExplorer.razor"})
+        {
+            var source=Read("src/06_Web/AMES.Web/Components/Shared/"+file);
+            Assert.DoesNotContain("Property=\"DefectQty\"", source);
+            Assert.DoesNotContain("OpenDefect", source);
+            Assert.DoesNotContain("<InventoryDefectDialog", source);
+        }
+        Assert.DoesNotContain("includeDefects: true",Read("src/06_Web/AMES.Web/Components/Pages/Wh/Inventory.razor"));
+        Assert.DoesNotContain("includeDefects: true",Read("src/06_Web/AMES.Web/Components/Shared/LocationMapDatabase.cs"));
     }
 
     [Fact]
-    public void Location_print_is_icon_only_and_defects_are_red_in_detail_rows_only()
+    public void Location_print_stays_icon_only_without_defect_columns()
     {
         var page=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
         var print=page.Split('\n').Single(line=>line.Contains("Click=\"OpenLocationBarcode\""));
@@ -193,40 +177,7 @@ public sealed class InventoryDefectTests
         Assert.DoesNotContain("Text=",print);
         Assert.DoesNotContain("NG @",page);Assert.DoesNotContain("has-defects",page);
         Assert.DoesNotContain("LocationQuantities(true)",page);
-        Assert.Contains("<span class=\"location-defect-qty\">@UomFmt.QtyUnit(row.DefectQty, row.Unit)</span>",page);
-        var css=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor.css");
-        Assert.Contains(".location-defect-qty { color: var(--ames-tx-red-400); }",css);
-    }
-
-    [Fact]
-    public void Location_map_and_inventory_reuse_the_same_whole_lot_defect_dialog_and_permission()
-    {
-        var map=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
-        var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
-        var dialog=Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor");
-        foreach(var page in new[]{map,lookup})
-        {
-            Assert.Contains("<InventoryDefectDialog",page);
-            Assert.Contains("OnCompleted=\"DefectCompleted\"",page);
-            Assert.Contains("Permissions.CanApprove(FinishedGoodsRepository.DefectPermissionHref)",page);
-            Assert.DoesNotContain("MarkInventoryDefective(",page);
-            Assert.Contains("_eligibleLots.Remove(lot.LotNo!)",page);
-        }
-        Assert.Contains("row.Qty > 0 && _eligibleLots.Contains",map);
-        Assert.Contains("Icon=\"task_alt\"",map);
-        Assert.Contains("OpenDefect(row)",map);
-        var completed=map[map.IndexOf("private async Task DefectCompleted",StringComparison.Ordinal)..map.IndexOf("protected override void OnParametersSet",StringComparison.Ordinal)];
-        Assert.Contains("await OnRefresh.InvokeAsync()",completed);
-        Assert.Contains("_locationDrawerOpen = ActiveLocations.Any",completed);
-        Assert.DoesNotContain("CloseLocationDetail()",completed);
-        Assert.Contains("RecheckApproveAsync(Auth, FinishedGoodsRepository.DefectPermissionHref)",dialog);
-        Assert.Contains("ValidateDefectReason(_reason)",dialog);
-        Assert.Contains("MaxLength=\"500\"",dialog);
-        Assert.Contains("}) != true) return;",dialog);
-        Assert.True(dialog.IndexOf("RecheckApproveAsync",StringComparison.Ordinal)<dialog.IndexOf("MarkInventoryDefective",StringComparison.Ordinal));
-        Assert.True(dialog.IndexOf("Dialog.Confirm",StringComparison.Ordinal)<dialog.IndexOf("MarkInventoryDefective",StringComparison.Ordinal));
-        Assert.Contains("if (_saving || _committed) return",dialog);
-        Assert.True(dialog.IndexOf("_committed = true",StringComparison.Ordinal)<dialog.IndexOf("await OnCompleted.InvokeAsync",StringComparison.Ordinal));
+        Assert.DoesNotContain("Property=\"DefectQty\"",page);
     }
 
     [SkippableFact]
@@ -263,7 +214,7 @@ public sealed class InventoryDefectTests
     {
         var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
         var export=lookup[lookup.IndexOf("private async Task ExportXlsx()",StringComparison.Ordinal)..];
-        Assert.Contains("var rows = SummaryRows",export);
+        Assert.Contains("var rows = LotRows",export);
         Assert.Contains("if (rows.Count == 0) return",export);
         Assert.Contains("WH.Inventory.ExportConfirm",export);
         Assert.Contains("}) != true) return",export);

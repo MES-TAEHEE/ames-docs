@@ -175,7 +175,7 @@ public sealed partial class WarehouseRepository
         string WarehouseName,
         string AreaCode,
         string AreaName,
-        decimal DefectQty = 0, decimal InspectionQty = 0);
+        decimal DefectQty = 0, decimal InspectionQty = 0, DateTime? ReceivedAt = null, string? VendorCode = null);
 
     public record LocationAreaLayoutRow(
         string AreaCode,
@@ -330,13 +330,13 @@ public sealed partial class WarehouseRepository
                 GROUP BY LotNo, PartNo, ISNULL(LocationNo, '')
             ), Inventory AS (
                 SELECT I.LocationNo, I.PartNo, I.PartName, I.LotNo, I.Qty, COALESCE(D.DefectQty, 0) AS DefectQty,
-                    I.ReceivedAt, I.CreatedAt
+                    I.ReceivedAt, I.CreatedAt, I.DeliveryNoteNo
                 FROM dbo.WH_Inventory I
                 LEFT JOIN Defects D ON D.LotNo = I.LotNo AND D.PartNo = I.PartNo
                     AND ISNULL(D.LocationNo, '') = ISNULL(I.LocationNo, '')
                 WHERE I.Qty > 0 OR D.DefectQty > 0
                 UNION ALL
-                SELECT D.LocationNo, D.PartNo, NULL, D.LotNo, 0, D.DefectQty, NULL, NULL
+                SELECT D.LocationNo, D.PartNo, NULL, D.LotNo, 0, D.DefectQty, NULL, NULL, NULL
                 FROM Defects D
                 WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory I WHERE I.LotNo = D.LotNo AND I.PartNo = D.PartNo
                     AND ISNULL(I.LocationNo, '') = ISNULL(D.LocationNo, ''))
@@ -348,6 +348,7 @@ public sealed partial class WarehouseRepository
                 I.LotNo AS LOT_NO,
                 I.Qty AS QTY,
                 I.DefectQty AS DEFECT_QTY,
+                I.ReceivedAt AS RECEIVED_AT, DN.VendorID AS VENDOR_CODE,
                 CASE WHEN EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=I.LotNo AND R.Status IN('Open','Inspecting'))
                     THEN I.Qty ELSE 0 END AS INSPECTION_QTY,
                 COALESCE(NULLIF(M.DefaultUOM, ''), 'EA') AS UOM,
@@ -363,6 +364,7 @@ public sealed partial class WarehouseRepository
                   AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
             LEFT JOIN dbo.MD_Item M
                    ON M.ItemNo = I.PartNo
+            LEFT JOIN dbo.SCM_DeliveryNote DN ON DN.NoteNumber=I.DeliveryNoteNo
             WHERE I.PartNo IS NOT NULL
               AND (@IncludeFinishedGoods = 1 OR (@FinishedGoods = 1 AND L.AreaCode = 'FG_AREA')
                 OR (@FinishedGoods = 0 AND COALESCE(L.AreaCode, '') <> 'FG_AREA'))
@@ -378,7 +380,7 @@ public sealed partial class WarehouseRepository
                 GetString(r, "WH_NAME") ?? "EOS",
                 GetString(r, "AREA_CODE") ?? "",
                 GetString(r, "AREA_NAME") ?? "",
-                GetDecimal(r, "DEFECT_QTY"),GetDecimal(r, "INSPECTION_QTY")),
+                GetDecimal(r, "DEFECT_QTY"),GetDecimal(r, "INSPECTION_QTY"), r["RECEIVED_AT"] as DateTime?, GetString(r, "VENDOR_CODE")),
             ("@FinishedGoods", null, finishedGoods), ("@IncludeFinishedGoods", null, includeFinishedGoods),
             ("@IncludeDefects", null, includeDefects));
     }

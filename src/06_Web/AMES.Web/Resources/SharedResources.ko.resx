@@ -8413,7 +8413,7 @@
     <value>LOT / 품번</value>
   </data>
   <data name="WH.Inventory.Title" xml:space="preserve">
-    <value>재고 조회</value>
+    <value>자재 재고조회</value>
   </data>
   <data name="WH.Inventory.List" xml:space="preserve">
     <value>품번별 재고</value>
@@ -8446,7 +8446,7 @@
     <value>LOT 수</value>
   </data>
   <data name="WH.LocMap.Title" xml:space="preserve">
-    <value>위치 맵</value>
+    <value>완반제 로케이션 맵</value>
   </data>
   <data name="WH.LocMap.Detail" xml:space="preserve">
     <value>위치 상세</value>
@@ -9073,7 +9073,7 @@
     <value>DCR / LOT / 품번 / 고객사 / 작업자…</value>
   </data>
   <data name="WH.Inventory.Ph.Search" xml:space="preserve">
-    <value>위치/품번/품명/LOT</value>
+    <value>품번 / 품명 / LOT / 로케이션</value>
   </data>
   <data name="SCM.PurchaseItems.Ph.Search" xml:space="preserve">
     <value>품목코드/품목명/업체</value>
@@ -12120,7 +12120,7 @@
   <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>불량 처리 이력 있음</value></data>
   <data name="WH.Inventory.Export" xml:space="preserve"><value>엑셀</value></data>
   <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>Unit Item {0}개</value></data>
-  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>현재 조회된 {0}개 품목의 가용 수량과 불량 수량을 엑셀로 다운로드하시겠습니까?</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>현재 조회된 LOT {0}건을 엑셀로 내려받으시겠습니까?</value></data>
   <data name="Excel.Download" xml:space="preserve">
     <value>Excel 다운로드</value>
   </data>
@@ -14223,4 +14223,6 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
 지연 = 미출하이면서 요청 납기가 지난 오더
 95% 이상 정상 · 85% 이상 주의 · 그 미만 위험</value>
   </data>
+  <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>입고일</value></data>
+  <data name="FG.Inventory.Title" xml:space="preserve"><value>완반제품 재고조회</value></data>
 </root>
