@@ -60,11 +60,12 @@ public static class SrmSamples
     }
 
     // ── 구매오더 MM31006 ────────────────────────────────────────
+    // PP-002 공급계획 가져오기 샘플 — 영문 머리글 7개만 둔다(docs/SAP_IF_PO업로드테스트 시험 파일과 같은 양식).
+    // 필수 = P/O No.·PART NO·ArrReq. Date·P/O Qty, Order Date·Deliv. Qty 는 저장, Vendor Code 는 고객 SRM 업체 코드 대조.
+    // 품명·단위 등 SRM 원본의 다른 열은 업로드에 쓰이지 않거나 마스터에서 채워진다.
     static readonly string[] PoHeader =
     {
-        "NO", "업체", "업체명", "발주일자", "발주번호", "납기일자", "구매오더유형", "차종", "PART NO", "품명", "저장위치",
-        "발주단위", "적입량", "발주량", "납품수량", "불량수량", "입하(합격)수량", "입하잔량", "입고수량", "납품완료",
-        "구매조직", "구매그룹", "고객사 수주정보", "원산지확인서", "유/무상구분", "자재그룹", "구매오더 기타 정보", "최종등록일시",
+        "P/O No.", "Vendor Code", "Order Date", "ArrReq. Date", "PART NO", "P/O Qty", "Deliv. Qty",
     };
 
     /// <summary>MM31006: 품목 × 납기일마다 발주 한 줄(발주번호 = 샘플 접두어 9000000001 + 순번-라인). 발주량 합 = MM31007 발주량.</summary>
@@ -83,9 +84,8 @@ public static class SrmSamples
                 seq++;
                 rows.Add(new List<object?>
                 {
-                    seq, vendorCode, SampleVendorName, orderDate.ToString("yyyy-MM-dd"), $"9000000001-{seq * 10}",
-                    due.ToString("yyyy-MM-dd"), "생산용 발주", SampleCarType, partNo, partName, SampleLoc, unit,
-                    null, q, 0, 0, 0, q, 0, 0, "", "", "", "", "", "", "", "",
+                    $"9000000001-{seq * 10}", vendorCode, orderDate.ToString("yyyy-MM-dd"),
+                    due.ToString("yyyy-MM-dd"), partNo, q, 0,
                 });
             }
         }
