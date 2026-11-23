@@ -130,7 +130,10 @@ USING (VALUES
     ('SW_SAPIN_DRYRUN',    'SW_SAPIN',  'DRYRUN',    N'수신 DryRun(1=반영 안 함)', N'Inbound dry run (1=no write)', N'1', 3),
     ('SW_SAPOUT_INTERVAL', 'SW_SAPOUT', 'INTERVAL',  N'송신 주기(분)',     N'Outbound interval (min)', N'1',  1),
     ('SW_SAPOUT_BATCH',    'SW_SAPOUT', 'BATCH',     N'송신 배치 크기',    N'Outbound batch size',    N'50',  2),
-    ('SW_SAPOUT_MAX_RETRY','SW_SAPOUT', 'MAX_RETRY', N'송신 재시도 상한',  N'Outbound max retry',     N'8',   3)
+    ('SW_SAPOUT_MAX_RETRY','SW_SAPOUT', 'MAX_RETRY', N'송신 재시도 상한',  N'Outbound max retry',     N'8',   3),
+    -- 1 이면 DryRun: 아웃박스 행의 보낼 내용만 메모로 남기고 EOS_IF 에 쓰지 않는다(행이 없어도 DryRun 으로 동작). 새 DB 기본은 1 —
+    -- SAP 팀과 시점을 맞춘 뒤 0 으로 바꾼다. WHEN NOT MATCHED 만 있어 이미 0 으로 바꾼 DB(운영 11-23)는 이 값을 덮어쓰지 않는다.
+    ('SW_SAPOUT_DRYRUN',   'SW_SAPOUT', 'DRYRUN',    N'송신 DryRun(1=EOS_IF 에 쓰지 않음)', N'Outbound dry run (1=no write)', N'1', 4)
 ) AS src(CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, Attribute1, SortOrder)
 ON tgt.CodeID = src.CodeID
 WHEN NOT MATCHED THEN
