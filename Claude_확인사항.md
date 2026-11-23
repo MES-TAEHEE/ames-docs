@@ -180,6 +180,21 @@
 
 ## 5. 공통 — 다음 개발 항목
 - **[공통][중] 스키마 추출 도구 전이 패키지 취약점**(10-26 사용자 지시 — 안영훈 개별 항목에서 이동): `tools/schema_from_db`의 SMO 의존성이 `System.Security.Cryptography.Pkcs 9.0.4`를 가져옵니다. 10-26 NuGet 감사에서 High·Moderate 경고를 재확인했습니다. 공통 도구의 의존성 업데이트와 스키마 추출 호환 검증이 필요하며, 이번에는 패키지/DB를 변경하거나 추출 도구를 실행하지 않았습니다.
+- **[공통·다음 개발] SAP 송신 — 남은 연결: 입고·이동·출하·조정(IF-T05·T06·T07·T09)**(11-20 사용자 지시, 11-23 생산 쪽 완료 — WH·FG 는 안영훈 영역과 협의):
+  - **11-23 연결 완료(생산 4종)**: ① WO 발행 → IF-T01 `C` — `WorkOrderRepository.ReleaseCore` 끝의 `SapOutHooks.WoReleased`(세이브포인트, 실패해도 발행 계속). ② 자재 투입 IF-T02 · 생산실적 IF-T03(양품·불량) · 종료 `L` · 취소 `X` — **확정 트랜잭션에 끼어들지 않고** SAPOUT Worker 가 매 주기 `SapOutCollector` 로 이미 확정된 기록을 읽어 아웃박스에 적재한다(생산 우선 — 아웃박스·SAP 장애가 현장 확정을 막을 수 없게). 대상은 T01 `C` 가 아웃박스에 있는 WO 뿐(연결 이전 WO 는 B1 에 오더가 없어 제외).
+    | 이벤트 | 읽는 곳 | 묶는 방식 · 키 |
+    |---|---|---|
+    | 자재 투입 T02 | `WH_InventoryTransaction`(SourceType `BACKFLUSH`, 출고만) ↔ LOT 의 WO | WO 단위로 마지막 처리 이후 분을 구성품별 합산 · `I{WoID}-{마지막 거래ID}` |
+    | 생산실적 T03 양품 | `PR_ProductionResult` 중 그 WO **마지막 공정** · GoodQty>0 | WO × 생산일 × 교대 합산(현장은 1개씩 올라옴) · `R{WoID}-{yyMMdd}{교대}-{마지막 ResultID}` |
+    | 불량 T03 | `PR_DefectDetail` 중 마지막 공정 | `SAP_IF_WO_REJECT_WHSCODE` 가 설정돼 있을 때만 · `D{WoID}-{마지막 DefectID}` |
+    | 종료 T01 `L` | `PP_WorkOrder.Status` = Completed·Closed | 그 WO 의 투입·실적이 모두 아웃박스에 들어간 뒤(송신은 B1 반영 뒤) |
+    | 취소 T01 `X` | Status = Cancelled | 투입·실적이 한 건도 나가지 않았을 때만(나갔으면 B1 에서 직접 처리 — SAP_IfLog SKIP) |
+    - 순서·게이트: T01 C → T02 → T03 → L. T01 의 `L`·`X` 는 `C` 가 B1 에서 성공한 뒤에만, `L` 은 투입·실적도 모두 B1 성공 뒤에만 나간다.
+    - 설정(`SYS_Config`): `SAP_IF_WO_WHSCODE`(양품·T01 창고, 기본 `W1MN`) · `SAP_IF_WO_ISSUE_WHSCODE`(투입 출고 창고, 기본 = 위 값) · `SAP_IF_WO_REJECT_WHSCODE`(불량 창고 — 없으면 불량은 보내지 않음).
+  - **알려진 한계(정해야 함)**: ① 음수 실적(불량 역분개 `ReversalResultID`)·`BACKFLUSH_NET`·폐기 차감은 보내지 않는다 — B1 투입·입고는 음수 불허라 후속 「생산 반납」 IF 가 필요(정의서 2.4) ② 사출 코어(SUB) 는 AMES 에선 같은 WO 의 단계지만 B1 엔 코어 오더가 없어 BACKFLUSH 구성품으로 나가면 B1 재고 부족(E) 가능 — SAP 와 코어 처리 방식 합의 ③ 마지막 공정만 완제품 실적으로 본다(중간 공정은 보내지 않음) ④ B1 불량 창고 코드 미확정 ⑤ 실적일은 생산일(`ProdDate`)이라 B1 마감 기간이면 E.
+  - **남은 것(안영훈 WH·FG 영역, 후순위)**: 입고 T05(PO↔GRPO 연결 `B1DocEntry` 사용)·재고이동 T06·출하 T07·재고조정 T09 — 송신 코드(명세·SQL)는 있고 **이벤트 연결만 없다**.
+  - **시험 순서**: PP-002 수주 업로드 → 확정 → WO 발행(→ T01 C 아웃박스) → POP 에서 LOT 확정(→ 투입·실적) → WO 완료(→ L). DryRun 에서 아웃박스 행·메모 확인 → SAP 팀과 시점 합의 후 `SW_SAPOUT.DRYRUN=0`.
+  - 다 끝나면 이 항목을 지운다.
 - **[공통·추후] SAP 연동 로그 및 Interface Monitor 확장**(10-26 사용자 최종 지시 — 안영훈 개인 항목에서 이동)
   - **나중에 진행**하며 개인 담당을 다시 임의 지정하지 않습니다. SAP 오류 기록을 WH/FG History에 나눠 넣지 않고 기존 **SYS-006 Interface Monitor(`/sys/interfaces`)**에서 확인하는 방향은 유지합니다. 아래 SAP 마스터 수신 자체의 방식·매핑·권한 정책이 확정되거나 구현됐다는 뜻은 아닙니다.
   - 현재 `SYS_InterfaceMonitor`는 연동별 최신 상태만 갱신하고 정상 성공 시 오류 메시지·연속 실패 횟수를 초기화합니다. 실패·복구 이력을 보존하려면 별도의 공통 연동 로그 저장이 필요합니다(테이블 이름·컬럼·보존 기간은 구현 전 확정). 목록은 현재 상태, 행 클릭은 연동별 이력으로 구성하는 방향입니다.

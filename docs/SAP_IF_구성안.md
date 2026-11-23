@@ -500,3 +500,17 @@ SAP 는 IF 테이블만 보므로 알림도 **EOS_IF 안에서** 한다.
 - `IF_CONTROL`·`IF_LOG`·`IF_CODE_MAP` 쓰기(웅진 영역).
 - 현장 확정 트랜잭션 안에서 EOS_IF 직접 접근.
 - 접속 비밀번호의 소스·설정·로그 기록.
+
+---
+
+## 송신(SAPOUT) 구현 상태 — 11-20
+
+| 구분 | 상태 |
+|---|---|
+| 아웃박스 → EOS_IF 송신 몸체 | 구현·로컬 검증(`SapOutSpecs/Sender/Runner`, `SapIfOutboxRepository`, `SapOutWorker`), DryRun 기본 |
+| 순서 게이트 | T01 생성(B1 Y) → T02 투입(B1 Y) → T03 실적(B1 Y) → T01 종료 `L` |
+| 현장 이벤트 → 아웃박스: **WO 발행(T01 C)** | **구현(11-23)** — `WorkOrderRepository.ReleaseCore` 끝의 `SapOutHooks.WoReleased`(세이브포인트로 감싸 실패해도 발행은 계속). 창고 `SYS_Config.SAP_IF_WO_WHSCODE`(기본 `W1MN`) |
+| **자재 투입(T02)·생산실적(T03 양품·불량)·종료(L)·취소(X)** | **구현(11-23)** — 확정 트랜잭션에 끼어들지 않고 SAPOUT Worker 가 매 주기 `SapOutCollector` 로 이미 확정된 기록(BACKFLUSH 거래·마지막 공정 실적/불량·WO 상태)을 읽어 아웃박스에 적재(WO × 생산일 × 교대로 묶음). 설정 `SAP_IF_WO_ISSUE_WHSCODE`·`SAP_IF_WO_REJECT_WHSCODE`(불량은 설정돼 있을 때만). 한계는 `Claude_확인사항.md` 5절 |
+| 입고(T05)·이동(T06)·출하(T07)·조정(T09) | **이벤트 연결 미구현** — 송신 코드는 있음. WH·FG(안영훈 영역) 후순위 |
+| 시험 | PP-002 에 시험 수주(`docs/SAP_IF_PO업로드테스트/PO_정상_10건_라우팅있음_소량.xlsx`) 업로드·확정 → WO 발행(T01 C 적재) → POP 확정(투입·실적 적재) → DryRun 으로 아웃박스 확인 → SAP 팀과 합의 후 `SW_SAPOUT.DRYRUN=0` (아웃박스 직접 적재 로더는 11-23 삭제) |
+

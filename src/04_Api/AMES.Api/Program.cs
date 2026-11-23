@@ -60,6 +60,10 @@ builder.Services.AddSingleton(eosIf);
 builder.Services.AddSingleton(new SapIfLogRepository(factory));
 builder.Services.AddSingleton<AMES.Api.Workers.SapIn.SapInWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AMES.Api.Workers.SapIn.SapInWorker>());
+// SAP B1 송신(AMES 아웃박스 → EOS_IF) — DryRun 기본 ON, 같은 접속문자열(없으면 비활성)
+builder.Services.AddSingleton(new SapIfOutboxRepository(factory));
+builder.Services.AddSingleton<AMES.Api.Workers.SapOut.SapOutWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AMES.Api.Workers.SapOut.SapOutWorker>());
 
 // PUSH notify — 고장·안돈·QC 홀드·PM 지연·재고 부족을 규칙 수신자의 앱(FCM)으로 보낸다(10-24)
 builder.Services.AddHttpClient(FcmSender.ClientName);

@@ -1379,6 +1379,8 @@ public sealed class WorkOrderRepository
             ins.ExecuteNonQuery();
         }
         WarehouseRepository.GenerateWorkOrderPicking(conn, tx);
+        // SAP 송신 대기열에 생산오더(IF-T01 C) 한 건 — 실패해도 발행은 계속(세이브포인트). 실제 송신은 SAPOUT Worker.
+        AMES.Data.Services.SapIf.SapOutHooks.WoReleased(conn, tx, woId);
         return 1;
     }
     /// <summary>템플릿 단계 집합과 steps 가 1:1 이고, 라인 필수 단계는 그 공정의 활성 라인이 지정됐는지.</summary>
