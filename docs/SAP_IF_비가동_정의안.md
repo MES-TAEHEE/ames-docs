@@ -1,7 +1,7 @@
 # SAP 연동 — 비가동 시간 데이터 정의 (11-23)
 
 SAP(웅진) 요청: 설비별·일별 비가동, **정규 일정 정지와 실제 비가동을 합쳐서**. EOS_IF 로 AMES 가 밀어넣는다(테이블은 웅진이 AMES 뷰 정의에 맞춰 만든다).
-설비 = 라인(`MD_Line.LineID`, 라인 1 : 설비 1 : 스테이션 1). 정본 스펙은 `SAP_IF_비가동_DB스펙_v2.xlsx`.
+설비 = 라인(`MD_Line.LineID`, 라인 1 : 설비 1 : 스테이션 1). 정본 스펙은 `SAP_IF_비가동_DB스펙.xlsx`.
 
 ## 뷰 `V_SAP_Downtime` (`dist/migrate_sap_if_downtime_views.sql`, 운영 AMES 적용)
 한 행 = 설비의 정지 구간 하나(시작·종료 시각). 자정을 넘으면 날짜별로 나눈다 → 설비·일별 합계는 `SUM(DurationMin) GROUP BY EquipCode, WorkDate`.
