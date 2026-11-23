@@ -55,7 +55,9 @@
         var href = a.getAttribute('href');
         if (!href || href.charAt(0) === '#' || a.target === '_blank') return;
         var dest;
-        try { dest = new URL(href, location.href); } catch (err) { return; }
+        // 메뉴 href 는 <base href="/"> 기준 상대 주소(pp/supply-plan-import) — location.href 로 풀면 /pp/pp/… 가 돼
+        // 같은 화면 판정이 늘 실패하고, 본문이 바뀌지 않으니 「불러오는 중…」 이 안전장치 10초까지 남았다(11-23)
+        try { dest = new URL(href, document.baseURI); } catch (err) { return; }
         if (dest.origin !== location.origin) return;
         if (dest.pathname === location.pathname && dest.search === location.search) return; // 동일 화면
         start();
