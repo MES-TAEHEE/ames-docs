@@ -217,6 +217,7 @@ FILES=(
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
   migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
   migrate_pop_confirm_perf_index.sql # POP 확정 경로 인덱스 — 실적 LotID·사출 LOT 설비×캐비티×LotID(10-27), 순서 무관
+  migrate_sap_if_downtime_views.sql  # SAP 송신용 비가동 뷰 V_SAP_Downtime(설비별 정지 구간·날짜별 분할, 정규 일정 정지 + 실제 비가동, 11-23)
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"
