@@ -2289,9 +2289,6 @@
   <data name="PP.SupplyPlanImport.Upload.File" xml:space="preserve">
     <value>Archivo de Lista OC (.xls/.xlsx)</value>
   </data>
-  <data name="PP.SupplyPlanImport.Upload.Hint" xml:space="preserve">
-    <value>Exportación de lista de Órdenes de Compra SRM MM31006 (.xls/.xlsx).</value>
-  </data>
   <data name="PP.SupplyPlanImport.Upload.ParseResult" xml:space="preserve">
     <value>Resultado de Análisis</value>
   </data>

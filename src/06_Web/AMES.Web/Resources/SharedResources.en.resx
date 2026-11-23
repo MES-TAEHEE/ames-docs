@@ -2292,9 +2292,6 @@
   <data name="PP.SupplyPlanImport.Upload.File" xml:space="preserve">
     <value>PO List File (.xls/.xlsx)</value>
   </data>
-  <data name="PP.SupplyPlanImport.Upload.Hint" xml:space="preserve">
-    <value>SRM MM31006 Purchase Order list export (.xls/.xlsx).</value>
-  </data>
   <data name="PP.SupplyPlanImport.Upload.ParseResult" xml:space="preserve">
     <value>Parse Result</value>
   </data>

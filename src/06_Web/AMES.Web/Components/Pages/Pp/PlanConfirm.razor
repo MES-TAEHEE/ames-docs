@@ -218,9 +218,11 @@ else
 
     string    _fCustomer = "";
     string    _fText     = "";
-    // 납기 기간 기본 = 오늘 앞뒤 1주
-    DateTime? _fFrom = DbClock.Today.AddDays(-7);
-    DateTime? _fTo   = DbClock.Today.AddDays(7);
+    // 납기 기간 기본 = 1주 전 ~ 오늘부터 1달 뒤 (11-23 사용자 요청 — 전에는 앞뒤 1주)
+    static DateTime DefaultFrom => DbClock.Today.AddDays(-7);
+    static DateTime DefaultTo   => DbClock.Today.AddMonths(1);
+    DateTime? _fFrom = DefaultFrom;
+    DateTime? _fTo   = DefaultTo;
     bool      _showIssued;
     bool      _showHeld;     // 검토 대기(보류) 보기
     int       _heldCount;    // 같은 고객·납기 조건의 보류 수주 수
@@ -259,7 +261,7 @@ else
 
         try { _customers = MD.ListCustomers(); } catch { }
         // PP-002 의 「검토 대기」 배지에서 ?so=수주번호 로 넘어오면 그 수주만 보이게 검색해 둔다
-        // 납기 기간 기본값(±7일) 밖의 수주도 보이도록 기간은 비워 둔다 — 이어서 다른 수주·품번을 조회해도 기간에 막히지 않는다
+        // 납기 기간 기본값(1주 전 ~ 1달 뒤) 밖의 수주도 보이도록 기간은 비워 둔다 — 이어서 다른 수주·품번을 조회해도 기간에 막히지 않는다
         if (!string.IsNullOrWhiteSpace(SoQuery)) { _fText = SoQuery.Trim(); _fFrom = null; _fTo = null; }
         Search();
     }
@@ -310,15 +312,15 @@ else
     void Reset()
     {
         _fCustomer = ""; _fText = ""; _showIssued = false; _showHeld = false;
-        _fFrom = DbClock.Today.AddDays(-7); _fTo = DbClock.Today.AddDays(7);
+        _fFrom = DefaultFrom; _fTo = DefaultTo;
         Search();
     }
 
     // ◀ ▶ — 기간을 1주씩 옮긴다. 한쪽이 비어 있으면 오늘 기준 기본 기간에서 시작한다.
     void ShiftWeek(int dir)
     {
-        _fFrom = (_fFrom ?? DbClock.Today.AddDays(-7)).AddDays(7 * dir);
-        _fTo   = (_fTo   ?? DbClock.Today.AddDays(7)).AddDays(7 * dir);
+        _fFrom = (_fFrom ?? DefaultFrom).AddDays(7 * dir);
+        _fTo   = (_fTo   ?? DefaultTo).AddDays(7 * dir);
         Search();
     }
 
