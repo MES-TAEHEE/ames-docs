@@ -63,6 +63,9 @@ public static class SapInMasters
 /// </summary>
 public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFactory eos, SapIfLogRepository log)
 {
+    // IF 별로 마지막에 남긴 「AMES 에만 있음」 목록 — 같은 목록은 다시 남기지 않는다
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _lastAmesOnly = new();
+
     public SapInRunResult Run(SapInTarget target, CancellationToken ct = default)
     {
         var s = target.Spec;
@@ -97,8 +100,11 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
                     if (!target.DryRun) WriteBack(eosConn, s, seq, 'Y', null);
                     applied++;
                     if (kind == 'N') created++; else if (kind == 'C') changed++; else same++;
-                    log.Write(runId, s.IfId, "IN", key, seq, action, "OK",
-                        (target.DryRun ? "DRYRUN(반영 롤백) " : "") + note, affected, (int)sw.ElapsedMilliseconds);
+                    // 실제 반영에서 「동일(변경 없음)」은 이력에 남기지 않는다 — 웅진이 같은 행을 5분마다 다시 보내 하루 수천 건이 쌓였다(11-23).
+                    // 신규·변경·실패와 DryRun(SAP 팀 검토용)은 그대로 남기고, 동일 건수는 실행 요약(모니터)에 센다.
+                    if (target.DryRun || kind != 'S')
+                        log.Write(runId, s.IfId, "IN", key, seq, action, "OK",
+                            (target.DryRun ? "DRYRUN(반영 롤백) " : "") + note, affected, (int)sw.ElapsedMilliseconds);
                     if (target.DryRun) DryRunNote(eosConn, s, row, seq, "AMES 반영 예정 결과 — " + note);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -124,9 +130,15 @@ public sealed class SapInRunner(AmesConnectionFactory ames, EosIfConnectionFacto
                 {
                     var only = AmesOnlyKeysFor(eosConn, s);
                     amesOnly = only.Count;
-                    if (only.Count > 0)
+                    // AMES 단독 목록은 바뀔 때만 남긴다(같은 목록을 매 주기 남기면 SKIP 행만 쌓인다)
+                    var sig = string.Join(",", only);
+                    if (only.Count > 0 && !(_lastAmesOnly.TryGetValue(s.IfId, out var prev) && prev == sig))
+                    {
+                        _lastAmesOnly[s.IfId] = sig;
                         log.Write(runId, s.IfId, "IN", "AMES-ONLY", null, null, "SKIP",
                             SapIfRules.Truncate($"AMES 에만 있음(그대로 둠) {only.Count}건: {string.Join(", ", only.Take(50))}{(only.Count > 50 ? " …" : "")}", 1000));
+                    }
+                    else if (only.Count == 0) _lastAmesOnly.TryRemove(s.IfId, out _);
                 }
                 catch (Exception ex) { log.Write(runId, s.IfId, "IN", "AMES-ONLY", null, null, "WARN", "AMES 단독 목록 조회 실패: " + SapIfRules.ErrorMessage(ex)); }
             }
