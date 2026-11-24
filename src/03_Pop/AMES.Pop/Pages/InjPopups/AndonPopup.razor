@@ -14,7 +14,7 @@
             <span>🚨 @T("Andon") · @StateLabel · @Session?.LineId</span>
             <span>
                 @if (_wf.Call is { } bc) { <text>#@bc.AndonId · @bc.TriggeredAt.ToString("HH:mm:ss") · @_elapsed</text> }
-                <button class="pmod-x andon-x" @onclick="Close" title="Close">✕</button>
+                <button class="pmod-x andon-x" @onclick="Close" title="Close" aria-label="Close"><i class="ic-x" aria-hidden="true"></i></button>
             </span>
         </div>
 

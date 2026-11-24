@@ -18,7 +18,7 @@
         <div class="help-modal" @onclick:stopPropagation="true">
             <div class="help-modal-tbar">
                 <div class="help-modal-title">📖 @PopLang.T("UserGuide")</div>
-                <button class="help-modal-x" @onclick="Close" title="Close (Esc)">✕</button>
+                <button class="help-modal-x" @onclick="Close" title="Close (Esc)" aria-label="Close"><i class="ic-x" aria-hidden="true"></i></button>
             </div>
             <div class="help-modal-bd @(PopLang.IsKo ? "help-ko" : "help-en")">
                 @if (ContentType is not null)

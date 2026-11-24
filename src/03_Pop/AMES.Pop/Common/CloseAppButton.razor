@@ -6,7 +6,7 @@
 *@
 @inject AMES.Pop.Services.ConfirmService Confirmer
 
-<button class="injm-close-btn" @onclick="CloseApp" title="@PopLang.T("CloseApp")">✕ @PopLang.T("CloseApp")</button>
+<button class="injm-close-btn" @onclick="CloseApp" title="@PopLang.T("CloseApp")" aria-label="@PopLang.T("CloseApp")"><i class="ic-x" aria-hidden="true"></i></button>
 
 @code {
     private async Task CloseApp()

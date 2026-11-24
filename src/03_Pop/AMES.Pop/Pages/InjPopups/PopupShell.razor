@@ -7,7 +7,7 @@
     <div class="pmod @CssClass" style="@(Width is null ? null : $"width:{Width};")" @onclick:stopPropagation="true">
         <div class="pmod-tbar">
             <div class="pmod-title">@Title</div>
-            <button class="pmod-x" @onclick="Close" title="Close">✕</button>
+            <button class="pmod-x" @onclick="Close" title="Close" aria-label="Close"><i class="ic-x" aria-hidden="true"></i></button>
         </div>
         <div class="pmod-bd">
             @ChildContent

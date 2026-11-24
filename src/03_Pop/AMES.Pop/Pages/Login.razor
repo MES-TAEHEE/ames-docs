@@ -146,7 +146,7 @@
                         </button>
                     }
                 </div>
-                <button class="picker-cancel" @onclick="@(() => _showPicker = false)">✕  @T("Cancel")</button>
+                <button class="picker-cancel" @onclick="@(() => _showPicker = false)"><i class="ic-x" aria-hidden="true"></i>@T("Cancel")</button>
             </div>
         </div>
     }
@@ -171,7 +171,7 @@
                         <div class="picker-empty">@(_loadErr is not null ? T("MasterLoadFailed", _loadErr) : T("NoLinesRegistered"))</div>
                     }
                 </div>
-                <button class="picker-cancel" @onclick="@(() => _showLinePicker = false)">✕  @T("Cancel")</button>
+                <button class="picker-cancel" @onclick="@(() => _showLinePicker = false)"><i class="ic-x" aria-hidden="true"></i>@T("Cancel")</button>
             </div>
         </div>
     }
@@ -196,7 +196,7 @@
                         <div class="picker-empty">@(_loadErr is not null ? T("MasterLoadFailed", _loadErr) : T("NoStationsRegistered"))</div>
                     }
                 </div>
-                <button class="picker-cancel" @onclick="@(() => _showStationPicker = false)">✕  @T("Cancel")</button>
+                <button class="picker-cancel" @onclick="@(() => _showStationPicker = false)"><i class="ic-x" aria-hidden="true"></i>@T("Cancel")</button>
             </div>
         </div>
     }
