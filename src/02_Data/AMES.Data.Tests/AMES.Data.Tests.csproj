@@ -22,6 +22,7 @@
     <Compile Include="..\..\06_Web\AMES.Web\Services\DeliveryPrintBundle.cs" Link="Web\DeliveryPrintBundle.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\LocationBarcodeSelection.cs" Link="Web\LocationBarcodeSelection.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\LiveSearch.cs" Link="Web\LiveSearch.cs" />
+    <Compile Include="..\..\06_Web\AMES.Web\Services\FactoryMapView.cs" Link="Web\FactoryMapView.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\InventoryTargets.cs" Link="Web\InventoryTargets.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\InventoryQuantityChanges.cs" Link="Web\InventoryQuantityChanges.cs" />
     <Compile Include="..\..\06_Web\AMES.Web\Services\XlsxWriter.cs" Link="Web\XlsxWriter.cs" />

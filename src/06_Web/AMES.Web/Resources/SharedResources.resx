@@ -14378,4 +14378,30 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   <data name="RPT.Inventory.ChangeBasis" xml:space="preserve">
     <value>Change compared with stock before the selected period</value>
   </data>
+  <data name="FG.FactoryMap.Title" xml:space="preserve"><value>Factory Map</value></data>
+  <data name="FG.FactoryMap.RegionCount" xml:space="preserve"><value>{0} regions</value></data>
+  <data name="FG.FactoryMap.Edit" xml:space="preserve"><value>Edit regions</value></data>
+  <data name="FG.FactoryMap.Region" xml:space="preserve"><value>Map region</value></data>
+  <data name="FG.FactoryMap.ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="FG.FactoryMap.ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="FG.FactoryMap.Fit" xml:space="preserve"><value>Fit map</value></data>
+  <data name="FG.FactoryMap.FullScreen" xml:space="preserve"><value>Full screen</value></data>
+  <data name="FG.FactoryMap.ViewHint" xml:space="preserve"><value>Select a region to view its inventory on the right.</value></data>
+  <data name="FG.FactoryMap.DrawHint" xml:space="preserve"><value>Drag on the map to add a region. Select an existing region to edit it.</value></data>
+  <data name="FG.FactoryMap.ImageAlt" xml:space="preserve"><value>EOS factory layout, October 29, 2026</value></data>
+  <data name="FG.FactoryMap.LocationGroup" xml:space="preserve"><value>FG location group</value></data>
+  <data name="FG.FactoryMap.NoTargets" xml:space="preserve"><value>Register FG locations in Location Master first.</value></data>
+  <data name="FG.FactoryMap.DeleteQuestion" xml:space="preserve"><value>Delete this map region?</value></data>
+  <data name="FG.FactoryMap.Redraw" xml:space="preserve"><value>Redraw region</value></data>
+  <data name="FG.FactoryMap.MapError" xml:space="preserve"><value>Unable to open the map. Refresh and retry.</value></data>
+  <data name="FG.FactoryMap.TargetChanged" xml:space="preserve"><value>The linked location group changed. Refresh and select it again.</value></data>
+  <data name="FG.FactoryMap.SelectTarget" xml:space="preserve"><value>Select an FG location group.</value></data>
+  <data name="FG.FactoryMap.Changed" xml:space="preserve"><value>This region was changed by another user. Refresh and retry.</value></data>
+  <data name="FG.FactoryMap.Code" xml:space="preserve"><value>Region letter</value></data>
+  <data name="FG.FactoryMap.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="FG.FactoryMap.Examples" xml:space="preserve"><value>Example data</value></data>
+  <data name="FG.FactoryMap.ExampleNote" xml:space="preserve"><value>Example data · not actual inventory</value></data>
+  <data name="FG.FactoryMap.Unassigned" xml:space="preserve"><value>Unassigned</value></data>
+  <data name="FG.FactoryMap.Separate" xml:space="preserve"><value>Clear letter</value></data>
+  <data name="FG.FactoryMap.DuplicateCode" xml:space="preserve"><value>Region {0} is already in use. Choose another letter.</value></data>
 </root>

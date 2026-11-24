@@ -9,6 +9,8 @@
 <PageTitle>FG-01 @L["FG.Inventory.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="FG-01" TitleKey="FG.Inventory.Title" />
 
+<AmesTabs>
+<AmesTab Title="@L["FG.Inventory.Title"]">
 @if (!string.IsNullOrWhiteSpace(_error))
 {
     <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert>
@@ -17,6 +19,11 @@ else
 {
     <InventoryLookup Inventory="_inventory" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="fg-inventory-search" FinishedGoodsOnly="true" InventoryChanged="ReloadInventory" />
 }
+</AmesTab>
+<AmesTab Title="@L["FG.FactoryMap.Title"]">
+    <FactoryLayoutMap />
+</AmesTab>
+</AmesTabs>
 
 @code {
     private List<LocationMapStock> _inventory = [];

@@ -14378,4 +14378,30 @@ Tardío = no enviado y con fecha vencida
   <data name="RPT.Inventory.ChangeBasis" xml:space="preserve">
     <value>Cambio respecto al inventario anterior al período seleccionado</value>
   </data>
+  <data name="FG.FactoryMap.Title" xml:space="preserve"><value>Mapa de la planta</value></data>
+  <data name="FG.FactoryMap.RegionCount" xml:space="preserve"><value>{0} zonas</value></data>
+  <data name="FG.FactoryMap.Edit" xml:space="preserve"><value>Editar zonas</value></data>
+  <data name="FG.FactoryMap.Region" xml:space="preserve"><value>Zona del mapa</value></data>
+  <data name="FG.FactoryMap.ZoomOut" xml:space="preserve"><value>Alejar</value></data>
+  <data name="FG.FactoryMap.ZoomIn" xml:space="preserve"><value>Acercar</value></data>
+  <data name="FG.FactoryMap.Fit" xml:space="preserve"><value>Ajustar mapa</value></data>
+  <data name="FG.FactoryMap.FullScreen" xml:space="preserve"><value>Pantalla completa</value></data>
+  <data name="FG.FactoryMap.ViewHint" xml:space="preserve"><value>Seleccione una zona para ver su inventario a la derecha.</value></data>
+  <data name="FG.FactoryMap.DrawHint" xml:space="preserve"><value>Arrastre sobre el mapa para agregar una zona. Seleccione una zona existente para editarla.</value></data>
+  <data name="FG.FactoryMap.ImageAlt" xml:space="preserve"><value>Plano de la planta EOS, 29 de octubre de 2026</value></data>
+  <data name="FG.FactoryMap.LocationGroup" xml:space="preserve"><value>Grupo de ubicaciones de productos terminados</value></data>
+  <data name="FG.FactoryMap.NoTargets" xml:space="preserve"><value>Registre primero ubicaciones FG en el maestro de ubicaciones.</value></data>
+  <data name="FG.FactoryMap.DeleteQuestion" xml:space="preserve"><value>¿Eliminar esta zona del mapa?</value></data>
+  <data name="FG.FactoryMap.Redraw" xml:space="preserve"><value>Redibujar zona</value></data>
+  <data name="FG.FactoryMap.MapError" xml:space="preserve"><value>No se puede abrir el mapa. Actualice e inténtelo de nuevo.</value></data>
+  <data name="FG.FactoryMap.TargetChanged" xml:space="preserve"><value>El grupo de ubicaciones vinculado cambió. Actualice y selecciónelo de nuevo.</value></data>
+  <data name="FG.FactoryMap.SelectTarget" xml:space="preserve"><value>Seleccione un grupo de ubicaciones FG.</value></data>
+  <data name="FG.FactoryMap.Changed" xml:space="preserve"><value>Otro usuario modificó esta zona. Actualice e inténtelo de nuevo.</value></data>
+  <data name="FG.FactoryMap.Code" xml:space="preserve"><value>Letra de zona</value></data>
+  <data name="FG.FactoryMap.Inventory" xml:space="preserve"><value>Inventario</value></data>
+  <data name="FG.FactoryMap.Examples" xml:space="preserve"><value>Datos de ejemplo</value></data>
+  <data name="FG.FactoryMap.ExampleNote" xml:space="preserve"><value>Datos de ejemplo · no son existencias reales</value></data>
+  <data name="FG.FactoryMap.Unassigned" xml:space="preserve"><value>Sin asignar</value></data>
+  <data name="FG.FactoryMap.Separate" xml:space="preserve"><value>Quitar letra</value></data>
+  <data name="FG.FactoryMap.DuplicateCode" xml:space="preserve"><value>La zona {0} ya existe. Elija otra letra.</value></data>
 </root>
