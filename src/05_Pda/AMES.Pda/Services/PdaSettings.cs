@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace AMES.Pda.Services;
 
-public sealed record PdaSettings(string ApiBaseUrl, string TerminalId)
+public sealed record PdaSettings(string ApiBaseUrl, string TerminalId, IReadOnlyList<PdaApiServer> ApiServers)
 {
     public static PdaSettings Load()
     {
@@ -25,8 +25,13 @@ public sealed record PdaSettings(string ApiBaseUrl, string TerminalId)
         string? androidId = null;
         var identityDirectory = FileSystem.AppDataDirectory;
 #endif
-        return new PdaSettings(settings.ApiBaseUrl, PdaDeviceIdentity.Resolve(androidId, identityDirectory));
+        var servers = (settings.ApiServers ?? [])
+            .Where(s => !string.IsNullOrWhiteSpace(s.Url) && Uri.TryCreate(s.Url, UriKind.Absolute, out _))
+            .ToList();
+        if (!servers.Any(s => string.Equals(s.Url.TrimEnd('/'), settings.ApiBaseUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)))
+            servers.Insert(0, new PdaApiServer("Default", settings.ApiBaseUrl));
+        return new PdaSettings(settings.ApiBaseUrl, PdaDeviceIdentity.Resolve(androidId, identityDirectory), servers);
     }
 
-    private sealed record ConnectionSettings(string ApiBaseUrl);
+    private sealed record ConnectionSettings(string ApiBaseUrl, List<PdaApiServer>? ApiServers);
 }

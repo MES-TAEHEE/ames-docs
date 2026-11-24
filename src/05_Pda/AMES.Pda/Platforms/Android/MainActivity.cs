@@ -36,7 +36,8 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
         Window?.SetSoftInputMode(SoftInput.StateAlwaysHidden | SoftInput.AdjustPan);
-        Log.Debug(LogTag, "MainActivity created.");
+        PdaCameraScan.Scanner = HasHoneywellScanner() ? null : CameraScanPage.ScanAsync;
+        Log.Debug(LogTag, $"MainActivity created. camera={PdaCameraScan.IsAvailable}");
     }
 
     protected override void OnResume()
@@ -126,6 +127,15 @@ public class MainActivity : MauiAppCompatActivity
         {
             Log.Warn(LogTag, $"Honeywell scanner claim failed: {ex}");
         }
+    }
+
+    private bool HasHoneywellScanner()
+    {
+        if (string.Equals(Build.Manufacturer, "Honeywell", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Needs the <queries> entry in the manifest on Android 11+, otherwise the lookup is always empty.
+        return PackageManager?.QueryBroadcastReceivers(new Intent(ActionClaimScanner), 0) is { Count: > 0 };
     }
 
     private void ReleaseHoneywellScanner()

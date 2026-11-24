@@ -4,12 +4,33 @@
 @inject NavigationManager Nav
 @inject PdaUomFormat Uom
 @inject SessionValidator Sessions
+@inject IJSRuntime JS
 
 @*  Full-screen PDA layout — no sidebar, no top chrome.
     Each page paints into the full 480×800 portrait viewport. *@
 
 <div inert="@_expiryAlert"><RadzenComponents /></div>
 <div class="pda-root" inert="@(Auth.SessionCheckRequired || _expiryAlert)">@Body</div>
+@if (PdaCameraScan.IsAvailable && !Auth.SessionCheckRequired && !_expiryAlert && !OnLoginPage)
+{
+    <button class="pda-camera-scan" type="button" data-no-busy disabled="@_cameraBusy"
+            title="Scan with camera" aria-label="Scan with camera" @onclick="ScanWithCamera">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-2.5h6L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="4"/></svg>
+    </button>
+}
+@if (_cameraError is { } cameraError)
+{
+    <div class="wh-modal-backdrop" @onclick="() => _cameraError = null">
+        <div class="wh-modal-card warn" role="alertdialog" aria-modal="true">
+            <div class="wh-modal-mark" aria-hidden="true">!</div>
+            <div class="wh-modal-title">Camera Scan Failed</div>
+            <div class="wh-modal-message">@cameraError</div>
+            <div class="wh-modal-actions">
+                <button class="wh-modal-btn primary" @onclick="() => _cameraError = null">OK</button>
+            </div>
+        </div>
+    </div>
+}
 @if (_expiryAlert)
 {
     <div class="wh-modal-backdrop pda-session-expiry" @onkeydown="ExpiryKeyDown">
@@ -47,9 +68,28 @@
     private bool _expiryAlert;
     private bool _focusExpiryAlert;
     private ElementReference _expiryButton;
+    private bool _cameraBusy;
+    // Login has its own badge-scan button under the PIN pad.
+    private bool OnLoginPage => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("login", StringComparison.OrdinalIgnoreCase);
+    private string? _cameraError;
+
+    private async Task ScanWithCamera()
+    {
+        if (_cameraBusy) return;
+        _cameraBusy = true;
+        try { await PdaCameraScan.ScanAsync(); }
+        catch (Exception ex) { _cameraError = ex.Message; }
+        finally { _cameraBusy = false; }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && PdaCameraScan.IsAvailable)
+        {
+            try { await JS.InvokeVoidAsync("pdaScan.setManualInput", true); }
+            catch { /* Scan script not loaded yet; inputs stay scan-only. */ }
+        }
+
         if (_focusExpiryAlert && _expiryAlert)
         {
             _focusExpiryAlert = false;
@@ -70,6 +110,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Nav.LocationChanged += OnLocationChanged;
         Auth.OnChange += OnAuthChanged;
         if (Auth.Session is not null) { _loadedToken = Auth.Token; await LoadUoms(); }
     }
@@ -103,5 +144,11 @@
         });
     }
 
-    public void Dispose() => Auth.OnChange -= OnAuthChanged;
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        Auth.OnChange -= OnAuthChanged;
+    }
 }

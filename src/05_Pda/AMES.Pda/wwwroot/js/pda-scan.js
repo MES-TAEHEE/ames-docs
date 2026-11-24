@@ -8,6 +8,8 @@ window.pdaScan = (() => {
     let lastEmitAt = 0;
     let options = {};
     let captureInput = null;
+    // Android phones without a Honeywell imager: scan inputs accept typing; camera scans go through the native hub.
+    let manualInput = false;
 
     const defaultOptions = {
         minLength: 3,
@@ -59,7 +61,7 @@ window.pdaScan = (() => {
         if (!selector) return;
 
         document.querySelectorAll(selector).forEach((element) => {
-            if (isDeveloperMode()) {
+            if (isDeveloperMode() || manualInput) {
                 element.classList.remove("pda-scan-only");
                 element.removeAttribute("data-scan-only");
                 element.removeAttribute("inputmode");
@@ -163,7 +165,7 @@ window.pdaScan = (() => {
                 || tagName === "select"
                 || target.isContentEditable;
 
-            if (isEditable && !isCaptureInput(target) && (!isScanInput(target) || isDeveloperMode())) {
+            if (isEditable && !isCaptureInput(target) && (!isScanInput(target) || isDeveloperMode() || manualInput)) {
                 return;
             }
         }
@@ -225,6 +227,9 @@ window.pdaScan = (() => {
         }
 
         const target = event.target;
+        if (manualInput && !isCaptureInput(target)) {
+            return;
+        }
         if (!target || (!isCaptureInput(target) && (typeof target.matches !== "function" || !target.matches(activeOptions().scanInputSelector)))) {
             return;
         }
@@ -248,7 +253,7 @@ window.pdaScan = (() => {
     }
 
     function onScanInputPointer(event) {
-        if (isDeveloperMode()) {
+        if (isDeveloperMode() || manualInput) {
             return;
         }
 
@@ -274,6 +279,9 @@ window.pdaScan = (() => {
 
         setTimeout(() => {
             applyScanInputMode();
+            if (manualInput) {
+                return;
+            }
             if (!isDeveloperMode()) {
                 focusCaptureInput();
                 return;
@@ -315,8 +323,15 @@ window.pdaScan = (() => {
             lastEmitText = "";
             lastEmitAt = 0;
             applyScanInputMode();
-            if (!isDeveloperMode()) {
+            if (!isDeveloperMode() && !manualInput) {
                 focusCaptureInput();
+            }
+        },
+        setManualInput(value) {
+            manualInput = value === true;
+            applyScanInputMode();
+            if (manualInput && captureInput && document.activeElement === captureInput) {
+                captureInput.blur();
             }
         },
         unregister() {

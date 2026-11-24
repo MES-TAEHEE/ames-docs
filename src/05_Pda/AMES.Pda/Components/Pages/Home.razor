@@ -3,6 +3,7 @@
 @inject AuthState Auth
 @inject AuthApi Api
 @inject NavigationManager Nav
+@inject ApiEndpoint Endpoint
 
 @*  Module tile launcher — first screen after login. *@
 
@@ -14,7 +15,11 @@ else
 {
     <div class="pda-shell">
         <div class="pda-tbar">
-            <span class="pda-tbar-brand">A-MES PDA</span>
+            <span class="pda-tbar-brand">EOS PDA</span>
+            @if (Endpoint.Servers.Count > 1)
+            {
+                <span class="pda-tbar-server @ServerCss" title="@Endpoint.Current">@(Endpoint.CurrentServer?.Name ?? Endpoint.Current)</span>
+            }
             <span class="pda-tbar-emp">@Auth.Session.EmployeeNo</span>
             <button type="button" class="pda-tbar-out" @onclick="Logout" aria-label="Sign out" title="Sign out">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
@@ -55,6 +60,9 @@ else
 }
 
 @code {
+    private string ServerCss =>
+        (Endpoint.CurrentServer?.Name ?? "").Contains("Local", StringComparison.OrdinalIgnoreCase) ? "local" : "dev";
+
     protected override void OnInitialized()
     {
         if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);

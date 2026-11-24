@@ -5,12 +5,41 @@
 @inject AuthApi Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject ApiEndpoint Endpoint
 
 <div class="pda-login">
-    <div class="pda-login-brand">A-MES</div>
+    <div class="pda-login-brand">EOS</div>
     <div class="pda-login-sub">SIGN IN / PDA</div>
 
     <div class="pda-login-center">
+        @* 서버 선택은 서버가 둘 이상 설정됐을 때만 보인다 — 지금은 Dev Server 하나로 고정(11-24 사용자 요청) *@
+        @if (Endpoint.Servers.Count > 1)
+        {
+        <div class="pda-login-server">
+            <div class="pda-login-server-head">
+                <span>SERVER</span>
+                <button type="button" class="pda-login-server-test" data-no-busy disabled="@(_testing || _submitting)" @onclick="TestServersAsync">
+                    @(_testing ? "TESTING..." : "TEST ALL")
+                </button>
+            </div>
+            @foreach (var server in Endpoint.Servers)
+            {
+                var selected = string.Equals(server.Url, Endpoint.Current, StringComparison.OrdinalIgnoreCase);
+                (bool Ok, long Ms, string Message)? test = _tests.TryGetValue(server.Url, out var t) ? t : null;
+                <button type="button" class="pda-login-server-row @(selected ? "selected" : "")" data-no-busy
+                        disabled="@(_submitting)" aria-pressed="@selected" @onclick="() => SelectServerAsync(server)">
+                    <span class="pda-login-server-radio" aria-hidden="true"></span>
+                    <span class="pda-login-server-text">
+                        <strong>@server.Name</strong>
+                        <small>@server.Url</small>
+                    </span>
+                    <span class="pda-login-server-state @(test is null ? "" : test.Value.Ok ? "ok" : "fail")">
+                        @(test is null ? (_testing ? "..." : "—") : test.Value.Ok ? $"OK {test.Value.Ms}ms" : test.Value.Message)
+                    </span>
+                </button>
+            }
+        </div>
+        }
         <div class="pda-login-panel">
             <div class="pda-fld">
                 <RadzenLabel Text="EMPLOYEE ID" Component="employee-id" />
@@ -48,10 +77,21 @@
             </div>
             <RadzenButton Text="SIGN IN" Click="AuthenticatePinAsync" class="pda-login-submit"
                           Disabled="@(_submitting || string.IsNullOrWhiteSpace(_employeeNo) || _pin.Length != 4)" />
-            <div class="pda-login-scan-state">
-                <RadzenIcon Icon="barcode_scanner" />
-                <strong>@(_submitting ? "SIGNING IN..." : "OR SCAN BADGE TO SIGN IN")</strong>
-            </div>
+            @if (PdaCameraScan.IsAvailable)
+            {
+                <button type="button" class="pda-login-scan-state camera" data-no-busy
+                        disabled="@(_submitting || _cameraBusy)" @onclick="ScanBadgeWithCamera">
+                    <RadzenIcon Icon="photo_camera" />
+                    <strong>@(_submitting ? "SIGNING IN..." : "TAP TO SCAN BADGE")</strong>
+                </button>
+            }
+            else
+            {
+                <div class="pda-login-scan-state">
+                    <RadzenIcon Icon="barcode_scanner" />
+                    <strong>@(_submitting ? "SIGNING IN..." : "OR SCAN BADGE TO SIGN IN")</strong>
+                </div>
+            }
         </div>
 
         <div class="pda-status @_cls">@_status</div>
@@ -94,6 +134,16 @@
     private string _status = " ";
     private string _cls = "dim";
     private bool _submitting;
+    private bool _cameraBusy;
+
+    private async Task ScanBadgeWithCamera()
+    {
+        if (_cameraBusy || _submitting) return;
+        _cameraBusy = true;
+        try { await PdaCameraScan.ScanAsync(); }
+        catch (Exception ex) { Set($"Camera scan failed. {ex.Message}", "fail"); }
+        finally { _cameraBusy = false; }
+    }
     private string _employeeNo = "";
     private string _pin = "";
     private List<LoginEmployeeDto> _employees = [];
@@ -121,6 +171,7 @@
             _scannerRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
                 new { minLength = 5, developerMode = MauiProgram.IsDeveloperMode });
+            if (Endpoint.Servers.Count > 1) _ = TestServersAsync();
             await LoadEmployeesAsync();
         }
         if (_focusEmployeeList && _employeeListOpen)
@@ -144,6 +195,47 @@
             _loadingEmployees = false;
             if (!_disposed) StateHasChanged();
         }
+    }
+
+    private readonly Dictionary<string, (bool Ok, long Ms, string Message)> _tests = new(StringComparer.OrdinalIgnoreCase);
+    private bool _testing;
+
+    private async Task TestServersAsync()
+    {
+        if (_testing || _disposed) return;
+        _testing = true;
+        _tests.Clear();
+        StateHasChanged();
+        try
+        {
+            await Task.WhenAll(Endpoint.Servers.Select(async s =>
+            {
+                var result = await ApiEndpoint.TestAsync(s.Url);
+                _tests[s.Url] = result;
+                if (!_disposed) await InvokeAsync(StateHasChanged);
+            }));
+        }
+        finally
+        {
+            _testing = false;
+            if (!_disposed) StateHasChanged();
+        }
+    }
+
+    private async Task SelectServerAsync(PdaApiServer server)
+    {
+        if (_submitting) return;
+        if (!string.Equals(server.Url, Endpoint.Current, StringComparison.OrdinalIgnoreCase))
+        {
+            Endpoint.Select(server.Url);
+            EmployeeNo = "";
+            _employees = [];
+            Set($"Server: {server.Name}", "dim");
+        }
+        var result = await ApiEndpoint.TestAsync(server.Url);
+        _tests[server.Url] = result;
+        if (!result.Ok) Set($"Cannot reach {server.Name}: {result.Message}", "fail");
+        await LoadEmployeesAsync();
     }
 
     private void OpenEmployeeList()
@@ -210,6 +302,13 @@
         if (badge.WorkerNo.Length == 0 || badge.WorkerNo.Length > 20)
         {
             Set("Scan a valid employee badge.", "fail");
+            return;
+        }
+        // A plain value only fills the ID; reject codes that are not on the loaded employee list.
+        if (!badge.IsEosFormat && _employees.Count > 0
+            && !_employees.Any(e => string.Equals(e.EmployeeNo, badge.WorkerNo, StringComparison.OrdinalIgnoreCase)))
+        {
+            Set($"Employee ID not found: {badge.WorkerNo}. Scan a valid employee badge.", "fail");
             return;
         }
         EmployeeNo = badge.WorkerNo;

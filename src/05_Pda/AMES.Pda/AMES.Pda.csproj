@@ -14,7 +14,7 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
 
-        <ApplicationTitle>A-MES PDA</ApplicationTitle>
+        <ApplicationTitle>EOS PDA</ApplicationTitle>
         <ApplicationId>com.seyon.ames.pda</ApplicationId>
         <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
@@ -49,6 +49,14 @@
     <ItemGroup>
         <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
         <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
+    </ItemGroup>
+
+    <!-- Camera scan for phones without a Honeywell imager. Fragment.Ktx must match MAUI's Fragment 1.9 (its classes moved into Fragment). -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <PackageReference Include="BarcodeScanning.Native.Maui" Version="3.1.0" />
+        <PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.0" />
+        <!-- Camera 1.6 (BarcodeScanning) pins Tracing.Ktx 1.3 -> Tracing [1.3, 1.3.1), but MAUI 10 pulls Tracing 2.0.0 (NU1608). Align Ktx with the 2.0 line MAUI resolves. -->
+        <PackageReference Include="Xamarin.AndroidX.Tracing.Tracing.Ktx" Version="2.0.0" />
     </ItemGroup>
 
 </Project>

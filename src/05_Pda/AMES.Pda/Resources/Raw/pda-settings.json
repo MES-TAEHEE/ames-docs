@@ -1,3 +1,6 @@
 {
-  "apiBaseUrl": "http://desktop-poedibs.tail526f68.ts.net:5210"
+  "apiBaseUrl": "https://desktop-poedibs.tail526f68.ts.net/api",
+  "apiServers": [
+    { "name": "Dev Server", "url": "https://desktop-poedibs.tail526f68.ts.net/api" }
+  ]
 }
