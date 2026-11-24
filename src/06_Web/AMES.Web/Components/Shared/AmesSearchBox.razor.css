@@ -1,0 +1,3 @@
+.ames-live-search { display:inline-flex;position:relative;align-items:center;width:250px;max-width:100%;min-width:170px; }
+.ames-live-search ::deep .ames-search-icon { position:absolute;left:10px;z-index:1;pointer-events:none;font-size:18px;color:var(--rz-text-secondary-color); }
+.ames-live-search ::deep input.ames-rz-input { width:100%;padding-left:34px!important; }

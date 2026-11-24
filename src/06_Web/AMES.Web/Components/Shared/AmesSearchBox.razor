@@ -1,0 +1,24 @@
+@implements IDisposable
+
+<span class="ames-live-search" data-no-busy>
+    <RadzenIcon Icon="search" class="ames-search-icon" aria-hidden="true" />
+    <RadzenTextBox Name="@Name" Value="@Value" ValueChanged="Changed" Immediate="true" Placeholder="@Placeholder" aria-label="@Placeholder" InputSize="InputSize.Small" class="ames-rz-input" AutoComplete="false" Disabled="Disabled" @onkeydown="KeyDown" />
+</span>
+
+@code {
+    [Parameter] public string Value {get;set;}="";
+    [Parameter] public EventCallback<string> ValueChanged {get;set;}
+    [Parameter] public EventCallback Search {get;set;}
+    [Parameter] public string Placeholder {get;set;}="";
+    [Parameter] public string? Name {get;set;}
+    [Parameter] public bool Disabled {get;set;}
+    LiveSearch _live=null!;
+    protected override void OnInitialized()=>_live=new(()=>Search.InvokeAsync());
+    async Task Changed(string value)
+    {
+        await ValueChanged.InvokeAsync(value??"");
+        await _live.RequestAsync();
+    }
+    Task KeyDown(KeyboardEventArgs args)=>args.Key=="Enter"?_live.RequestAsync(immediate:true):Task.CompletedTask;
+    public void Dispose()=>_live.Dispose();
+}
