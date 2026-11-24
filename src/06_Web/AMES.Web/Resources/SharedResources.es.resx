@@ -14227,4 +14227,5 @@ Tardío = no enviado y con fecha vencida
   <data name="FG.Inventory.Title" xml:space="preserve"><value>Inventario de Semielaborados / Terminados</value></data>
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Órdenes / Plan de Envío</value></data>
   <data name="FG.Returns.Col.ShipmentDcrNo" xml:space="preserve"><value>N.º DCR de envío</value></data>
+  <data name="Col.Result" xml:space="preserve"><value>Resultado</value></data>
 </root>

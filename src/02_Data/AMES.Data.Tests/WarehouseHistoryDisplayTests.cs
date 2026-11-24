@@ -331,7 +331,7 @@ public sealed class WarehouseHistoryDisplayTests
         Assert.Equal("—",HistoryPage.PartNamePreview(null));
         var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
         Assert.Contains("title=\"@item.PartName\">@PartNamePreview(item.PartName)",page);
-        Assert.Contains("Width=\"300px\" MinWidth=\"220px\"",page);
+        Assert.Contains("compact-record-grid",page);
     }
 
     [Fact]

@@ -56,15 +56,15 @@ public sealed class FgHistoryRowKeyTests
     }
 
     [Fact]
-    public void History_details_use_a_bounded_preview_and_a_wrapping_closeable_modal()
+    public void History_rows_open_customer_and_details_in_a_wrapping_closeable_modal()
     {
         var path=Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
         var page=File.ReadAllText(path);
         var css=File.ReadAllText(path+".css");
-        Assert.Contains("Title=\"@L[\"Col.Details\"].Value\" Width=\"240px\" MinWidth=\"240px\"",page);
-        Assert.Contains("Text=\"@DetailSummary(row)\"",page);
-        Assert.DoesNotContain("Text='@L[\"Col.Details\"].Value'",page);
-        Assert.Contains("Click=\"@(()=>OpenDetail(row))\"",page);
+        Assert.DoesNotContain("Property=\"Message\"",page);
+        Assert.DoesNotContain("Property=\"Customer\"",page);
+        Assert.Contains("RowClick=\"@(e=>OpenDetail(e.Data))\"",page);
+        Assert.Contains("@(detail.Customer??\"—\")",page);
         Assert.Contains("aria-labelledby=\"history-detail-title\"",page);
         Assert.Contains("class=\"history-detail-text\">@DetailSummary(detail)",page);
         Assert.Contains("Click=\"CloseDetail\"",page);

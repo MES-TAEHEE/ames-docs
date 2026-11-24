@@ -27,20 +27,20 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' />
-            <RadzenDropDown @bind-Value="_eventType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["WH.LogHistory.Ph.Search"]' Search="Reload" />
+                <RadzenDropDown @bind-Value="_eventType" @bind-Value:after="Reload" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+
             <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text='@L["WH.Inventory.Export"]' Icon="download" Click="ExportHistory" Disabled="@(_loading || _rows.Count==0)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="WarehouseRepository.OperationLogRow" Data="@_rows" KeyProperty="RowKey" IsLoading="_loading" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["WH.LogHistory.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid AllowColumnResize="true" TItem="WarehouseRepository.OperationLogRow" Data="@_rows" KeyProperty="RowKey" RowClick="@(e=>OpenDetail(e.Data))" RowRender="@(e=>e.Attributes["class"]="ames-row-link")" IsLoading="_loading" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" Density="Density.Compact" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["WH.LogHistory.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed compact-record-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.DateTime"].Value" Width="160px" MinWidth="160px"><Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "—")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Event"].Value" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="220px" MinWidth="220px">
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.DateTime"].Value" Width="145px" MinWidth="100px"><Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "—")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Event"].Value" Width="145px" MinWidth="100px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="190px" MinWidth="120px">
                 <Template Context="row">
                     @if (row.EventType == "PICKING_REQUEST")
                     {
@@ -49,24 +49,15 @@
                     else { <span class="code">@(row.ReferenceNo??"—")</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="PartNo" Title='@L["WH.LogHistory.Col.LotPart"]' Width="190px" MinWidth="190px"><Template Context="row">
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="PartNo" Title='@L["WH.LogHistory.Col.LotPart"]' Width="180px" MinWidth="120px"><Template Context="row">
                 <div>@(row.PartNo??"—")</div><div class="dim">@(row.LotNo??"")</div>
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="PartName" Title='@L["Col.PartName"]' Width="300px" MinWidth="220px"><Template Context="item"><span class="history-part-name" title="@item.PartName">@PartNamePreview(item.PartName)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="PartName" Title='@L["Col.PartName"]' Width="230px" MinWidth="140px"><Template Context="item"><span class="history-part-name" title="@item.PartName">@PartNamePreview(item.PartName)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty is null or 0 ? "—" : UomFmt.QtyUnit(r.Qty.Value,r.Unit))</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="LocationId" Title="@L["Col.Location"].Value" Width="160px" MinWidth="160px" />
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Customer" Title='@L["Col.Customer"]' Width="180px" MinWidth="180px" />
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="WorkerId" Title="@L["Col.Worker"].Value" Width="150px" MinWidth="150px" />
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Result" Title="@L["Col.Result"].Value" Width="110px" MinWidth="110px" />
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Message" Title="@L["Col.Details"].Value" Width="240px" MinWidth="240px">
-                <Template Context="row">
-                    @if (!string.IsNullOrWhiteSpace(DetailSummary(row)))
-                    {
-                        <RadzenButton Text="@DetailSummary(row)" Click="@(()=>OpenDetail(row))" title="@DetailSummary(row)" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn history-detail-preview" />
-                    }
-                    else { <span class="dim">—</span> }
-                </Template>
-            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="LocationId" Title="@L["Col.Location"].Value" Width="145px" MinWidth="100px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="WorkerId" Title="@L["Col.Worker"].Value" Width="100px" MinWidth="70px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Result" Title="@L["Col.Result"].Value" Width="90px" MinWidth="70px" />
+
         </Columns>
     </RadzenDataGrid>
 </div>
@@ -139,7 +130,7 @@
         }
         finally {if(request==_reloadRequest)_loading=false;}
     }
-    void OpenDetail(WarehouseRepository.OperationLogRow row)=>_detailRow=row;
+    void OpenDetail(WarehouseRepository.OperationLogRow? row) { if(row is not null)_detailRow=row; }
     void CloseDetail()=>_detailRow=null;
     string? DetailSummary(WarehouseRepository.OperationLogRow row)=>row.HasShipmentDetails
         ? $"{row.ItemCount} {L["Shipment.Lots"]}"
