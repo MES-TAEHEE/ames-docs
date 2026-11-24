@@ -14228,4 +14228,76 @@ Late = not shipped and past the requested date
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Shipment Orders / Plan</value></data>
   <data name="FG.Returns.Col.ShipmentDcrNo" xml:space="preserve"><value>Shipment DCR No</value></data>
   <data name="Col.Result" xml:space="preserve"><value>Result</value></data>
+  <data name="MD.Location.Grid.CreateParent" xml:space="preserve">
+    <value>Create Location</value>
+  </data>
+  <data name="MD.Location.Grid.Size" xml:space="preserve">
+    <value>Grid Dimensions</value>
+  </data>
+  <data name="MD.Location.Grid.Columns" xml:space="preserve">
+    <value>Columns (X)</value>
+  </data>
+  <data name="MD.Location.Grid.Rows" xml:space="preserve">
+    <value>Rows (Y)</value>
+  </data>
+  <data name="MD.Location.Grid.Floors" xml:space="preserve">
+    <value>Floors (F)</value>
+  </data>
+  <data name="MD.Location.Grid.Summary" xml:space="preserve">
+    <value>{0} detail locations · existing barcodes are preserved.</value>
+  </data>
+  <data name="MD.Location.Grid.Removing" xml:space="preserve">
+    <value>{0} locations would be removed. Stock, open picking orders or assigned parts block saving.</value>
+  </data>
+  <data name="MD.Location.Grid.Custom" xml:space="preserve">
+    <value>Existing child barcodes or coordinates do not form a standard grid. Review them before bulk changes.</value>
+  </data>
+  <data name="MD.Location.Grid.Preview" xml:space="preserve">
+    <value>Barcode Preview</value>
+  </data>
+  <data name="MD.Location.Grid.Material" xml:space="preserve">
+    <value>Material Location</value>
+  </data>
+  <data name="MD.Location.Grid.Finished" xml:space="preserve">
+    <value>Finished/Semi-finished Location (FG)</value>
+  </data>
+  <data name="MD.Location.Grid.Confirm" xml:space="preserve">
+    <value>Create {1} detail locations under {0}?</value>
+  </data>
+  <data name="MD.Location.Grid.Saved" xml:space="preserve">
+    <value>Location settings saved.</value>
+  </data>
+  <data name="MD.Location.Grid.Invalid" xml:space="preserve">
+    <value>Enter X 1–99, Y 1–260 and F 1–99, with up to 1,000 locations per grid.</value>
+  </data>
+  <data name="MD.Location.Grid.Exists" xml:space="preserve">
+    <value>This parent code already exists. Choose a different prefix.</value>
+  </data>
+  <data name="MD.Location.Grid.ParentChanged" xml:space="preserve">
+    <value>The parent location changed or is inactive. Refresh the list.</value>
+  </data>
+  <data name="MD.Location.Grid.AreaRequired" xml:space="preserve">
+    <value>Select an active warehouse and Grid area and enter a name. Line locations must use the registered line prefix.</value>
+  </data>
+  <data name="MD.Location.Grid.BarcodeConflict" xml:space="preserve">
+    <value>This barcode or coordinate is already in use. Existing barcodes were not changed.</value>
+  </data>
+  <data name="MD.Location.Grid.StockBlocked" xml:space="preserve">
+    <value>A removed location holds stock or spare parts. Move them before reducing the grid.</value>
+  </data>
+  <data name="MD.Location.Grid.PickingBlocked" xml:space="preserve">
+    <value>A removed location has outstanding picking orders. Complete or cancel them first.</value>
+  </data>
+  <data name="MD.Location.Grid.AssignmentBlocked" xml:space="preserve">
+    <value>Clear assigned parts and minimum quantities from removed locations first.</value>
+  </data>
+  <data name="MD.Location.Grid.Denied" xml:space="preserve">
+    <value>You do not have permission to edit locations.</value>
+  </data>
+  <data name="MD.Location.Print.Selected" xml:space="preserve">
+    <value>Print Selected ({0})</value>
+  </data>
+  <data name="MD.Location.Print.All" xml:space="preserve">
+    <value>Select all</value>
+  </data>
 </root>

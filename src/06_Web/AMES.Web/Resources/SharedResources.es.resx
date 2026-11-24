@@ -14228,4 +14228,76 @@ Tardío = no enviado y con fecha vencida
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Órdenes / Plan de Envío</value></data>
   <data name="FG.Returns.Col.ShipmentDcrNo" xml:space="preserve"><value>N.º DCR de envío</value></data>
   <data name="Col.Result" xml:space="preserve"><value>Resultado</value></data>
+  <data name="MD.Location.Grid.CreateParent" xml:space="preserve">
+    <value>Crear ubicación</value>
+  </data>
+  <data name="MD.Location.Grid.Size" xml:space="preserve">
+    <value>Dimensiones de cuadrícula</value>
+  </data>
+  <data name="MD.Location.Grid.Columns" xml:space="preserve">
+    <value>Columnas (X)</value>
+  </data>
+  <data name="MD.Location.Grid.Rows" xml:space="preserve">
+    <value>Filas (Y)</value>
+  </data>
+  <data name="MD.Location.Grid.Floors" xml:space="preserve">
+    <value>Niveles (F)</value>
+  </data>
+  <data name="MD.Location.Grid.Summary" xml:space="preserve">
+    <value>{0} ubicaciones secundarias · se conservan los códigos existentes.</value>
+  </data>
+  <data name="MD.Location.Grid.Removing" xml:space="preserve">
+    <value>Se eliminarían {0} ubicaciones. Existencias, pedidos abiertos o piezas asignadas impiden guardar.</value>
+  </data>
+  <data name="MD.Location.Grid.Custom" xml:space="preserve">
+    <value>Los códigos o coordenadas existentes no forman una cuadrícula estándar. Revíselos antes de cambios masivos.</value>
+  </data>
+  <data name="MD.Location.Grid.Preview" xml:space="preserve">
+    <value>Vista previa del código</value>
+  </data>
+  <data name="MD.Location.Grid.Material" xml:space="preserve">
+    <value>Ubicación de materiales</value>
+  </data>
+  <data name="MD.Location.Grid.Finished" xml:space="preserve">
+    <value>Ubicación de producto terminado/semiterminado (FG)</value>
+  </data>
+  <data name="MD.Location.Grid.Confirm" xml:space="preserve">
+    <value>¿Crear {1} ubicaciones secundarias bajo {0}?</value>
+  </data>
+  <data name="MD.Location.Grid.Saved" xml:space="preserve">
+    <value>Configuración de ubicación guardada.</value>
+  </data>
+  <data name="MD.Location.Grid.Invalid" xml:space="preserve">
+    <value>Ingrese X 1–99, Y 1–260 y F 1–99, hasta 1.000 ubicaciones por cuadrícula.</value>
+  </data>
+  <data name="MD.Location.Grid.Exists" xml:space="preserve">
+    <value>Este código principal ya existe. Elija otro prefijo.</value>
+  </data>
+  <data name="MD.Location.Grid.ParentChanged" xml:space="preserve">
+    <value>La ubicación principal cambió o está inactiva. Actualice la lista.</value>
+  </data>
+  <data name="MD.Location.Grid.AreaRequired" xml:space="preserve">
+    <value>Seleccione un almacén y área Grid activos e ingrese un nombre. Las ubicaciones de línea requieren el prefijo registrado.</value>
+  </data>
+  <data name="MD.Location.Grid.BarcodeConflict" xml:space="preserve">
+    <value>Este código o coordenada ya está en uso. No se modificaron los códigos existentes.</value>
+  </data>
+  <data name="MD.Location.Grid.StockBlocked" xml:space="preserve">
+    <value>Una ubicación afectada contiene existencias o repuestos. Muévalos antes de reducir la cuadrícula.</value>
+  </data>
+  <data name="MD.Location.Grid.PickingBlocked" xml:space="preserve">
+    <value>Una ubicación afectada tiene pedidos de picking pendientes. Complételos o cancélelos primero.</value>
+  </data>
+  <data name="MD.Location.Grid.AssignmentBlocked" xml:space="preserve">
+    <value>Quite primero las piezas asignadas y cantidades mínimas de las ubicaciones afectadas.</value>
+  </data>
+  <data name="MD.Location.Grid.Denied" xml:space="preserve">
+    <value>No tiene permiso para editar ubicaciones.</value>
+  </data>
+  <data name="MD.Location.Print.Selected" xml:space="preserve">
+    <value>Imprimir selección ({0})</value>
+  </data>
+  <data name="MD.Location.Print.All" xml:space="preserve">
+    <value>Seleccionar todo</value>
+  </data>
 </root>

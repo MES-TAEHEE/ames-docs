@@ -58,26 +58,33 @@
             <RadzenDropDown Name="DropDownLevelFilter" @bind-Value="_fLevel" Data="@LevelFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@(_printSelecting ? L["MD.Location.Print.Selected",_printSelected.Count].Value : L["Btn.Print"].Value)" Icon="print" Click="PrintLocations" Disabled="@(_busy || _printSelecting && _printSelected.Count==0)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            @if (_printSelecting) { <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" Click="CancelPrintSelection" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /> }
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["MD.Location.Grid.CreateParent"]" Icon="add" Click="OpenGridCreate" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LocationRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LocationRow" Data="@_rows" AllowColumnResize="true" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+                <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Visible="_printSelecting" OrderIndex="0" Width="52px" MinWidth="52px" Frozen="true" FrozenPosition="FrozenColumnPosition.Left" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <HeaderTemplate><span @onclick:stopPropagation><RadzenCheckBox TValue="bool?" TriState="true" Value="@LocationBarcodeSelection.State(VisiblePrintCodes,_printSelected)" Change="@((bool? _) => ToggleVisiblePrint())" aria-label="@L["MD.Location.Print.All"]" /></span></HeaderTemplate>
+                    <Template Context="r"><span @onclick:stopPropagation><RadzenCheckBox TValue="bool?" TriState="true" Value="@LocationBarcodeSelection.State(PrintCodes(r),_printSelected)" Change="@((bool? _) => TogglePrintRow(r))" Disabled="@(!PrintCodes(r).Any())" aria-label="@r.LocationID" /></span></Template>
+                </RadzenDataGridColumn>
             @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="190px" MinWidth="190px">
                 <Template Context="r">
-                    <span class="location-code-print-cell" @onclick:stopPropagation>
+                    <span class="location-code-print-cell">
                         <span class="loc-tree">
                             @if (!IsPrimary(r) && r.ParentLocationID is not null) { <span class="dim loc-tree-mark">└</span> }
                             <span class="code" style="@(IsPrimary(r) ? "font-weight:700;" : null)">@r.LocationID</span>
                         </span>
-                        <RadzenButton Icon="print" title="Print location barcode" aria-label="@($"Print location barcode {r.LocationID}")"
-                                      ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn location-code-print-btn"
-                                      Click="@(() => OpenBarcode(r))" />
                     </span>
                 </Template>
             </RadzenDataGridColumn>
@@ -122,7 +129,7 @@
     </RadzenDataGrid>
 </div>
 
-@if (_barcodeLocation is not null)
+@if (_printPreviewOpen)
 {
     <LocationBarcodeDialog LocationCodes="@_barcodeCodes" OnClose="CloseBarcode" />
 }
@@ -143,6 +150,24 @@
                 <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" class="ames-rz-modal-label" Component="EditTextBoxLocationName" />
                 <RadzenTextBox Name="EditTextBoxLocationName" @bind-Value="_f.LocationName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
+
+            @if (IsPrimary(_sel))
+            {
+                @if (_gridCompatible)
+                {
+                    <section class="ames-card" style="margin-top:12px;">
+                        <div class="ames-card-h">@L["MD.Location.Grid.Size"]</div>
+                        <RadzenRow Gap="12px">
+                            <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Columns"]" /><RadzenNumeric TValue="int" @bind-Value="_gridX" Change="@(_ => _gridChanged=true)" Min="1" Max="99" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                            <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Rows"]" /><RadzenNumeric TValue="int" @bind-Value="_gridY" Change="@(_ => _gridChanged=true)" Min="1" Max="260" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                            <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Floors"]" /><RadzenNumeric TValue="int" @bind-Value="_gridF" Change="@(_ => _gridChanged=true)" Min="1" Max="99" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                        </RadzenRow>
+                        <p class="dim">@L["MD.Location.Grid.Summary",(long)_gridX*_gridY*_gridF]</p>
+                        @if (_gridChanged && GridRemovalCount>0) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["MD.Location.Grid.Removing",GridRemovalCount]</RadzenAlert> }
+                    </section>
+                }
+                else { <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat">@L["MD.Location.Grid.Custom"]</RadzenAlert> }
+            }
 
             @if (!IsPrimary(_sel))
             {
@@ -208,6 +233,36 @@
     </div>
 }
 
+@if (_gridDialog.Length > 0)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnGridBgClick" @onkeydown="GridDialogKeyDown" tabindex="-1">
+        <div class="ames-modal ames-modal-wide ames-movable" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Location.Grid.CreateParent"]</div>
+            <RadzenRow Gap="12px">
+                <RadzenColumn Size="6"><RadzenLabel Text="@L["Col.Warehouse"]" /><RadzenDropDown TValue="string" @bind-Value="_createWh" Change="ChangeGridWarehouse" Data="GridWarehouses" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                <RadzenColumn Size="6"><RadzenLabel Text="@L["Col.Area"]" /><RadzenDropDown TValue="string" @bind-Value="_createArea" Change="ChangeGridArea" Data="GridAreas" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+            </RadzenRow>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Style="margin-top:12px">
+                <RadzenLabel Text="@L["Col.Name"]" Component="GridParentName" class="ames-rz-modal-label" /><RadzenTextBox Name="GridParentName" @bind-Value="_createName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Style="margin-top:12px">
+                <RadzenLabel Text="@L["Col.Type"]" class="ames-rz-modal-label" /><RadzenDropDown TValue="string" @bind-Value="_createType" Data="GridTypes" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1" />
+            </RadzenStack>
+            <RadzenRow Gap="12px" Style="margin-top:12px">
+                <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Columns"]" /><RadzenNumeric TValue="int" @bind-Value="_gridX" Min="1" Max="99" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Rows"]" /><RadzenNumeric TValue="int" @bind-Value="_gridY" Min="1" Max="260" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+                <RadzenColumn Size="4"><RadzenLabel Text="@L["MD.Location.Grid.Floors"]" /><RadzenNumeric TValue="int" @bind-Value="_gridF" Min="1" Max="99" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+            </RadzenRow>
+            <p class="dim">@L["MD.Location.Grid.Summary",(long)_gridX*_gridY*_gridF]</p>
+            @if (_gridError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_gridError</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="8px" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Save"]" Icon="save" Click="SaveGridDialog" Disabled="_busy" IsBusy="_busy" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="CloseGridDialog" Disabled="_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
@@ -224,7 +279,8 @@
     List<MasterDataRepository.CodeItemRow> _bayCodes   = new();
     List<MasterDataRepository.CodeItemRow> _slotCodes  = new();
     MasterDataRepository.LocationRow? _sel;
-    MasterDataRepository.LocationRow? _barcodeLocation;
+    bool _printSelecting, _printPreviewOpen;
+    HashSet<string> _printSelected = new(StringComparer.OrdinalIgnoreCase);
 
     string  _fSearch = "";
     string? _fArea;
@@ -303,6 +359,7 @@
         _allRows = all
             .Where(x => x.ActiveFlag && !string.Equals(x.AreaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase))
             .ToList();
+        _printSelected.IntersectWith(_allRows.Where(r=>!IsPrimary(r)).Select(r=>r.LocationID));
         ApplyFilter();
     }
 
@@ -338,17 +395,25 @@
 
     void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.LocationRow> args)
     {
-        if (args.Data is not null) OpenEdit(args.Data);
+        if (args.Data is null) return;
+        if (_printSelecting) TogglePrintRow(args.Data);
+        else OpenEdit(args.Data);
     }
 
     IReadOnlyList<string> _barcodeCodes = [];
-    async Task OpenBarcode(MasterDataRepository.LocationRow location)
+    IEnumerable<string> PrintCodes(MasterDataRepository.LocationRow row) => LocationBarcodeSelection.Codes(row,_allRows);
+    IEnumerable<string> VisiblePrintCodes => _rows.SelectMany(PrintCodes).Distinct(StringComparer.OrdinalIgnoreCase);
+    void TogglePrintRow(MasterDataRepository.LocationRow row) => LocationBarcodeSelection.Toggle(PrintCodes(row),_printSelected);
+    void ToggleVisiblePrint() => LocationBarcodeSelection.Toggle(VisiblePrintCodes,_printSelected);
+    void CancelPrintSelection() { _printSelecting=false; _printSelected.Clear(); }
+    void PrintLocations()
     {
-        _barcodeCodes = LocationBarcodeSelection.Codes(location, _allRows);
-        if (_barcodeCodes.Count == 0) { await Dialog.Alert(L["MD.Location.NoChildLabels"], L["WH.LocBarcode.Title"]); return; }
-        _barcodeLocation = location;
+        if (!_printSelecting) { _printSelecting=true; _printSelected.Clear(); return; }
+        _barcodeCodes=_allRows.Where(r=>!IsPrimary(r) && _printSelected.Contains(r.LocationID))
+            .Select(r=>r.LocationID).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x=>x,StringComparer.OrdinalIgnoreCase).ToArray();
+        if (_barcodeCodes.Count > 0) _printPreviewOpen=true;
     }
-    void CloseBarcode() => _barcodeLocation = null;
+    void CloseBarcode() => _printPreviewOpen=false;
 
     List<WarehouseRepository.LocationPartRow> PartsFor(string location) => _locationParts.GetValueOrDefault(location) ?? [];
     string AssignedPartsText(string location) => PartsFor(location) switch
@@ -400,12 +465,21 @@
             ParentLocationID = r.ParentLocationID,
         };
         _selectedPartNumbers=_f.Parts.Select(p=>p.PartNo).ToArray();
+        LoadGridFor(r);
         _modal = "edit";
     }
 
 
     string SqlErr(Microsoft.Data.SqlClient.SqlException ex, string id) => ex.Number switch
     {
+        52080 => L["MD.Location.Grid.Exists"],
+        52081 => L["MD.Location.Grid.ParentChanged"],
+        52082 => L["MD.Location.Grid.AreaRequired"],
+        52083 => L["MD.Location.Grid.BarcodeConflict"],
+        52084 => L["MD.Location.Grid.Custom"],
+        52085 => L["MD.Location.Grid.StockBlocked"],
+        52086 => L["MD.Location.Grid.PickingBlocked"],
+        52087 => L["MD.Location.Grid.AssignmentBlocked"],
         52073 => L["MD.Location.Err.ParentNotPrimary"],
         52074 => L["MD.Location.Err.PrimaryHasParent"],
         52075 => L["MD.Location.Err.ParentHasStock"],
@@ -416,7 +490,7 @@
     void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
-    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+    void OnBgClick() { if (!_busy && _bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveEdit()
     {
@@ -445,13 +519,20 @@
             }
             if (!saveConfirmed && await Dialog.Confirm($"Are you sure you want to save changes to location {_sel.LocationID}?",
                 "Confirm Changes", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
+            if (IsPrimary(_sel) && _gridChanged)
+            {
+                var setup=new WarehouseRepository.LocationGridSetup(_sel.LocationID,_f.LocationName,_sel.WhCode,_sel.AreaCode,
+                    _gridPrefix.Trim().ToUpperInvariant(),_gridX,_gridY,_gridF,_sel.LocationType ?? (ChildrenOf(_sel.LocationID).Any(c=>c.LocationType=="FG") ? "FG" : "RACK"));
+                await Task.Run(()=>Warehouse.SaveLocationGrid(setup,_actor));
+            }
+            else
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
                 _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor,
                 setParent: !IsPrimary(_sel) && NE(_f.ParentLocationID) != _sel.ParentLocationID, parentLocationId: NE(_f.ParentLocationID),
                 assignedParts:IsPrimary(_sel)?null:_f.Parts.Where(p=>string.IsNullOrEmpty(_sel.LineId)||p.MinimumQty>0)
                     .Select(p=>new WarehouseRepository.LocationPartSetting(p.PartNo,p.MinimumQty)).ToList());
-            Audit.Updated("MD-018", "MD_Location", _sel.LocationID, new{Location=_sel,Parts=PartsFor(_sel.LocationID)}, _f);
+            Audit.Updated("MD-018", "MD_Location", _sel.LocationID, new{Location=_sel,Parts=PartsFor(_sel.LocationID)}, new{Location=_f,Columns=_gridX,Rows=_gridY,Floors=_gridF});
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Updated"].Value, key), false);
