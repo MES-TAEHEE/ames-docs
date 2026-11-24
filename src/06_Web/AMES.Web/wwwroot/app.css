@@ -4583,6 +4583,48 @@ html[data-theme="light"] .wh-location-directory-card:hover { background: rgba(37
 .inventory-history-list .master-list-toolbar .ames-rz-input {font-family:var(--ames-font-mono);font-size:12px;}
 .inventory-summary-grid .rz-data-row { cursor: pointer; }
 
+/* WH/FG lists follow Supply Plan's compact rows, column separators and shared status pills. */
+.ames-content:is(.ames-sec-wh, .ames-sec-fg) .ames-rz-grid thead th > div { padding-inline: 8px !important; }
+.ames-content:is(.ames-sec-wh, .ames-sec-fg) .ames-rz-grid .rz-data-row > td {
+    height: 34px !important;
+    padding: 5px 10px !important;
+    border-bottom: 1px solid var(--ames-bd-white-a08) !important;
+    border-inline-end: 1px solid var(--ames-bd-white-a04) !important;
+    font-family: var(--ames-font-sans) !important;
+    font-size: 14px !important;
+    line-height: 1.35;
+    vertical-align: middle;
+}
+.ames-content:is(.ames-sec-wh, .ames-sec-fg) .ames-rz-grid .rz-data-row:nth-child(even):not(.rz-state-highlight):not(.shipping-order-selected):not(.shipping-order-unavailable) > td:not(.rz-frozen-cell) {
+    background: var(--ames-bd-white-a04) !important;
+}
+.ames-content:is(.ames-sec-wh, .ames-sec-fg) .ames-rz-grid .rz-data-row:hover:not(.shipping-order-unavailable) > td {
+    background: color-mix(in srgb, var(--ames-tx-blue-300) 10%, var(--ames-frozen-bg)) !important;
+}
+.ames-content:is(.ames-sec-wh, .ames-sec-fg) .ames-rz-grid td.rz-text-align-right { font-variant-numeric: tabular-nums; }
+.operational-overdue { color: var(--ames-tx-red-400); font-weight: 600; }
+.operational-quantity { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ames-content:is(.ames-sec-wh, .ames-sec-fg, .ames-sec-scm) .ames-rz-grid .rz-data-grid-data > table { table-layout: fixed !important; }
+.compact-record-grid .rz-data-grid-data > table { min-width: 1000px; }
+.compact-record-grid .rz-cell-data { overflow: hidden; text-overflow: ellipsis; }
+.ames-content .fg-return-grid .rz-state-highlight > td,
+.ames-content .fg-return-grid .rz-state-highlight .rz-cell-data {
+    background: color-mix(in srgb, var(--ames-tx-blue-300) 12%, var(--ames-frozen-bg)) !important;
+    color: var(--ames-tx-e5edf7) !important;
+}
+.ames-content .fg-return-grid .rz-state-highlight .code { color: var(--ames-tx-blue-300) !important; }
+.fg-return-detail-grid strong { color: var(--ames-tx-e5edf7); overflow-wrap: anywhere; line-height: 1.4; }
+.ames-rz-grid .operational-code-link.rz-button {
+    padding: 0;
+    min-height: 0;
+    font-family: var(--ames-font-mono);
+    color: var(--ames-tx-blue-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
 .fg-web-form-grid,
 .fg-return-detail-grid {
     display: grid;
