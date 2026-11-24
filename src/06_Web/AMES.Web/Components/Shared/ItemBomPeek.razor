@@ -189,6 +189,11 @@
                     {
                         <div class="ipk-mold">
                             <span class="ipk-mold-id"><span class="code">@g.Key</span>@if (!string.IsNullOrEmpty(g.First().MoldName)) { <span class="dim"> · @g.First().MoldName</span> }</span>
+                            <div class="ipk-mold-body">
+                            @if (_moldInfo.FirstOrDefault(x => string.Equals(x.MoldID, g.Key, StringComparison.OrdinalIgnoreCase)) is { } mi)
+                            {
+                                <MoldInfoCard Row="mi" ShowHeader="false" />
+                            }
                             <span class="ipk-chips">
                                 @foreach (var m in g)
                                 {
@@ -201,6 +206,7 @@
                                     </span>
                                 }
                             </span>
+                            </div>
                         </div>
                     }
                 }
@@ -254,6 +260,7 @@
     WarehouseRepository.ItemStockSummary? _stock;
     string? _stockErr;
     List<MasterDataRepository.MoldSiblingRow> _molds = new();
+    List<MasterDataRepository.MoldInfoRow> _moldInfo = new();   // 금형 요약(캐비티·Shot·장착 설비 등) — 실패해도 같은 금형 제품은 보인다
     string? _moldErr;
     const int LocShow = 8;
     DateOnly _today;
@@ -286,11 +293,12 @@
     async Task Show(string itemNo)
     {
         var seq = ++_seq;
-        _itemNo = itemNo; _show = true; _loading = true; _err = null; _stock = null; _stockErr = null; _molds = new(); _moldErr = null;
+        _itemNo = itemNo; _show = true; _loading = true; _err = null; _stock = null; _stockErr = null; _molds = new(); _moldInfo = new(); _moldErr = null;
         await InvokeAsync(StateHasChanged);
         // 재고·금형 제품은 BOM 과 따로 읽는다 — 그 조회가 실패해도 BOM 은 보이게
         var stockTask = Task.Run(() => WH.GetItemStockSummary(itemNo));
         var moldTask  = Task.Run(() => MD.ListMoldSiblings(itemNo));
+        var moldInfoTask = Task.Run(() => MD.ListMoldInfo(null, new[] { itemNo }));
         try
         {
             var r = await Task.Run(() => Load(itemNo));
@@ -306,6 +314,8 @@
         catch (Exception ex) { if (seq != _seq) return; _stockErr = ex.Message; }
         try { var ms = await moldTask; if (seq != _seq) return; _molds = ms; }
         catch (Exception ex) { if (seq != _seq) return; _moldErr = ex.Message; }
+        try { var mi = await moldInfoTask; if (seq != _seq) return; _moldInfo = mi; }
+        catch { /* 요약만 빠진다 */ }
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }

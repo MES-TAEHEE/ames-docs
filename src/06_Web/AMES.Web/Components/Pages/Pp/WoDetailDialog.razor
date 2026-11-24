@@ -1,5 +1,6 @@
 @using AMES.Contracts.Dto
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject DialogService Dialog
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
@@ -64,6 +65,15 @@ else
             <div class="ipk-k">@L["PP.WoDetail.Mold"]</div><div class="ipk-v">@(_wo.MoldId ?? "—")</div>
         </div>
     </div>
+
+    @* 금형 정보 — WO 에 금형이 정해졌으면 그 금형, 없으면(조립 등) 이 WO 의 품번·공정 품번을 찍는 금형 *@
+    @if (_moldInfo.Count > 0)
+    {
+        <div class="ipk-sub">@L["PP.WoDetail.MoldInfo"]@(_moldByItem ? " · " + L["PP.WoDetail.MoldInfo.ByItem"].Value : "") · @_moldInfo.Count</div>
+        <div style="margin:4px 0 12px;">
+            @foreach (var m in _moldInfo) { <MoldInfoCard Row="m" /> }
+        </div>
+    }
 
     <div class="ipk-sub">@L["PP.WoDetail.Order.Title"]</div>
     @if (_order is { } od)
@@ -360,9 +370,29 @@ else
             _stepTrace = Wos.ListStepTrace(_wo.WoId); _stations = Wos.ListStepStations(_wo.WoId);
             _pallets = Wos.ListWoPallets(_wo.WoId);
             _order = Wos.GetWoOrderInfo(WoNumber);
+            LoadMoldInfo();
             _live = _steps.Any(s => s.Status == "In Progress") || _wo.Status == "In Progress";
         }
         catch { _wo = null; }
+    }
+
+    List<AMES.Data.Repositories.MasterDataRepository.MoldInfoRow> _moldInfo = new();
+    bool _moldByItem;   // WO 에 금형이 없어 품번 기준으로 찾았다
+
+    void LoadMoldInfo()
+    {
+        try
+        {
+            if (_wo is null) return;
+            if (!string.IsNullOrWhiteSpace(_wo.MoldId))
+                _moldInfo = MD.ListMoldInfo(new[] { _wo.MoldId });
+            if (_moldInfo.Count == 0)
+            {
+                _moldInfo = MD.ListMoldInfo(null, _steps.Select(s => s.ItemNo).Append(_wo.ItemNo));
+                _moldByItem = _moldInfo.Count > 0;
+            }
+        }
+        catch { _moldInfo = new(); }   // 금형 요약만 빠진다
     }
 
     static string StatusClass(string? status) => status switch

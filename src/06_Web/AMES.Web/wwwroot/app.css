@@ -5938,6 +5938,15 @@ input[data-ames-x] {
 .ipk-mold { display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; }
 .ipk-mold-id { flex: 0 0 auto; font-size: 12px; padding-top: 3px; min-width: 90px; }
 .ipk-chip.self { border-color: var(--ames-accent); font-weight: 600; }
+.ipk-mold-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* 금형 요약(MoldInfoCard) — WO 팝업·품번 BOM 미리보기 공통. 항목은 「이름 값」 묶음을 줄바꿈되게 늘어놓는다 */
+.mic { font-size: 12px; }
+.mic + .mic { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--ames-bd-white-a08); }
+.mic-h { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 3px; font-size: 13px; }
+.mic-g { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.mic-k { color: var(--ames-tx-slate-500); margin-right: 2px; }
+.mic-pill { font-size: 11px; padding: 0 7px; margin-left: 4px; }
+.mic-g > .mic-pill:first-child { margin-left: 0; }
 .ipk-chip.off { opacity: .5; }
 .ipk-msg { font-size: 13px; }
 .ipk-msg.neg { color: var(--ames-tx-red-300); }

@@ -2571,6 +2571,12 @@
   <data name="PP.WoDetail.Mold" xml:space="preserve">
     <value>Molde</value>
   </data>
+  <data name="PP.WoDetail.MoldInfo" xml:space="preserve">
+    <value>Información del molde</value>
+  </data>
+  <data name="PP.WoDetail.MoldInfo.ByItem" xml:space="preserve">
+    <value>por número de pieza</value>
+  </data>
   <data name="PP.WoDetail.Priority" xml:space="preserve">
     <value>Prioridad</value>
   </data>
@@ -13777,7 +13783,7 @@
     <value>Usado en (superiores)</value>
   </data>
   <data name="ItemPeek.MoldItems" xml:space="preserve">
-    <value>Productos del mismo molde</value>
+    <value>Moldes · productos del mismo molde</value>
   </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>Ningún artículo superior usa este artículo.</value>

@@ -1,0 +1,64 @@
+@* 금형 한 벌의 요약(마스터 + Shot·장착 설비) — WO 팝업(Pp/WoDetailDialog)·품번 BOM 미리보기(ItemBomPeek)가 함께 쓴다.
+   데이터는 MasterDataRepository.ListMoldInfo 로 읽어 Row 로 넘긴다. 값이 없는 항목은 빼서 짧게 보인다.
+   소진율 표시·등급은 MD-007·MNT-004 와 같은 MoldUsageRules. *@
+@using AMES.Data.Services
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<div class="mic">
+    @if (ShowHeader)
+    {
+        <div class="mic-h">
+            <span class="code">@Row.MoldID</span>
+            @if (!string.IsNullOrEmpty(Row.MoldName)) { <span class="dim">· @Row.MoldName</span> }
+            @StatusPill
+        </div>
+    }
+    <div class="mic-g">
+        @if (!ShowHeader) { @StatusPill }
+        @if (!string.IsNullOrEmpty(Row.CarType)) { <span><span class="mic-k">@L["Col.CarType"]</span> @Row.CarType</span> }
+        @if (Row.CavityCount is int cav) { <span><span class="mic-k">@L["Col.Cavities"]</span> @cav</span> }
+        @if (Row.Tonnage is int ton) { <span><span class="mic-k">@L["Col.Tonnage"]</span> @ton.ToString("N0")</span> }
+        @if (Row.CurrentShots is not null || Row.RatedShots is not null)
+        {
+            var pct = MoldUsageRules.Usage(Row.CurrentShots, Row.RatedShots);
+            var grade = MoldUsageRules.Grade(pct, Row.ThresholdLevel);
+            var cls = grade == MoldUsageRules.Critical ? "bad" : grade == MoldUsageRules.Warning ? "warn" : "ok";
+            <span title="@L["Col.ShotsCurrent"] / @L["MNT.Mold.Col.RatedShots"]">
+                <span class="mic-k">Shot</span>
+                <span class="code">@(Row.CurrentShots?.ToString("N0") ?? "—")</span><span class="dim"> / @(Row.RatedShots?.ToString("N0") ?? "—")</span>
+                @if (pct is { } u) { <span class="pill @cls mic-pill">@MoldUsageRules.Shown(u).ToString("N2")%</span> }
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Row.MountedEquipID))
+        {
+            <span><span class="mic-k">@L["Col.MountedOn"]</span> <span class="code">@Row.MountedEquipID</span>@if (!string.IsNullOrEmpty(Row.MountedEquipName)) { <span class="dim"> · @Row.MountedEquipName</span> }</span>
+        }
+        @if (!string.IsNullOrEmpty(Row.StorageLoc)) { <span><span class="mic-k">@L["Col.StorageLoc"]</span> @Row.StorageLoc</span> }
+        @if (Row.LastMaintDate is { } lm) { <span><span class="mic-k">@L["Col.LastMaint"]</span> @lm.ToString(DateFmt.Date)</span> }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MasterDataRepository.MoldInfoRow Row { get; set; } = default!;
+    /// <summary>금형 ID·이름 줄을 보일지 — 이미 금형 ID 를 따로 보이는 곳(BOM 미리보기)은 false.</summary>
+    [Parameter] public bool ShowHeader { get; set; } = true;
+
+    // 상태 이름(공통코드 MOLD_STATUS)은 자주 바뀌지 않아 서버 전체에서 5분 동안 함께 쓴다
+    static List<MasterDataRepository.CodeItemRow>? s_status;
+    static DateTime s_statusAt;
+
+    protected override void OnInitialized()
+    {
+        if (s_status is not null && DateTime.UtcNow - s_statusAt < TimeSpan.FromMinutes(5)) return;
+        try { s_status = MD.ListCodeItems("MOLD_STATUS"); s_statusAt = DateTime.UtcNow; } catch { s_status ??= new(); }
+    }
+
+    RenderFragment StatusPill => __builder =>
+    {
+        if (string.IsNullOrEmpty(Row.Status)) return;
+        var cls = Row.Status switch { "AVAILABLE" => "ok", "MOUNTED" => "info", _ => "bad" };
+        var name = s_status?.FirstOrDefault(s => s.CodeValue == Row.Status) is { } c ? MasterDataRepository.LocalName(c) : Row.Status;
+        <span class="pill @cls mic-pill">@name</span>
+    };
+}

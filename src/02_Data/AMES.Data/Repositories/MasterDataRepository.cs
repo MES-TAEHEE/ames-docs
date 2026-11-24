@@ -2185,6 +2185,75 @@ public sealed class MasterDataRepository
         return list;
     }
 
+    /// <summary>팝업용 금형 요약 — 마스터(MD_Mold) + Shot 카운트(MNT_MoldShotCount)의 장착 설비·등급.</summary>
+    public record MoldInfoRow(
+        string MoldID, string? MoldName, string? CarType,
+        int? CavityCount, int? Tonnage, int? RatedShots, int? CurrentShots, long CumulativeShots,
+        string? Status, string? StorageLoc, DateOnly? LastMaintDate,
+        string? MountedEquipID, string? MountedEquipName, string? ThresholdLevel);
+
+    /// <summary>
+    /// WO 팝업·품번 BOM 미리보기의 금형 정보. moldIds 가 있으면 그 금형들, 없으면 itemNos 중 하나라도 찍는 금형(MD_MoldItem) 전부. 금형 ID 순.
+    /// </summary>
+    public List<MoldInfoRow> ListMoldInfo(IEnumerable<string>? moldIds, IEnumerable<string>? itemNos = null)
+    {
+        static List<string> Clean(IEnumerable<string>? v) => (v ?? Enumerable.Empty<string>())
+            .Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase).Take(50).ToList();
+        var ids = Clean(moldIds);
+        var items = Clean(itemNos);
+        if (ids.Count == 0 && items.Count == 0) return new();
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand { Connection = conn };
+        string where;
+        if (ids.Count > 0)
+        {
+            var names = new List<string>();
+            for (var k = 0; k < ids.Count; k++)
+            {
+                names.Add("@M" + k);
+                ColumnParams.AddFilter(cmd, "@M" + k, "MD_Mold.MoldID", ids[k]);
+            }
+            where = $"m.MoldID IN ({string.Join(",", names)})";
+        }
+        else
+        {
+            var names = new List<string>();
+            for (var k = 0; k < items.Count; k++)
+            {
+                names.Add("@P" + k);
+                ColumnParams.AddFilter(cmd, "@P" + k, "MD_MoldItem.ItemNo", items[k]);
+            }
+            where = $"m.MoldID IN (SELECT MoldID FROM dbo.MD_MoldItem WHERE ItemNo IN ({string.Join(",", names)}))";
+        }
+        cmd.CommandText = $"""
+            SELECT m.MoldID, m.MoldName, m.CarType, m.CavityCount, m.Tonnage,
+                   m.RatedShots, m.CurrentShots, m.CumulativeShots,
+                   m.Status, m.StorageLoc, m.LastMaintDate,
+                   sc.MountedEquipID, e.EquipName AS MountedEquipName, sc.ThresholdLevel
+            FROM   dbo.MD_Mold m
+            OUTER APPLY (SELECT TOP (1) s.MountedEquipID, s.ThresholdLevel
+                         FROM dbo.MNT_MoldShotCount s WHERE s.MoldID = m.MoldID
+                         ORDER BY s.MoldShotCountID DESC) sc
+            LEFT   JOIN dbo.MD_Equipment e ON e.EquipID = sc.MountedEquipID
+            WHERE  {where}
+            ORDER  BY m.MoldID;
+            """;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldInfoRow>();
+        while (r.Read())
+            list.Add(new MoldInfoRow(
+                (string)r["MoldID"], r["MoldName"] as string, r["CarType"] as string,
+                r["CavityCount"] as int?, r["Tonnage"] as int?,
+                r["RatedShots"] as int?, r["CurrentShots"] as int?,
+                r["CumulativeShots"] is long cum ? cum : 0,
+                r["Status"] as string, r["StorageLoc"] as string,
+                r["LastMaintDate"] is DateTime lmd ? DateOnly.FromDateTime(lmd) : null,
+                r["MountedEquipID"] as string, r["MountedEquipName"] as string, r["ThresholdLevel"] as string));
+        return list;
+    }
+
     public bool MoldItemExists(string moldId, string itemNo)
     {
         using var conn = _factory.OpenConnection();

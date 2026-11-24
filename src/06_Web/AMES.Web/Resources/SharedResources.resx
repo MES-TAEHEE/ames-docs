@@ -2574,6 +2574,12 @@
   <data name="PP.WoDetail.Mold" xml:space="preserve">
     <value>금형</value>
   </data>
+  <data name="PP.WoDetail.MoldInfo" xml:space="preserve">
+    <value>Mold info</value>
+  </data>
+  <data name="PP.WoDetail.MoldInfo.ByItem" xml:space="preserve">
+    <value>by part no.</value>
+  </data>
   <data name="PP.WoDetail.Priority" xml:space="preserve">
     <value>우선순위</value>
   </data>
@@ -13777,7 +13783,7 @@
     <value>Used in (parents)</value>
   </data>
   <data name="ItemPeek.MoldItems" xml:space="preserve">
-    <value>Same-mold products</value>
+    <value>Molds · same-mold products</value>
   </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>No parent item uses this item.</value>

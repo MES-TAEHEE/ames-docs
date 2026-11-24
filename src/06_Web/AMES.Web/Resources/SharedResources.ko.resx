@@ -2571,6 +2571,12 @@
   <data name="PP.WoDetail.Mold" xml:space="preserve">
     <value>금형</value>
   </data>
+  <data name="PP.WoDetail.MoldInfo" xml:space="preserve">
+    <value>금형 정보</value>
+  </data>
+  <data name="PP.WoDetail.MoldInfo.ByItem" xml:space="preserve">
+    <value>품번 기준</value>
+  </data>
   <data name="PP.WoDetail.Priority" xml:space="preserve">
     <value>우선순위</value>
   </data>
@@ -13777,7 +13783,7 @@
     <value>사용처(상위 품목)</value>
   </data>
   <data name="ItemPeek.MoldItems" xml:space="preserve">
-    <value>같은 금형 제품</value>
+    <value>금형 · 같은 금형 제품</value>
   </data>
   <data name="ItemPeek.NoParents" xml:space="preserve">
     <value>이 품번을 쓰는 상위 품목이 없습니다.</value>
