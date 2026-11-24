@@ -30,7 +30,7 @@
 }
 
 @code {
-    Task PrintNote()=>JS.InvokeVoidAsync("amesPrintLabels",".delivery-note-document","A4 portrait",true).AsTask();
+    Task PrintNote()=>JS.InvokeVoidAsync("amesPrintLabels",".delivery-note-print-job","A4 portrait",true).AsTask();
     async Task<IReadOnlyList<ShippingLabel>> ReloadNoteLabels()
     {
         var user=(await Authentication.GetAuthenticationStateAsync()).User;
