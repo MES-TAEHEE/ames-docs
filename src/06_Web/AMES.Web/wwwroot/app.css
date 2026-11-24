@@ -4771,9 +4771,9 @@ html[data-theme="light"] .pp-oee-donut-track { stroke: rgba(80,60,20,.10); }
 .pp-oee-chart .rz-tick-text, .mnt-oee-chart .rz-tick-text, .rpt-dp-chart .rz-tick-text,
 .pp-oee-chart .rz-legend-item-text, .mnt-oee-chart .rz-legend-item-text, .rpt-dp-chart .rz-legend-item-text { fill: #94a3b8; font-size: calc(11px + var(--ames-fs-bump)); }
 .pp-oee-chart .rz-grid-line, .mnt-oee-chart .rz-grid-line, .rpt-dp-chart .rz-grid-line { stroke: rgba(148,163,184,.25); }
-html[data-theme="light"] .pp-oee-chart .rz-tick-text, html[data-theme="light"] .mnt-oee-chart .rz-tick-text, html[data-theme="light"] .rpt-dp-chart .rz-tick-text, .rpt-dp-chart .rz-tick-text,
-html[data-theme="light"] .pp-oee-chart .rz-legend-item-text, html[data-theme="light"] .mnt-oee-chart .rz-legend-item-text, .rpt-dp-chart .rz-legend-item-text { fill: var(--ames-text-dim); }
-html[data-theme="light"] .pp-oee-chart .rz-grid-line, html[data-theme="light"] .mnt-oee-chart .rz-grid-line, .rpt-dp-chart .rz-grid-line { stroke: rgba(80,60,20,.18); }
+html[data-theme="light"] .pp-oee-chart .rz-tick-text, html[data-theme="light"] .mnt-oee-chart .rz-tick-text, html[data-theme="light"] .rpt-dp-chart .rz-tick-text,
+html[data-theme="light"] .pp-oee-chart .rz-legend-item-text, html[data-theme="light"] .mnt-oee-chart .rz-legend-item-text, html[data-theme="light"] .rpt-dp-chart .rz-legend-item-text { fill: var(--ames-text-dim); }
+html[data-theme="light"] .pp-oee-chart .rz-grid-line, html[data-theme="light"] .mnt-oee-chart .rz-grid-line, html[data-theme="light"] .rpt-dp-chart .rz-grid-line { stroke: rgba(80,60,20,.18); }
 
 /* PP-DTL 비가동 이력 그리드: 낮은 행 높이 */
 .ames-rz-grid.pp-dtl-grid .rz-data-cell { padding: 4px 10px !important; font-size: 12px; }

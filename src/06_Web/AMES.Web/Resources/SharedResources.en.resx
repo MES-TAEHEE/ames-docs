@@ -6640,10 +6640,10 @@
     <value>{0} SKU · Low {1}</value>
   </data>
   <data name="RPT.Inventory.Wh.WH" xml:space="preserve">
-    <value>Material WH</value>
+    <value>Material (WH)</value>
   </data>
   <data name="RPT.Inventory.Wh.FG" xml:space="preserve">
-    <value>Finished Goods WH</value>
+    <value>Finished / Semi-finished (FG)</value>
   </data>
   <data name="RPT.Inventory.Detail.Title" xml:space="preserve">
     <value>Inventory Detail by Item</value>
@@ -14299,5 +14299,83 @@ Late = not shipped and past the requested date
   </data>
   <data name="MD.Location.Print.All" xml:space="preserve">
     <value>Select all</value>
+  </data>
+  <data name="RPT.Inventory.Lots" xml:space="preserve">
+    <value>Lots</value>
+  </data>
+  <data name="RPT.Inventory.Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="RPT.Inventory.Inventories" xml:space="preserve">
+    <value>Inventories</value>
+  </data>
+  <data name="RPT.Inventory.Target" xml:space="preserve">
+    <value>Recommended Stock Quantity</value>
+  </data>
+  <data name="RPT.Inventory.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="RPT.Inventory.Issued" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="RPT.Inventory.Weekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="RPT.Inventory.Biweekly" xml:space="preserve">
+    <value>Biweekly</value>
+  </data>
+  <data name="RPT.Inventory.Monthly" xml:space="preserve">
+    <value>Monthly</value>
+  </data>
+  <data name="RPT.Inventory.Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="RPT.Inventory.InvalidDates" xml:space="preserve">
+    <value>From must be on or before To; To cannot be after today.</value>
+  </data>
+  <data name="RPT.Inventory.InvalidTarget" xml:space="preserve">
+    <value>Enter a target greater than zero with up to 3 decimal places.</value>
+  </data>
+  <data name="RPT.Inventory.Denied" xml:space="preserve">
+    <value>You do not have permission to edit target stock.</value>
+  </data>
+  <data name="RPT.Inventory.ReceiptTrend" xml:space="preserve">
+    <value>Daily Stock by Category</value>
+  </data>
+  <data name="RPT.Inventory.TrendHint" xml:space="preserve">
+    <value>Daily closing stock · change includes adjustments and receipt cancellations · separate units</value>
+  </data>
+  <data name="RPT.Inventory.Movements" xml:space="preserve">
+    <value>Received / Released History</value>
+  </data>
+  <data name="RPT.Inventory.Operator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="RPT.Inventory.ReceiptEvents" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="RPT.Inventory.IssueEvents" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="RPT.Inventory.StockQuantities" xml:space="preserve">
+    <value>Stock Quantities</value>
+  </data>
+  <data name="RPT.Inventory.StockRatio" xml:space="preserve">
+    <value>Stock / Recommended (%)</value>
+  </data>
+  <data name="RPT.Inventory.DailyChanges" xml:space="preserve">
+    <value>Daily Category Changes</value>
+  </data>
+  <data name="RPT.Inventory.Opening" xml:space="preserve">
+    <value>Opening Stock</value>
+  </data>
+  <data name="RPT.Inventory.Closing" xml:space="preserve">
+    <value>Closing Stock</value>
+  </data>
+  <data name="RPT.Inventory.Change" xml:space="preserve">
+    <value>Quantity Change</value>
+  </data>
+  <data name="RPT.Inventory.ChangeBasis" xml:space="preserve">
+    <value>Change compared with stock before the selected period</value>
   </data>
 </root>

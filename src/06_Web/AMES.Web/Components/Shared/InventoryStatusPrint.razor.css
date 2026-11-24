@@ -1,0 +1,13 @@
+.inventory-report-print { box-sizing:border-box; width:297mm; padding:10mm; color:#111; background:#fff; font:9pt Arial,sans-serif; }
+h1 { margin:0 0 6px; font-size:18pt; color:#111; }
+header p { margin:0 0 14px; font-size:9pt; color:#444; }
+h2 { font-size:13pt; margin:0 0 10px; color:#111; break-after:avoid; }
+.inventory-print-section + .inventory-print-section { break-before:page; padding-top:8mm; }
+table { width:100%; border-collapse:collapse; table-layout:fixed; }
+thead { display:table-header-group; }
+th,td { border:1px solid #aaa; padding:5px 6px; overflow-wrap:anywhere; vertical-align:top; color:#111; }
+th { background:#eee; font-weight:700; text-align:left; }
+tr { break-inside:avoid; }
+.number { text-align:right; font-variant-numeric:tabular-nums; }
+.increase { color:#15803d; }
+.decrease { color:#b91c1c; }

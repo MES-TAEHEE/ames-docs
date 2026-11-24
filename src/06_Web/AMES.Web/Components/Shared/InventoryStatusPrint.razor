@@ -1,0 +1,30 @@
+<article class="inventory-report-print">
+    <header><h1>@Title</h1><p>@Context</p></header>
+    @foreach(var sheet in Sheets)
+    {
+        <section class="inventory-print-section">
+            <h2>@sheet.Name</h2>
+            <table>
+                <thead><tr>@foreach(var heading in sheet.Headers) { <th>@heading</th> }</tr></thead>
+                <tbody>
+                    @foreach(var row in sheet.Rows)
+                    {
+                        <tr>@for(var i=0;i<row.Count;i++)
+                        {
+                            var value=row[i];
+                            var isChange=sheet.ChangeColumns?.Contains(i)==true;
+                            <td class="@(value is decimal or int or long ? "number" : "") @(isChange&&value is decimal n?n>0?"increase":n<0?"decrease":"":"")">@Format(value,sheet.PercentColumns?.Contains(i)==true,isChange)</td>
+                        }</tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+</article>
+
+@code {
+    [Parameter] public string Title {get;set;}="";
+    [Parameter] public string Context {get;set;}="";
+    [Parameter] public IReadOnlyList<XlsxWriter.DataSheet> Sheets {get;set;}=[];
+    static string Format(object? value,bool percent,bool change) => value switch { null=>"—",decimal qty=>qty.ToString(percent?"P2":change?"+#,##0.###;-#,##0.###;0":"#,##0.###"),_=>value.ToString()??"—" };
+}
