@@ -13,7 +13,7 @@ export function initialize(root, viewport, canvas, dotnet) {
     const draft = canvas.querySelector('.factory-map-draft');
     const controller = new AbortController();
     const options = { signal: controller.signal };
-    const state = { root, viewport, canvas, image, draft, dotnet, controller, factor: 1, editing: false, modal: false, start: null, ready: false };
+    const state = { root, viewport, canvas, image, draft, dotnet, controller, factor: 1, editing: false, modal: false, start: null, ready: false, pan: null, suppressClick: false };
     maps.set(root, state);
     const invoke = (name, ...args) => dotnet.invokeMethodAsync(name, ...args).catch(() => {});
     const ready = () => {
@@ -28,6 +28,42 @@ export function initialize(root, viewport, canvas, dotnet) {
         const bounds = canvas.getBoundingClientRect();
         return { x: (e.clientX - bounds.left) * 100 / bounds.width, y: (e.clientY - bounds.top) * 100 / bounds.height };
     };
+    viewport.addEventListener('pointerdown', e => {
+        state.suppressClick = false;
+        if (!state.ready || state.editing || state.pan || e.button !== 0
+            || (canvas.clientWidth <= viewport.clientWidth && canvas.clientHeight <= viewport.clientHeight)) return;
+        state.pan = { id: e.pointerId, x: e.clientX, y: e.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, dragging: false };
+    }, options);
+    viewport.addEventListener('pointermove', e => {
+        const pan = state.pan;
+        if (!pan || pan.id !== e.pointerId) return;
+        const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+        if (!pan.dragging) {
+            if (Math.hypot(dx, dy) < 5) return;
+            pan.dragging = true;
+            viewport.setPointerCapture(e.pointerId);
+            viewport.classList.add('is-panning');
+        }
+        e.preventDefault();
+        state.suppressClick = true;
+        viewport.scrollLeft = pan.left - dx;
+        viewport.scrollTop = pan.top - dy;
+    }, options);
+    const endPan = e => {
+        if (!state.pan || state.pan.id !== e.pointerId) return;
+        state.pan = null;
+        viewport.classList.remove('is-panning');
+        if (viewport.hasPointerCapture(e.pointerId)) viewport.releasePointerCapture(e.pointerId);
+    };
+    viewport.addEventListener('pointerup', endPan, options);
+    viewport.addEventListener('pointercancel', endPan, options);
+    viewport.addEventListener('lostpointercapture', endPan, options);
+    viewport.addEventListener('click', e => {
+        if (!state.suppressClick || e.detail === 0) return;
+        state.suppressClick = false;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, { ...options, capture: true });
     canvas.addEventListener('pointerdown', e => {
         if (!state.editing || !state.ready || e.button !== 0 || e.target.closest('button')) return;
         e.preventDefault();
@@ -89,5 +125,8 @@ export function dispose(root) {
     const s = maps.get(root);
     if (!s) return;
     if (root.classList.contains('factory-map-expanded') && document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    s.controller.abort(); s.observer.disconnect(); maps.delete(root);
+    s.controller.abort();
+    if (s.pan && s.viewport.hasPointerCapture(s.pan.id)) s.viewport.releasePointerCapture(s.pan.id);
+    s.viewport.classList.remove('is-panning');
+    s.observer.disconnect(); maps.delete(root);
 }
