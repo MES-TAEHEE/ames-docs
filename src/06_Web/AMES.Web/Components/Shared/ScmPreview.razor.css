@@ -102,3 +102,25 @@
 @media(max-width:480px) {
     .scm-delivery-detail .ames-table tr { grid-template-columns:minmax(0,1fr); }
 }
+.scm-orders-list ::deep .scm-order-items-grid .rz-data-grid-data {
+    overflow-x: auto !important;
+}
+.scm-orders-list ::deep .scm-order-items-grid .rz-data-grid-data > table {
+    min-width: var(--scm-order-min-width, 1545px);
+}
+.scm-orders-list ::deep .scm-order-items-grid .rz-cell-data {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.scm-order-description {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.scm-orders-list .scm-order-status {
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    line-height: 1.4;
+}
