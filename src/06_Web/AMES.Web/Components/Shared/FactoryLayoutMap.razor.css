@@ -6,7 +6,8 @@
 .factory-map-hint { color: var(--ames-tx-slate-400); margin: 8px 0 12px; font-size: .9rem; }
 .factory-map-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; overflow: hidden; }
 .factory-map-layout.has-inventory { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-.factory-map-viewport { height: calc(100dvh - 285px); min-height: 480px; overflow: auto; background: var(--ames-sf-0d1a2e); border: 1px solid var(--ames-bd-white-a08); border-radius: 6px; overscroll-behavior: contain; }
+.factory-map-viewport { height: calc(100dvh - 285px); min-height: 480px; overflow: auto; background: var(--ames-sf-0d1a2e); border: 1px solid var(--ames-bd-white-a08); border-radius: 6px; overscroll-behavior: contain; touch-action:none; cursor:grab; }
+.factory-map-viewport.is-panning, .factory-map-viewport.is-panning ::deep .factory-map-region { cursor:grabbing; }
 .factory-map-canvas { position: relative; margin: 12px auto; background: #fff; width: 0; height: 0; box-shadow: 0 2px 12px #0003; user-select: none; }
 .factory-map-canvas img { display: block; width: 100%; height: 100%; pointer-events: none; max-width: none; }
 .factory-map-viewport.is-editing .factory-map-canvas { cursor: crosshair; touch-action: none; }
