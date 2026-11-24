@@ -26,33 +26,34 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.ShipPlan.List"] · @_view.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-            <RadzenTextBox Immediate="true" @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Load();}' />
-            <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["FG.ShipPlan.Ph.Search"]' Search="Filter" />
+                <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
                 AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
             <RadzenDatePicker Name="ShipDateFrom" TValue="DateTime?" @bind-Value="_shipFrom" @bind-Value:after="Load" Disabled="_loading"
                 NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker TValue="DateTime?" @bind-Value="_shipTo" @bind-Value:after="Load" Disabled="_loading"
                 NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="@L["FG.ShipPlan.Btn.TrailerPreview"]" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="ShipmentPlanRows.Delivery" Data="_view" AllowPaging="true" PageSize="25" AllowSorting="true" RowClick="OpenDeliveryDetails" RowRender="DeliveryRowRender"
+    <RadzenDataGrid AllowColumnResize="true" TItem="ShipmentPlanRows.Delivery" Data="_view" IsLoading="_loading" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" RowClick="OpenDeliveryDetails" RowRender="DeliveryRowRender"
                     PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true"
                     PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]'
                     PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     EmptyText="@L["FG.ShipPlan.Empty"]" class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn Width="160px" MinWidth="160px" TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="@L["FG.ShipPlan.Col.DcrNo"]" />
-            <RadzenDataGridColumn Width="100px" MinWidth="100px" TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="@L["Col.Customer"]" />
-            <RadzenDataGridColumn Width="140px" MinWidth="140px" TItem="ShipmentPlanRows.Delivery" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-            <RadzenDataGridColumn Width="90px" MinWidth="90px" TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.Orders"]"><Template Context="delivery">@delivery.Orders.Count</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn MinWidth="190px" TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.PartsQty"]"><Template Context="delivery">
-                @delivery.Lines.Select(x=>x.PartNo).Distinct().Count() @L["FG.Ship.Lbl.Parts"] · @DeliveryQuantity(delivery)
+            <RadzenDataGridColumn Width="230px" MinWidth="200px" TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="@L["FG.ShipPlan.Col.DcrNo"]"><Template Context="delivery">
+                <span @onclick:stopPropagation="true"><RadzenButton Text="@delivery.DeliveryNo" Click="@(()=>_detailDelivery=delivery)" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn operational-code-link" /></span>
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn Width="80px" MinWidth="80px" TItem="ShipmentPlanRows.Delivery" Property="Status" Title="@L["Col.Status"]" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="delivery"><span @onclick:stopPropagation="true"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn Width="160px" MinWidth="120px" TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="@L["Col.Customer"]"><Template Context="delivery"><span class="code">@delivery.CustomerId</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn Width="150px" MinWidth="120px" TItem="ShipmentPlanRows.Delivery" Property="ShipDate" Title="@L["Col.ShipDate"]"><Template Context="delivery"><span class="@(delivery.ShipDate.Date<DbClock.Today ? "operational-overdue" : null)">@delivery.ShipDate.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn Width="100px" MinWidth="90px" TItem="ShipmentPlanRows.Delivery" Property="OrderCount" TextAlign="TextAlign.Right" Title="@L["FG.ShipPlan.Col.Orders"]" />
+            <RadzenDataGridColumn Width="100px" MinWidth="90px" TItem="ShipmentPlanRows.Delivery" Property="PartCount" TextAlign="TextAlign.Right" Title="@L["FG.Ship.Lbl.Parts"]" />
+            <RadzenDataGridColumn Width="180px" MinWidth="170px" TItem="ShipmentPlanRows.Delivery" TextAlign="TextAlign.Right" Title="@L["FG.Ship.Col.ShipQty"]" Sortable="false"><Template Context="delivery"><strong class="operational-quantity">@DeliveryQuantity(delivery)</strong></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn Width="120px" MinWidth="110px" TItem="ShipmentPlanRows.Delivery" Property="Status" TextAlign="TextAlign.Center" Title="@L["Col.Status"]"><Template Context="delivery"><span class="pill @(delivery.Status=="Loading" ? "info" : "warn")">@delivery.Status</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="110px" MinWidth="100px" TextAlign="TextAlign.Center" Sortable="false"><Template Context="delivery"><span @onclick:stopPropagation="true"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>

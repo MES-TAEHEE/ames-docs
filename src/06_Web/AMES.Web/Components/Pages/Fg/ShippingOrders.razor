@@ -24,19 +24,19 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />}
             @if(_canEdit){<RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />}
-            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["FG.ShipOrders.Ph.Search"]' Search="SearchOrders" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem">
                 <RadzenCheckBox TValue="bool" Value="@_includeShipped" Change="@(value=>SetIncludeShipped(value))" Name="includeShipped" />
                 <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
             </RadzenStack>
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Reload" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
-    <RadzenDataGrid @ref="_grid" TItem="ShippingOrderDto" Data="@VisibleOrders" IsLoading="_loading" RowRender="OrderRowRender" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid AllowColumnResize="true" @ref="_grid" TItem="ShippingOrderDto" Data="@VisibleOrders" IsLoading="_loading" RowRender="OrderRowRender" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
         <Template Context="order">
             <ShipmentOrderLines Lines="order.Lines" />
         </Template>
@@ -47,11 +47,11 @@
             </Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" MinWidth="220px"><Template Context="r"><ShipOrderLink OrderNo="@r.OrderNo" Changed="Reload" />@if(_overrides.TryGetValue(r.OrderNo,out var why)){<span class="pill warn" style="margin-left:6px;" title="@(L["FG.ShipOrders.Override.Tip"].Value+": "+why)">@L["FG.ShipOrders.Override.Badge"]</span>}</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="@L["Col.Customer"]" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["FG.ShipOrders.Col.PartQty"]"><Template Context="r">
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]"><Template Context="r"><span class="@(ShipmentPlanRows.IsUnshipped(r) && r.ShipDate.Date<DbClock.Today ? "operational-overdue" : null)">@r.ShipDate.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["FG.ShipOrders.Col.PartQty"]" TextAlign="TextAlign.Right"><Template Context="r">
                 @r.Lines.Select(x=>x.PartNo).Distinct().Count() <span class="dim">@L["FG.Ship.Lbl.Parts"] · @string.Join(" · ",r.Lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))</span>
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="@L["Col.Status"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(r.Status switch { "Shipped"=>"ok", "Loading"=>"info", "Cancelled"=>"mute", _=>"warn" })">@r.Status</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="@L["FG.ShipOrders.Col.Dcr"]"><Template Context="r">
                 @if(r.DeliveryNo is not null){<RadzenButton Text="@r.DeliveryNo" Click="@(()=>PrintDelivery(r.DeliveryNo))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />}
                 else{<span>@L["FG.ShipOrders.Lbl.NotAssigned"]</span>}
@@ -139,6 +139,7 @@
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
     async Task Reload(){if(!_allowed||_loading)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}_loading=true;try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));try{_overrides=await Task.Run(()=>Fg.ListStockOverrideReasons());}catch{_overrides=[];}_selected.Clear();_message="";}catch(Exception ex){_message=ex.Message;}finally{_loading=false;}}
+    async Task SearchOrders(){if(_grid is not null)await _grid.FirstPage();}
     void Select(int id,bool value){if(!value){_selected.Remove(id);return;}if(_orders.FirstOrDefault(o=>o.OrderId==id) is {} order && CanSelect(order))_selected.Add(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {
