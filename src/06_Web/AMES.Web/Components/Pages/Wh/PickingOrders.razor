@@ -28,11 +28,8 @@
         <div class="ames-card-h master-list-toolbar picking-orders-toolbar">
             <span>@L["WH.Picking.Title"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" @onkeydown='e => { if (e.Key == "Enter") Load(); }' />
-                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            </RadzenStack>
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="picking-status-filters">
+                <AmesSearchBox @bind-Value="_search" Placeholder='@L["WH.Picking.Ph.Search"]' Search="Load" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
                     <RadzenCheckBox TValue="bool" Value="_includeOverdue" Change="ToggleOverdue" Name="PickingIncludeOverdue" />
                     <RadzenLabel Text="@L["WH.Picking.Filter.IncludeOverdue"].Value" Component="PickingIncludeOverdue" style="cursor:pointer" />
@@ -46,12 +43,16 @@
                     <RadzenLabel Text="@L["WH.Picking.IncludeClosed"].Value" Component="PickingIncludeClosed" style="cursor:pointer" />
                 </RadzenStack>
             </RadzenStack>
+
+                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+
         </div>
-        <RadzenDataGrid @ref="_ordersGrid" TItem="PickingSlipHeaderRow" Data="VisibleOrders" RowSelect="SelectOrder" AllowMultiColumnSorting="false"
-            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed wh-picking-orders-grid picking-readable-grid">
+        <RadzenDataGrid AllowColumnResize="true" @ref="_ordersGrid" TItem="PickingSlipHeaderRow" Data="VisibleOrders" RowSelect="SelectOrder" AllowMultiColumnSorting="false"
+            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" Density="Density.Compact" class="ames-rz-grid ames-grid-fixed wh-picking-orders-grid picking-readable-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Destination"].Value" Width="150px" MinWidth="150px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px"><Template Context="row"><span class="code">@row.PickSlipNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Destination"].Value" Width="150px" MinWidth="150px"><Template Context="row"><span class="code">@row.ReqLocation</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="GenerationSource" Title="@L["WH.Picking.Col.Source"].Value" Width="190px" MinWidth="190px">
                     <Template Context="row">@GenerationSourceText(row.GenerationSource)</Template>
                 </RadzenDataGridColumn>
@@ -61,14 +62,14 @@
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="DueAt" SortProperty="DueSortDate" SortOrder="SortOrder.Ascending" Title="@L["WH.Picking.Col.DueDate"].Value" Width="130px" MinWidth="130px">
                     <Template Context="row"><span class="@(row.IsOverdue(DbClock.Today) ? "picking-overdue" : null)">@(row.DueAt?.ToString(DateFmt.Date) ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="@L["WH.Picking.Col.Materials"].Value" Width="130px" MinWidth="130px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="170px" MinWidth="170px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="@L["WH.Picking.Col.Materials"].Value" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="170px" MinWidth="170px" TextAlign="TextAlign.Right">
                     <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="160px" MinWidth="160px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="160px" MinWidth="160px" TextAlign="TextAlign.Right">
                     <Template Context="row">@UomFmt.QtyUnit(row.PickedQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="120px" MinWidth="120px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="120px" MinWidth="120px" TextAlign="TextAlign.Center"><Template Context="row"><span class="pill @(row.Status switch { "Closed"=>"ok", "Cancelled"=>"mute", "Picked" or "Partial"=>"info", _=>"warn" })">@row.Status</span></Template></RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
     </section>
@@ -78,22 +79,22 @@
         <div class="ames-card-h master-list-toolbar">
             <span>@L["WH.Picking.Releases"] · @_releases.Count</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                <RadzenTextBox Immediate="true" @bind-Value="_releaseSearch" MaxLength="120" Placeholder='@L["WH.Picking.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" @onkeydown='async e => { if (e.Key == "Enter") await LoadReleases(); }' />
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+                <AmesSearchBox @bind-Value="_releaseSearch" Placeholder='@L["WH.Picking.Ph.Search"]' Search="LoadReleases" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseFrom" @bind-Value:after="LoadReleases" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
                 <span>~</span>
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
-                <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="LoadReleases" Disabled="_releaseBusy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_releaseTo" @bind-Value:after="LoadReleases" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+
             </RadzenStack>
         </div>
         @if (_releaseError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_releaseError</RadzenAlert> }
-        <RadzenDataGrid @ref="_releaseGrid" TItem="PickingReleaseRow" Data="_releases" IsLoading="_releaseBusy" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" AllowSorting="true" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center">
+        <RadzenDataGrid AllowColumnResize="true" @ref="_releaseGrid" TItem="PickingReleaseRow" Data="_releases" IsLoading="_releaseBusy" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="ReleasedAt" Title='@L["WH.Picking.ReleasedAt"]' Width="180px"><Template Context="r">@r.ReleasedAt.ToString(DateFmt.DateTimeSec)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PickSlipNo" Title='@L["WH.Picking.Col.OrderNo"]' Width="180px" />
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="LotNo" Title="LOT" Width="220px" />
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PartNo" Title='@L["Col.ItemNo"]' Width="180px" />
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="PartName" Title='@L["Col.ItemName"]' MinWidth="180px" />
-                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="Quantity" Title='@L["Col.Quantity"]' Width="120px"><Template Context="r">@UomFmt.QtyUnit(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingReleaseRow" Property="Quantity" Title='@L["Col.Quantity"]' Width="120px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.QtyUnit(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="FromLocation" Title='@L["WH.Picking.Col.PickFrom"]' Width="150px" />
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="ToLocation" Title='@L["Col.Destination"]' Width="150px" />
                 <RadzenDataGridColumn TItem="PickingReleaseRow" Property="OperatorID" Title='@L["WH.Picking.Operator"]' Width="120px" />
@@ -105,9 +106,14 @@
         <section class="ames-card wh-pick-list">
             <div class="ames-card-h master-list-toolbar">
                 <span>@L["WH.Picking.Lbl.LineStockSafety"]</span>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <AmesSearchBox @bind-Value="_stockSearch" Placeholder='@L["WH.Picking.Ph.Search"]' Search="StateHasChanged" />
+                <RadzenDropDown TValue="string" @bind-Value="_stockLine" Data="@_stock.Select(r=>r.LineCode).Distinct().Order()" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["Col.Location"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
+
                 <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
             </div>
-            <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
+            <RadzenDataGrid AllowColumnResize="true" TItem="LineStockRow" Data="@_stock.Where(r=>(string.IsNullOrEmpty(_stockLine)||r.LineCode==_stockLine) && (string.IsNullOrWhiteSpace(_stockSearch)||(r.LineCode+" "+r.LineName+" "+r.PartNo+" "+r.PartName).Contains(_stockSearch,StringComparison.OrdinalIgnoreCase)))" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" Density="Density.Compact" class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="LineStockRow" Property="LineName" Title="@L["Col.Line"].Value" Width="180px" MinWidth="180px" />
                     <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="@L["Col.Location"].Value" Width="170px" MinWidth="170px" />
@@ -132,7 +138,7 @@
             <span>@_selected.PickSlipNo · @L["Col.Destination"] @_selected.ReqLocation</span>
         </div>
         @if (_cancelError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_cancelError</RadzenAlert> }
-        <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid picking-readable-grid">
+        <RadzenDataGrid AllowColumnResize="true" TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid picking-readable-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="SeqNo" Title="@L["Col.No"].Value" Width="60px" MinWidth="60px" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="WorkOrderNumber" Title="@L["WH.Picking.Col.WorkOrder"].Value" Width="160px" MinWidth="160px" />
@@ -187,6 +193,8 @@
         return string.Join("\n",locations);
     }
     [SupplyParameterFromQuery(Name="order")] public string? RequestedOrder { get; set; }
+    string _stockSearch = "";
+    string? _stockLine;
     List<LineStockRow> _stock = [];
     List<PickingSlipHeaderRow> _orders = [];
     List<PickingSlipLineRow> _details = [];
