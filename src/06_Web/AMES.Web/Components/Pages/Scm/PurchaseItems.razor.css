@@ -1,3 +1,17 @@
+.purchase-items-list ::deep .purchase-items-grid .rz-data-grid-data {
+    overflow-x: auto !important;
+}
+.purchase-items-list ::deep .purchase-items-grid .rz-data-grid-data > table {
+    min-width: var(--purchase-items-min-width, 1250px);
+}
+.purchase-item-text {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .vendor-check-list {
     height: 160px;
     overflow-y: auto;

@@ -18,4 +18,22 @@ public sealed class LocationBarcodeSelectionTests
         Assert.Empty(LocationBarcodeSelection.Codes(parent,[]));
     }
 
+    [Fact]
+    public void Group_toggle_selects_children_and_individual_toggle_updates_partial_state_without_duplicates()
+    {
+        var selected=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var children=new[]{"CHILD-1","CHILD-2"};
+        Assert.False(LocationBarcodeSelection.State(children,selected));
+        LocationBarcodeSelection.Toggle(children,selected);
+        Assert.True(LocationBarcodeSelection.State(children,selected));
+        LocationBarcodeSelection.Toggle(["CHILD-1"],selected);
+        Assert.Null(LocationBarcodeSelection.State(children,selected));
+        Assert.Equal("CHILD-2",Assert.Single(selected));
+        LocationBarcodeSelection.Toggle(children,selected);
+        Assert.Equal(2,selected.Count);
+        LocationBarcodeSelection.Toggle(children,selected);
+        Assert.Empty(selected);
+        Assert.False(LocationBarcodeSelection.State([],selected));
+    }
+
 }

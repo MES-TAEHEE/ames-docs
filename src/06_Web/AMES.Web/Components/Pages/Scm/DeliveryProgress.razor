@@ -24,24 +24,22 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["SCM.DeliveryProgress.Title"] · @MainItems.Count() @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" MaxLength="120" Placeholder='@L["SCM.DeliveryProgress.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
-            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorID" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Code"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
-            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Name"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["SCM.DeliveryProgress.Search"]' Search="Reload" />
+                <RadzenDropDown TValue="string" @bind-Value="_vendor" @bind-Value:after="Reload" Data="_vendors" TextProperty="VendorID" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Code"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" @bind-Value:after="Reload" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["SCM.Supplier.Name"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <div class="delivery-progress-filter-group">
                 <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' Component="DeliveryShipDateFrom" />
-                <RadzenDatePicker TValue="DateTime?" Name="DeliveryShipDateFrom" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
-                <span>~</span><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+                <RadzenDatePicker TValue="DateTime?" Name="DeliveryShipDateFrom" @bind-Value="_from" @bind-Value:after="Reload" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+                <span>~</span><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" @bind-Value:after="Reload" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
             </div>
             <div class="delivery-progress-filter-group">
-                <RadzenCheckBox TValue="bool" @bind-Value="_includeReceived" Name="IncludeReceived" /><RadzenLabel Text='@L["SCM.Preview.Lbl.IncludeReceived"]' Component="IncludeReceived" style="cursor:pointer" />
+                <RadzenCheckBox TValue="bool" @bind-Value="_includeReceived" @bind-Value:after="Reload" Name="IncludeReceived" /><RadzenLabel Text='@L["SCM.Preview.Lbl.IncludeReceived"]' Component="IncludeReceived" style="cursor:pointer" />
             </div>
-            <div class="delivery-progress-filter-group">
-                <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+
                 <RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Reload" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
-            </div>
         </RadzenStack>
     </div>
-    <RadzenDataGrid @ref="_grid" TItem="DeliveryItemRow" Data="@MainItems" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
+    <RadzenDataGrid AllowColumnResize="true" @ref="_grid" TItem="DeliveryItemRow" Data="@MainItems" IsLoading="_busy" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
         ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center" RowClick="e=>{if(e.Data is {} row)_selected=row.Note;}" RowRender="RenderProgressItem"
         Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageSize}")" EmptyText='@L["Scm.Text.NoResults"]'>
         <Columns>
@@ -65,7 +63,7 @@
         <div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label="@selected.Number" @onclick:stopPropagation="true" style="width:min(1300px,96vw);max-height:92vh;overflow:auto">
             <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center"><strong>@selected.Number · @selected.VendorName</strong><RadzenButton Icon="close" Click="()=>_selected=null" Size="ButtonSize.Small" class="ames-rz-btn" aria-label='@L["Btn.Close"]' /></div>
             <div class="ames-modal-body scm-delivery-progress" style="max-height:65vh;overflow:auto">
-                <RadzenDataGrid TItem="UnitItemRow" Data="@UnitItems(selected)" Class="ames-rz-grid" AllowPaging="false" AllowSorting="true" RowRender="RenderItemRow" EmptyText='@L["Scm.Text.NoResults"]'>
+                <RadzenDataGrid AllowColumnResize="true" TItem="UnitItemRow" Data="@UnitItems(selected)" Class="ames-rz-grid" AllowPaging="false" AllowSorting="true" RowRender="RenderItemRow" EmptyText='@L["Scm.Text.NoResults"]'>
                     <Columns>
                         <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Barcode" Title='@L["SCM.Preview.Print.BoxBarcode"]' Width="230px" MinWidth="230px" />
                         <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.PartNo" Title='@L["SCM.Preview.Col.PartNoName"]' MinWidth="200px"><Template Context="row">@row.Line.PartNo<div class="dim">@row.Line.PartName</div></Template></RadzenDataGridColumn>
@@ -119,20 +117,24 @@
         try{while(await timer.WaitForNextTickAsync(_stop.Token))await InvokeAsync(async()=>{await Reload();StateHasChanged();});}
         catch(OperationCanceledException){}
     }
+    int _reloadRequest;
     async Task Reload()
     {
-        if(_busy || !_allowed || _stop.IsCancellationRequested)return;
+        if(!_allowed || _stop.IsCancellationRequested)return;
         if(_from>_to){_error=L["Scm.Text.EndDateMustFollowStartDate"];return;}
+        var request=++_reloadRequest;
         _busy=true;
         try
         {
             var (from,to,search,vendor,include)=(_from,_to,_search,_vendor,_includeReceived);
-            _rows=await Task.Run(()=>Scm.ListSupplierDeliveryProgress(from,to,search,vendor,include));
+            var rows=await Task.Run(()=>Scm.ListSupplierDeliveryProgress(from,to,search,vendor,include));
+            if(request!=_reloadRequest)return;
+            _rows=rows;
             if(_selected is not null)_selected=_rows.Find(d=>d.Number==_selected.Number);
             _error="";
         }
-        catch(Exception ex){Logger.LogError(ex,"Delivery progress load failed");_error=L["SCM.DeliveryProgress.LoadError"];}
-        finally{_busy=false;}
+        catch(Exception ex){Logger.LogError(ex,"Delivery progress load failed");if(request==_reloadRequest)_error=L["SCM.DeliveryProgress.LoadError"];}
+        finally{if(request==_reloadRequest)_busy=false;}
     }
     string Status(string status)=>status switch{"OnTheWay"=>L["SCM.DeliveryProgress.OnTheWay"],"PartiallyReceived"=>L["SCM.DeliveryProgress.Partial"],"Received"=>L["Scm.Text.Received"],_=>L["Portal.Text.Registered"]};
     public async ValueTask DisposeAsync(){_stop.Cancel();if(_refresh is not null)await _refresh;_stop.Dispose();}

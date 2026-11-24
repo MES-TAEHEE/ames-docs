@@ -6610,10 +6610,10 @@
     <value>{0} SKU · 부족 {1}</value>
   </data>
   <data name="RPT.Inventory.Wh.WH" xml:space="preserve">
-    <value>자재 창고</value>
+    <value>자재 (WH)</value>
   </data>
   <data name="RPT.Inventory.Wh.FG" xml:space="preserve">
-    <value>완성품 창고</value>
+    <value>완제품 · 반제품 (FG)</value>
   </data>
   <data name="RPT.Inventory.Detail.Title" xml:space="preserve">
     <value>품목별 재고 상세</value>
@@ -9064,7 +9064,7 @@
     <value>WO번호/품목</value>
   </data>
   <data name="FG.Returns.Ph.Search" xml:space="preserve">
-    <value>반품번호/RMA/고객사/품목</value>
+    <value>고객사 / LOT / 파트 / DCR</value>
   </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
     <value>DCR / LOT / 품번 / 고객사 / 작업자…</value>
@@ -14246,5 +14246,157 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   </data>
   <data name="PP.PlanConfirm.Why.Tip" xml:space="preserve">
     <value>누르면 고칠 수 있는 화면이 새 탭으로 열립니다</value>
+  </data>
+  <data name="FG.Returns.Col.ShipmentDcrNo" xml:space="preserve"><value>출하 DCR 번호</value></data>
+  <data name="Col.Result" xml:space="preserve"><value>결과</value></data>
+  <data name="MD.Location.Grid.CreateParent" xml:space="preserve">
+    <value>로케이션 생성</value>
+  </data>
+  <data name="MD.Location.Grid.Size" xml:space="preserve">
+    <value>그리드 크기</value>
+  </data>
+  <data name="MD.Location.Grid.Columns" xml:space="preserve">
+    <value>열 개수 (X)</value>
+  </data>
+  <data name="MD.Location.Grid.Rows" xml:space="preserve">
+    <value>행 개수 (Y)</value>
+  </data>
+  <data name="MD.Location.Grid.Floors" xml:space="preserve">
+    <value>층 개수 (F)</value>
+  </data>
+  <data name="MD.Location.Grid.Summary" xml:space="preserve">
+    <value>자식 로케이션 {0}개 · 기존 바코드는 유지됩니다.</value>
+  </data>
+  <data name="MD.Location.Grid.Removing" xml:space="preserve">
+    <value>축소 대상 {0}개. 재고·진행 중인 피킹·지정파트가 있으면 저장할 수 없습니다.</value>
+  </data>
+  <data name="MD.Location.Grid.Custom" xml:space="preserve">
+    <value>기존 바코드 또는 좌표가 표준 그리드와 달라 일괄 변경할 수 없습니다. 기존 위치 정보는 유지됩니다.</value>
+  </data>
+  <data name="MD.Location.Grid.Preview" xml:space="preserve">
+    <value>바코드 미리보기</value>
+  </data>
+  <data name="MD.Location.Grid.Material" xml:space="preserve">
+    <value>자재 위치</value>
+  </data>
+  <data name="MD.Location.Grid.Finished" xml:space="preserve">
+    <value>완반제품 위치 (FG)</value>
+  </data>
+  <data name="MD.Location.Grid.Confirm" xml:space="preserve">
+    <value>{0}에 로케이션 {1}개를 생성하시겠습니까?</value>
+  </data>
+  <data name="MD.Location.Grid.Saved" xml:space="preserve">
+    <value>로케이션 설정을 저장했습니다.</value>
+  </data>
+  <data name="MD.Location.Grid.Invalid" xml:space="preserve">
+    <value>X는 1~99, Y는 1~260, F는 1~99로 입력해주세요. 한 번에 최대 1,000개 위치를 생성할 수 있습니다.</value>
+  </data>
+  <data name="MD.Location.Grid.Exists" xml:space="preserve">
+    <value>같은 부모 로케이션 코드가 이미 있습니다. 다른 접두어를 입력해주세요.</value>
+  </data>
+  <data name="MD.Location.Grid.ParentChanged" xml:space="preserve">
+    <value>부모 로케이션이 변경되었거나 비활성 상태입니다. 새로고침해주세요.</value>
+  </data>
+  <data name="MD.Location.Grid.AreaRequired" xml:space="preserve">
+    <value>창고와 Grid 구역을 선택하고 이름을 입력해주세요. 라인 위치는 등록된 라인 접두어를 사용해야 합니다.</value>
+  </data>
+  <data name="MD.Location.Grid.BarcodeConflict" xml:space="preserve">
+    <value>이미 사용 중인 바코드 또는 좌표입니다. 기존 바코드는 변경하지 않았습니다.</value>
+  </data>
+  <data name="MD.Location.Grid.StockBlocked" xml:space="preserve">
+    <value>축소 대상 위치에 재고 또는 예비품이 있습니다. 다른 위치로 이동한 후 다시 시도해주세요.</value>
+  </data>
+  <data name="MD.Location.Grid.PickingBlocked" xml:space="preserve">
+    <value>축소 대상 위치에 진행 중인 피킹오더가 있습니다. 먼저 완료하거나 취소해주세요.</value>
+  </data>
+  <data name="MD.Location.Grid.AssignmentBlocked" xml:space="preserve">
+    <value>축소 대상 위치의 지정파트·최소수량 설정을 먼저 해제해주세요.</value>
+  </data>
+  <data name="MD.Location.Grid.Denied" xml:space="preserve">
+    <value>로케이션을 수정할 권한이 없습니다.</value>
+  </data>
+  <data name="MD.Location.Print.Selected" xml:space="preserve">
+    <value>선택 인쇄 ({0})</value>
+  </data>
+  <data name="MD.Location.Print.All" xml:space="preserve">
+    <value>전체 선택</value>
+  </data>
+  <data name="RPT.Inventory.Lots" xml:space="preserve">
+    <value>LOT 수</value>
+  </data>
+  <data name="RPT.Inventory.Period" xml:space="preserve">
+    <value>기간</value>
+  </data>
+  <data name="RPT.Inventory.Inventories" xml:space="preserve">
+    <value>인벤토리</value>
+  </data>
+  <data name="RPT.Inventory.Target" xml:space="preserve">
+    <value>적정 재고 개수</value>
+  </data>
+  <data name="RPT.Inventory.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="RPT.Inventory.Issued" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="RPT.Inventory.Weekly" xml:space="preserve">
+    <value>주간</value>
+  </data>
+  <data name="RPT.Inventory.Biweekly" xml:space="preserve">
+    <value>격주</value>
+  </data>
+  <data name="RPT.Inventory.Monthly" xml:space="preserve">
+    <value>월간</value>
+  </data>
+  <data name="RPT.Inventory.Custom" xml:space="preserve">
+    <value>직접 설정</value>
+  </data>
+  <data name="RPT.Inventory.InvalidDates" xml:space="preserve">
+    <value>시작일은 종료일 이전으로, 종료일은 오늘까지 설정해주세요.</value>
+  </data>
+  <data name="RPT.Inventory.InvalidTarget" xml:space="preserve">
+    <value>적정재고 수량을 0보다 큰 숫자로 입력해주세요. 소수점은 3자리까지 가능합니다.</value>
+  </data>
+  <data name="RPT.Inventory.Denied" xml:space="preserve">
+    <value>적정재고를 수정할 권한이 없습니다.</value>
+  </data>
+  <data name="RPT.Inventory.ReceiptTrend" xml:space="preserve">
+    <value>날짜별 카테고리 재고 변화</value>
+  </data>
+  <data name="RPT.Inventory.TrendHint" xml:space="preserve">
+    <value>날짜별 마감 재고 · 증감에는 조정·입고 취소 포함 · 단위별 구분</value>
+  </data>
+  <data name="RPT.Inventory.Movements" xml:space="preserve">
+    <value>Received / Released History</value>
+  </data>
+  <data name="RPT.Inventory.Operator" xml:space="preserve">
+    <value>처리자</value>
+  </data>
+  <data name="RPT.Inventory.ReceiptEvents" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="RPT.Inventory.IssueEvents" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="RPT.Inventory.StockQuantities" xml:space="preserve">
+    <value>재고 수량</value>
+  </data>
+  <data name="RPT.Inventory.StockRatio" xml:space="preserve">
+    <value>적정 재고 대비 (%)</value>
+  </data>
+  <data name="RPT.Inventory.DailyChanges" xml:space="preserve">
+    <value>날짜별 카테고리 수량 변화</value>
+  </data>
+  <data name="RPT.Inventory.Opening" xml:space="preserve">
+    <value>시작 재고</value>
+  </data>
+  <data name="RPT.Inventory.Closing" xml:space="preserve">
+    <value>마감 재고</value>
+  </data>
+  <data name="RPT.Inventory.Change" xml:space="preserve">
+    <value>수량 증감</value>
+  </data>
+  <data name="RPT.Inventory.ChangeBasis" xml:space="preserve">
+    <value>선택 기간 시작 전 재고 대비 증감</value>
   </data>
 </root>

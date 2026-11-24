@@ -19,12 +19,13 @@
     <div class="ames-card-h master-list-toolbar">
         <span>@L["WH.Picking.Request.Title"] · @_rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" @onkeydown='async e => { if (e.Key == "Enter") await Load(); }' />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" Disabled="@(_loading || _saving)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["WH.Picking.Ph.Search"]' Search="Load" />
+                <RadzenDropDown TValue="string" @bind-Value="_listStatus" Data="@_rows.Select(r=>r.Status).Distinct().Order()" AllowClear="true" Placeholder='@L["Col.Status"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" />
+
             <RadzenButton Text="@L["Btn.Create"].Value" Icon="add" Click="OpenRequest" Disabled="@(_loading || _saving || !Permissions.CanEdit(Href))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="PickingSlipHeaderRow" Data="_rows" IsLoading="_loading" RowSelect="OpenOrder" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizes" PageSizeChanged="@(size=>_pageRows=size)" Style="@($"--ames-page-rows:{_pageRows}")" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid AllowColumnResize="true" TItem="PickingSlipHeaderRow" Data="@_rows.Where(r=>string.IsNullOrEmpty(_listStatus)||r.Status==_listStatus)" IsLoading="_loading" RowSelect="OpenOrder" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizes" PageSizeChanged="@(size=>_pageRows=size)" Style="@($"--ames-page-rows:{_pageRows}")" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px" />
             <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="CreatedAt" Title="@L["WH.Picking.Col.CreatedDate"].Value" Width="160px" MinWidth="160px"><Template Context="row">@row.CreatedAt?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
@@ -75,6 +76,7 @@
 
 @code {
     const string Href="wh/picking-requests";
+    string? _listStatus;
     List<PickingSlipHeaderRow> _rows=[];
     List<PickingRequestOption> _parts=[],_destinations=[];
     readonly IEnumerable<int> _pageSizes=[25,50,100];

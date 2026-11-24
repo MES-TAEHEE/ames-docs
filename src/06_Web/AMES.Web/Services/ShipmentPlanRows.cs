@@ -8,6 +8,8 @@ public static class ShipmentPlanRows
     {
         public string Status => Orders.Any(o => o.Status == "Loading") ? "Loading" : "Open";
         public IEnumerable<ShippingOrderLineDto> Lines => Orders.SelectMany(o => o.Lines);
+        public int OrderCount => Orders.Count;
+        public int PartCount => Lines.Select(l => l.PartNo).Distinct().Count();
     }
 
     public static bool IsUnshipped(ShippingOrderDto order) => order.Status is "Open" or "Loading";

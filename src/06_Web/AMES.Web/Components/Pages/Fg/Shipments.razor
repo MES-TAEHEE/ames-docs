@@ -21,16 +21,16 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Shipments.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder='@L["FG.Shipments.Ph.SearchLot"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e=>{if(e.Key=="Enter")await Reload();}' />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["FG.Shipments.Ph.SearchLot"]' Search="Reload" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder='@L["Col.From"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder='@L["Col.To"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+
             <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Data="@_rows" IsLoading="_loading" AllowPaging="true" PageSize="25"
+    <RadzenDataGrid AllowColumnResize="true" TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Data="@_rows" IsLoading="_loading" AllowPaging="true" PageSize="25"
                     PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
-                    PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" AllowSorting="true" Class="ames-rz-grid ames-grid-fixed shipment-list-grid" EmptyText='@L["FG.Shipments.Empty"]'>
+                    PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid ames-grid-fixed shipment-list-grid" EmptyText='@L["FG.Shipments.Empty"]'>
         <Columns>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="Shipment.ReferenceNo" Title='@L["FG.Shipments.Col.DcrDn"]' Width="220px" MinWidth="220px"><Template Context="row"><span class="code">@row.Shipment.ReferenceNo</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="PalletNo" Title='@L["Shipment.PalletNo"]' Width="220px" MinWidth="220px"><Template Context="row">@(row.PalletNo??"—")</Template></RadzenDataGridColumn>
@@ -39,7 +39,6 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="PartName" Title='@L["Col.PartName"]' Width="300px" MinWidth="220px"><Template Context="row"><span class="shipment-part-name" title="@row.PartName">@(row.PartName is {Length:>50} name ? name[..50]+"…" : row.PartName??"—")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="Qty" Title='@L["Col.Quantity"]' Width="120px" MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="LotCount" Title='@L["Shipment.Lots"]' Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="Shipment.ShippedAt" Title='@L["FG.Shipments.Col.ShippedAt"]' Width="180px" MinWidth="180px"><Template Context="row">@row.Shipment.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="Shipment.CustomerId" Title='@L["Col.Customer"]' Width="190px" MinWidth="190px"><Template Context="row">@row.Shipment.CustomerId<div class="dim">@row.Shipment.CustomerName</div></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentHistoryPartRow" Property="Shipment.ShippedBy" Title='@L["Shipment.ShippedBy"]' Width="130px" MinWidth="130px" />
@@ -53,7 +52,7 @@
             <div class="ames-modal-h" id="shipment-lots-title">@L["Shipment.DetailsFmt",_lotReference]</div>
             <div>@(part.PalletNo??"—") · @part.PartNo · @part.PartName</div>
             @if (!string.IsNullOrWhiteSpace(_lotError)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_lotError</RadzenAlert> }
-            <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="_lots" IsLoading="_lotsLoading" AllowPaging="true" PageSize="25" AllowSorting="true"
+            <RadzenDataGrid AllowColumnResize="true" TItem="FinishedGoodsRepository.ShipmentItemRow" Data="_lots" IsLoading="_lotsLoading" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact"
                             PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                             Class="ames-rz-grid" Style="max-height:50vh;" EmptyText='@L["Grid.Empty"]'>
                 <Columns>
@@ -93,6 +92,7 @@
     private void CloseLots() { ++_lotRequest;_lotPart=null;_lots=[];_lotsLoading=false; }
     private List<FinishedGoodsRepository.ShipmentHistoryPartRow> _rows=[];
     private bool _loading;
+    private int _reloadRequest;
     private readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
     private int _pageRows=25;
     private string _search="",_message="";
@@ -100,11 +100,12 @@
     protected override async Task OnInitializedAsync()=>await Reload();
     private async Task Reload()
     {
-        if(_loading)return;
         if(_from>_to) { _message=L["Err.DateRange"]; return; }
+        var request=++_reloadRequest;
+        var (search,from,to)=(_search,_from,_to);
         _loading=true;
-        try { _rows=await Task.Run(()=>Fg.ListShipmentHistoryRows(_search,_from,_to)); _message=""; }
-        catch(Exception ex) { Logger.LogError(ex,"Shipments load failed");_rows=[]; _message=L["Shipment.LoadError"]; }
-        finally{_loading=false;}
+        try { var rows=await Task.Run(()=>Fg.ListShipmentHistoryRows(search,from,to));if(request==_reloadRequest){_rows=rows;_message="";} }
+        catch(Exception ex) { Logger.LogError(ex,"Shipments load failed");if(request==_reloadRequest){_rows=[];_message=L["Shipment.LoadError"];} }
+        finally{if(request==_reloadRequest)_loading=false;}
     }
 }

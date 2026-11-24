@@ -1,327 +1,334 @@
 @page "/rpt/inventory"
 @rendermode AmesRender.Server
-
-@using Microsoft.AspNetCore.Authorization
-@using AMES.Data.Repositories
-@using Radzen
-
-@attribute [Authorize]
-
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject RptRepository Rpt
 @inject MasterDataRepository MD
 @inject UomFormat UomFmt
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject AuditLogger Audit
 
 <PageTitle>RPT-005 @L["RPT.Inventory.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-005" TitleKey="RPT.Inventory.Title" />
-
-@* ── KPI strip: SKU · 재고 금액 · 안전재고 미달 · 과잉 · 회전율 ───────── *@
-<div class="ames-kpis">
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Sku"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_rows.Count</div>
-            <div class="ames-kpi-s">@L["RPT.Inventory.Kpi.SkuSub"]</div>
-        </div>
-    </div>
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Value"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(HasCost ? TotalValue.ToString("N0") : "—")</div>
-            <div class="ames-kpi-s">@(!HasCost ? L["RPT.Inventory.Kpi.ValueNone"].Value : NoCostCount > 0 ? string.Format(L["RPT.Inventory.Kpi.ValuePartial"].Value, NoCostCount) : L["RPT.Inventory.Kpi.ValueSub"].Value)</div>
-        </div>
-    </div>
-    <div class="ames-kpi @(LowCount > 0 ? "bad" : "ok")">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Low"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@LowCount</div>
-            <div class="ames-kpi-s">@L["RPT.Inventory.Kpi.LowSub"]</div>
-        </div>
-    </div>
-    <div class="ames-kpi @(OverCount > 0 ? "warn" : "")">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Over"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@OverCount</div>
-            <div class="ames-kpi-s">@L["RPT.Inventory.Kpi.OverSub"]</div>
-        </div>
-    </div>
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Turnover"]<KpiHelp Key="RPT.Inventory.Kpi.Turnover" /></div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(AvgTurnover is { } t ? t.ToString("0.0") : "—")</div>
-            <div class="ames-kpi-s">@(AvgTurnover is { } ? L["RPT.Inventory.Kpi.TurnoverSub"].Value : L["RPT.Inventory.Kpi.TurnoverNone"].Value)</div>
-        </div>
-    </div>
-</div>
-
-@if (!string.IsNullOrEmpty(_msg))
-{
-    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
-}
-
-@* ── 조회 조건: 검색 · 창고 · 카테고리 · 조회 · 인쇄 · 내보내기 ──────── *@
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
-        <span style="white-space:nowrap;">▼ @L["RPT.Inventory.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@L["RPT.Inventory.AsOf"] · @(_loadedAt.ToString("HH:mm:ss")) · @(_fWh is null ? L["Filter.All"].Value : WhLabel(_fWh))</span></span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["RPT.Inventory.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
-            <RadzenLabel Text="@L["RPT.Inventory.Col.Warehouse"]" Component="DropDownWh" />
-            <RadzenDropDown Name="DropDownWh" @bind-Value="_fWh" Data="@WhFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
-            <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCat" />
-            <RadzenDropDown Name="DropDownCat" @bind-Value="_fCat" Data="@CatFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
-
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["RPT.Inventory.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
-            <RadzenButton Text="@L["RPT.Inventory.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+@if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert> }
+<section class="ames-card inventory-filter-bar">
+    <div class="master-list-toolbar">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["RPT.Inventory.Period"]" Component="inventory-period" />
+            <RadzenDropDown Name="inventory-period" Disabled="@(_busy||_saving)" TValue="string" Value="_period" Change="ChangePeriod" Data="Periods" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:135px" />
+            <RadzenLabel Text="@L["Col.From"]" Component="inventory-from" />
+            <RadzenDatePicker Name="inventory-from" Disabled="@(_busy||_saving)" TValue="DateTime" @bind-Value="_from" Change="ChangeDate" DateFormat="@DateFmt.Date" Max="@DbClock.Today" InputSize="InputSize.Small" class="ames-rz-input" Style="width:155px" />
+            <span>~</span>
+            <RadzenDatePicker Name="inventory-to" Disabled="@(_busy||_saving)" TValue="DateTime" @bind-Value="_to" Change="ChangeDate" DateFormat="@DateFmt.Date" Max="@DbClock.Today" InputSize="InputSize.Small" class="ames-rz-input" Style="width:155px" />
+            <RadzenLabel Text="@L["Col.Category"]" Component="inventory-category" />
+            <RadzenDropDown Name="inventory-category" TValue="string" Value="@(_category??"_ALL_")" Change="ChangeCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="All" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@(_busy||_saving)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px" />
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="8px">
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" Disabled="@(_busy||_saving)" IsBusy="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="Print" Disabled="@(_busy||_saving)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.Inventory.Btn.Export"]" Icon="download" Click="ExportXlsx" Disabled="@(_busy||_saving)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-</div>
-
-@* ── 카테고리별 분포 + 창고별 재고 ────────────────────────────────── *@
-<div class="rpt-sh-grid2">
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>▼ @L["RPT.Inventory.ByCat.Title"]</span>
-            <span class="mnt-db-hint">@(!HasCost ? L["RPT.Inventory.ByCat.Qty"].Value : NoCostCount > 0 ? L["RPT.Inventory.ByCat.Value"].Value + " · " + string.Format(L["RPT.Inventory.Kpi.ValuePartial"].Value, NoCostCount) : L["RPT.Inventory.ByCat.Value"].Value)</span>
+</section>
+        <div class="ames-kpis inventory-metrics">
+            <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.Inventory.Lots"]</div><div class="ames-kpi-v">@_stock.Count(x=>InScope(x.Source)&&(_category is null||x.ItemCategory==_category))</div></div>
+            <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.Inventory.ReceiptEvents"]</div><div class="ames-kpi-v">@Events.Count(x=>x.Received>0)</div></div>
+            <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.Inventory.IssueEvents"]</div><div class="ames-kpi-v">@Events.Count(x=>x.Issued>0)</div></div>
         </div>
-        @if (_byCat.Count == 0)
+<div class="inventory-report-layout">
+    <div class="inventory-sources" role="group" aria-label="@L["RPT.Inventory.Inventories"]">
+        @foreach(var scope in new[]{"ALL","WH","FG"})
         {
-            <div class="mnt-db-empty">@L["RPT.Inventory.Empty"]</div>
-        }
-        else
-        {
-            @for (int i = 0; i < _byCat.Count; i++)
-            {
-                var c = _byCat[i];
-                <div class="mnt-dt-row" style="grid-template-columns:130px 1fr 100px;">
-                    <span class="lbl" title="@c.Code">@c.Label</span>
-                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(_byCat[0].Metric > 0 ? Math.Max(2, (int)Math.Round(100.0 * (double)c.Metric / (double)_byCat[0].Metric)) : 0)%;background:@CatColor(i);"></div></div>
-                    <span class="mnt-dt-val"><b>@(HasCost ? c.Metric.ToString("N0") : UomFmt.Qty(c.Metric, null))</b></span>
-                </div>
-            }
+            <RadzenButton Click="@(()=>SelectInventory(scope))" Disabled="@(_busy||_saving)" ButtonStyle="ButtonStyle.Base" Title="@InventoryLabel(scope)" class="@($"ames-rz-btn inventory-choice inventory-choice-{scope.ToLowerInvariant()} {(_scope==scope?"active":"")}")" aria-pressed="@(_scope==scope)">
+                <RadzenIcon Icon="@(scope=="ALL"?"inventory_2":scope=="WH"?"warehouse":"factory")" />
+                <span class="inventory-choice-label"><strong>@(scope=="ALL"?"All":scope=="WH"?"Material":"Goods")</strong><span class="inventory-choice-count">@InventoryLots(scope) @L["RPT.Inventory.Lots"]</span></span>
+                @if(_scope==scope) { <RadzenIcon Icon="check_circle" class="inventory-choice-check" /> }
+            </RadzenButton>
         }
     </div>
-
-    <div class="ames-card">
-        <div class="ames-card-h">▼ @L["RPT.Inventory.ByWh.Title"]</div>
-        @if (_byWh.Count == 0)
-        {
-            <div class="mnt-db-empty">@L["RPT.Inventory.Empty"]</div>
-        }
-        else
-        {
-            @foreach (var w in _byWh)
-            {
-                <div class="rpt-inv-wh">
-                    <div class="ic">@(w.Code == "FG" ? "📦" : "🧱")</div>
-                    <div class="t">
-                        <b>@WhLabel(w.Code)</b>
-                        <span>@string.Format(L["RPT.Inventory.ByWh.Fmt"].Value, w.Sku, w.Low)</span>
+    <main class="inventory-report-main">
+        <section class="ames-card inventory-stock-summary">
+            <div class="ames-card-h inventory-chart-heading"><span>@L["RPT.Inventory.StockQuantities"]</span><span class="dim inventory-stock-asof">@_to.ToString(DateFmt.Date)</span></div>
+            <RadzenDataGrid TItem="TargetRow" Data="TargetRows" AllowColumnResize="true" AllowSorting="true" AllowPaging="false" Density="Density.Compact" EmptyText="@L["RPT.Inventory.Empty"]" class="ames-rz-grid inventory-target-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Label" Title="@L["Col.Category"]" MinWidth="120px" />
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Unit" Title="@L["Col.Unit"]" Width="85px"><Template Context="r">@UomFmt.Sym(r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Stock" Title="@L["RPT.Inventory.Col.OnHand"]" Width="130px" TextAlign="TextAlign.Right"><Template Context="r"><b>@UomFmt.Qty(r.Stock,r.Unit)</b></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Title="@L["RPT.Inventory.Target"]" Width="190px"><Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Target" Min="0.001m" Max="999999999999999m" Step="0.001" Format="#,##0.###" ShowUpDown="false" Disabled="@(!_canEdit||_saving||_busy)" InputSize="InputSize.Small" class="@($"ames-rz-input {(r.IsDirty?"inventory-target-dirty":"")}")" Style="width:100%" aria-label="@($"{r.Label} {r.Unit} {L["RPT.Inventory.Target"]}")" /></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Width="55px" Sortable="false"><Template Context="r"><RadzenButton Icon="save" Title="@L["Btn.Save"]" Click="@(()=>SaveTarget(r))" Disabled="@(!_canEdit||!r.IsDirty||_saving||_busy)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Title="@L["RPT.Inventory.StockRatio"]" Width="180px" Sortable="false"><Template Context="r"><div class="inventory-stock-graph" role="img" aria-label="@($"{UomFmt.Qty(r.Stock,r.Unit)} / {UomFmt.Qty(r.Target,r.Unit)} {r.Unit}")"><div class="inventory-stock-track"><div class="inventory-stock-fill @(r.Target>0&&r.Stock>r.Target?"over":"")" style="@StockBarWidth(r)"></div></div><span>@(r.Target>0?$"{r.Stock/r.Target.Value:P1}":"—")</span></div></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Received" Title="Received" Width="115px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Released" Title="Released" Width="115px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Released,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TargetRow" Property="Change" Title="@L["RPT.Inventory.Change"]" Width="120px" TextAlign="TextAlign.Right"><Template Context="r"><b class="@ChangeClass(r.Change)">@ChangeText(r.Change,r.Unit)</b></Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </section>
+        <section class="ames-card inventory-trend">
+            <div class="ames-card-h">@L["RPT.Inventory.ReceiptTrend"]</div>
+            <div class="dim inventory-chart-hint">@L["RPT.Inventory.TrendHint"]</div>
+            <div class="inventory-charts">
+                @foreach(var chart in _charts)
+                {
+                    <div class="inventory-chart-panel" @key="chart.Unit">
+                        <div class="inventory-chart-topline"><div class="inventory-unit-heading">@UomFmt.Sym(chart.Unit)</div>
+                            <div class="inventory-chart-change @ChangeClass(chart.Change)" title="@L["RPT.Inventory.ChangeBasis"]">@L["RPT.Inventory.Change"] <b>@ChangeText(chart.Change,chart.Unit) @UomFmt.Sym(chart.Unit)</b><span>(@ChangePercent(chart.Change,chart.Opening))</span></div></div>
+                        <RadzenChart class="rpt-dp-chart" Style="height:230px;width:100%" @key="chart">
+                            <RadzenChartTooltipOptions Visible="true" />
+                            <RadzenLegend Visible="false" />
+                            <RadzenCategoryAxis Padding="12" FormatString="{0:MM/dd}" />
+                            <RadzenValueAxis Min="0" Max="@chart.Max" FormatString="{0:N1}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                            @foreach(var series in chart.Series)
+                            {
+                                <RadzenLineSeries TItem="ReceiptPoint" Data="series.Points" CategoryProperty="Day" ValueProperty="Qty" Title="@CategoryLabel(series.Category)" Stroke="@series.Color" StrokeWidth="2" @key="series.Category"><RadzenMarkers MarkerType="MarkerType.Circle" Size="4" /></RadzenLineSeries>
+                            }
+                        </RadzenChart>
+                        <div class="inventory-chart-legend">
+                            @foreach(var series in chart.Series) { <span><i style="background:@series.Color"></i>@CategoryLabel(series.Category)<b>@UomFmt.Qty(series.Points.LastOrDefault()?.Qty??0,chart.Unit)</b></span> }
+                        </div>
                     </div>
-                    <div class="v">@(HasCost ? w.Value.ToString("N0") : UomFmt.Qty(w.Qty, null))</div>
-                </div>
-            }
-        }
-    </div>
-</div>
+                }
+            </div>
+            @if (_busy) { <LocationMapLoading /> }
+            @if (_charts.Count==0 && !_busy) { <div class="mnt-db-empty">@L["RPT.Inventory.Empty"]</div> }
+        </section>
+        <AmesTabs>
+            <AmesTab Title="@L["RPT.Inventory.DailyChanges"].Value">
+                <section class="ames-card inventory-daily">
+                    <div class="ames-card-h">@L["RPT.Inventory.DailyChanges"]</div>
+                    <RadzenDataGrid TItem="DailyRow" Data="DailyRows" AllowColumnResize="true" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new[]{25,50,100})" Density="Density.Compact" IsLoading="_busy" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.Inventory.Empty"]" class="ames-rz-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Day" Title="@L["Col.Date"]" Width="130px"><Template Context="r">@r.Day.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Label" Title="@L["Col.Category"]" MinWidth="120px" />
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Unit" Title="@L["Col.Unit"]" Width="75px"><Template Context="r">@UomFmt.Sym(r.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Opening" Title="@L["RPT.Inventory.Opening"]" Width="135px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Opening,r.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Closing" Title="@L["RPT.Inventory.Closing"]" Width="135px" TextAlign="TextAlign.Right"><Template Context="r"><b>@UomFmt.Qty(r.Closing,r.Unit)</b></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Received" Title="Received" Width="115px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Released" Title="Released" Width="115px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Released,r.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="DailyRow" Property="Change" Title="@L["RPT.Inventory.Change"]" Width="120px" TextAlign="TextAlign.Right"><Template Context="r"><b class="@ChangeClass(r.Change)">@ChangeText(r.Change,r.Unit)</b></Template></RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </section>
+            </AmesTab>
+            <AmesTab Title="@L["RPT.Inventory.Movements"].Value">
+                <section class="ames-card inventory-detail">
+                    <div class="ames-card-h">@L["RPT.Inventory.Movements"] · @Events.Count</div>
+                    <RadzenDataGrid TItem="RptRepository.InventoryEvent" Data="Events" AllowColumnResize="true" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new[]{25,50,100})" Density="Density.Compact" IsLoading="_busy" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.Inventory.Empty"]" class="ames-rz-grid inventory-report-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Time" Title="@L["Col.Date"]" Width="170px"><Template Context="r">@r.Time.ToString(DateFmt.DateTimeSec)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Event" Title="@L["Col.Type"]" Width="120px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(r.Event=="IN"?"ok":r.Event=="CANCEL_RECEIPT"?"bad":"warn")">@EventLabel(r.Event)</span></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="LocationNo" Title="@L["Col.Location"]" Width="120px" />
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="LotNo" Title="@L["Col.LotNo"]" Width="220px"><Template Context="r"><span class="code" title="@r.LotNo">@r.LotNo</span></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" />
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="PartName" Title="@L["Col.ItemName"]" MinWidth="150px"><Template Context="r"><span title="@r.PartName">@r.PartName</span></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Category" Title="@L["Col.Category"]" Width="110px"><Template Context="r">@CategoryLabel(r.Category)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Unit" Title="@L["Col.Unit"]" Width="70px"><Template Context="r">@UomFmt.Sym(r.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="ReceiptChange" Title="@L["RPT.Inventory.Received"]" Width="105px" TextAlign="TextAlign.Right"><Template Context="r">@(r.ReceiptChange!=0?UomFmt.Qty(r.ReceiptChange,r.Unit):"—")</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Issued" Title="@L["RPT.Inventory.Issued"]" Width="105px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Issued>0?UomFmt.Qty(r.Issued,r.Unit):"—")</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="RptRepository.InventoryEvent" Property="Operator" Title="@L["RPT.Inventory.Operator"]" Width="110px" />
+                        </Columns>
+                    </RadzenDataGrid>
+                </section>
+            </AmesTab>
 
-@* ── 품목별 재고 상세 ─────────────────────────────────────────────── *@
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.Inventory.Detail.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
-    </div>
-
-    <RadzenDataGrid TItem="Sku" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.Inventory.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
-        <Columns>
-            <RadzenDataGridColumn TItem="Sku" Property="ItemNo" Title="@L["RPT.Inventory.Col.ItemCode"]" Width="160px" MinWidth="160px">
-                <Template Context="r"><span class="code">@r.ItemNo</span></Template>
-                <FooterTemplate><b>@string.Format(L["RPT.Inventory.TotalFmt"].Value, _rows.Count)</b></FooterTemplate>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="ItemName" Title="@L["RPT.Inventory.Col.ItemName"]">
-                <Template Context="r"><span style="white-space:nowrap;">@(r.ItemName ?? "—")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="CatLabel" Title="@L["Col.Category"]" Width="130px" MinWidth="130px">
-                <Template Context="r"><span class="dim">@r.CatLabel</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Source" Title="@L["RPT.Inventory.Col.Warehouse"]">
-                <Template Context="r"><span>@WhLabel(r.Source)</span><span class="dim code" style="font-size:.8em;margin-left:6px;">@r.Locations</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Qty" Title="@L["RPT.Inventory.Col.OnHand"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px">
-                <Template Context="r"><b class="code">@UomFmt.Qty(r.Qty, r.Uom)</b></Template>
-                <FooterTemplate><span class="code">@UomFmt.Qty(_rows.Sum(x => x.Qty), null)</span></FooterTemplate>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Safety" Title="@L["RPT.Inventory.Col.Safety"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px">
-                <Template Context="r"><span class="code dim">@UomFmt.Qty(r.Safety, r.Uom)</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Value" Title="@L["RPT.Inventory.Col.Value"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
-                <Template Context="r"><span class="code">@(r.Value is { } v ? v.ToString("N0") : "—")</span></Template>
-                <FooterTemplate><span class="code">@(HasCost ? TotalValue.ToString("N0") : "—")</span></FooterTemplate>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Turnover" Title="@L["RPT.Inventory.Col.Turnover"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px">
-                <Template Context="r"><span class="code">@(r.Turnover is { } t ? t.ToString("0.0") : "—")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
-                <Template Context="r"><span class="pill @StateCls(r.State)">@StateLabel(r.State)</span></Template>
-            </RadzenDataGridColumn>
-        </Columns>
-    </RadzenDataGrid>
+        </AmesTabs>
+    </main>
 </div>
+@if (_printReady)
+{
+    <div hidden><InventoryStatusPrint Title="@L["RPT.Inventory.Title"].Value" Context="@($"{InventoryLabel(_scope)} · {(_category is null?"All":CategoryLabel(_category))} · {_from.ToString(DateFmt.Date)} ~ {_to.ToString(DateFmt.Date)}")" Sheets="_printSheets" /></div>
+}
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
-    bool _showPagerSummary = true;
-    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
-
-    List<RptRepository.InventorySkuRow>     _raw       = new();
-    Dictionary<string, decimal>             _issued    = new();
-    List<Sku>                               _all       = new();
-    List<Sku>                               _rows      = new();
-    List<CatAgg>                            _byCat     = new();
-    List<WhAgg>                             _byWh      = new();
-    List<MasterDataRepository.CodeItemRow>  _itemCategories = new();
-
-    string  _fSearch = "";
-    string? _fWh, _fCat;
-    string  _msg = "";
-    bool    _isErr;
-    DateTime _loadedAt = DbClock.Now;
-
-    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
-    public sealed class Sku
+    record ReceiptPoint(DateTime Day,decimal Qty);
+    record ReceiptSeries(string Category,string Color,List<ReceiptPoint> Points);
+    record ReceiptChart(string Unit,List<ReceiptSeries> Series,double Max,decimal Opening,decimal Closing)
     {
-        public string Source = ""; public string ItemNo = ""; public string? ItemName; public string? Cat; public string CatLabel = ""; public string? Uom;
-        public string Locations = ""; public decimal Qty; public decimal? Safety; public decimal? Max; public decimal? UnitCost;
-        public decimal? Value => UnitCost is { } c ? Qty * c : null;
-        public decimal? Turnover;
-        public string State = "normal";
+        public decimal Change=>Closing-Opening;
     }
-    public sealed record CatAgg(string Code, string Label, decimal Metric);
-    public sealed record WhAgg(string Code, int Sku, int Low, decimal Qty, decimal Value);
-
-    IEnumerable<DropDownItem> WhFilterOptions  => new[] { "WH", "FG" }.Select(w => new DropDownItem { Value = w, Text = WhLabel(w) });
-    IEnumerable<DropDownItem> CatFilterOptions => _all.Select(s => s.Cat ?? "").Distinct().OrderBy(c => c).Select(c => new DropDownItem { Value = c.Length == 0 ? "-" : c, Text = CatLabel(c.Length == 0 ? null : c) });
-
-    // ── KPI ────────────────────────────────────────────────────────────
-    bool     HasCost     => _rows.Any(r => r.UnitCost is { });
-    decimal  TotalValue  => _rows.Sum(r => r.Value ?? 0m);
-    // 원가가 일부만 있으면 금액은 원가 등록분 합계 — 수량이 있는데 원가가 없는 품목 수를 함께 보여 확정 금액처럼 보이지 않게 한다(10-28)
-    int      NoCostCount => _rows.Count(r => r.UnitCost is null && r.Qty != 0);
-    int      LowCount    => _rows.Count(r => r.State is "low" or "out");
-    int      OverCount   => _rows.Count(r => r.State == "over");
-    decimal? AvgTurnover => _rows.Where(r => r.Turnover is { }).Select(r => r.Turnover!.Value).DefaultIfEmpty().Average() is var a && _rows.Any(r => r.Turnover is { }) ? a : null;
-
-    protected override void OnInitialized()
+    sealed class TargetRow
     {
-        try { _itemCategories = MD.ListCodeItems("ITEM_CATEGORY"); } catch { }
-        Reload();
+        public string Scope {get;init;}="";
+        public string Category {get;init;}="";
+        public string Label {get;set;}="";
+        public string Unit {get;init;}="";
+        public decimal Stock {get;set;}
+        public decimal Opening {get;set;}
+        public decimal Received {get;set;}
+        public decimal Released {get;set;}
+        public decimal Change=>Stock-Opening;
+        public decimal? Target {get;set;}
+        public decimal? SavedTarget {get;set;}
+        public bool IsDirty => Target!=SavedTarget;
     }
-
-    void Reload()
+    record DailyRow(DateTime Day,string Category,string Label,string Unit,decimal Opening,decimal Closing,decimal Received,decimal Released)
     {
-        try { _raw = Rpt.ListInventorySku(); }
-        catch (Exception ex) { _raw = new(); ShowMsg(ex.Message, true); }
-        try { _issued = Rpt.IssuedQtyByItem(30); } catch { _issued = new(); }
-        _loadedAt = DbClock.Now;
-
-        // SKU = 품목 × 창고(자재/완성품). 위치는 묶어서 표시
-        _all = _raw.GroupBy(r => (r.Source, r.ItemNo))
-            .Select(g =>
+        public decimal Change=>Closing-Opening;
+    }
+    List<InventoryQuantityChanges.DayRow> _daily=[];
+    List<DailyRow> DailyRows=[];
+    List<TargetRow> _targetRows=[];
+    static string ChangeClass(decimal value)=>value>0?"inventory-increase":value<0?"inventory-decrease":"";
+    static string ChangePercent(decimal change,decimal opening)=>opening>0?(change/opening).ToString("+0.0%;-0.0%;0%"):"?";
+    string ChangeText(decimal value,string unit)=>(value>0?"+":"")+UomFmt.Qty(value,unit);
+    IEnumerable<TargetRow> TargetRows => _targetRows.Where(c=>_category is null||c.Category==_category);
+    bool _printReady,_printPending;
+    XlsxWriter.DataSheet[] _printSheets=[];
+    static string StockBarWidth(TargetRow row) => "width:"+(row.Target>0?Math.Clamp(row.Stock/row.Target.Value*100m,0m,100m):0m).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture)+"%";
+    void UpdateTargetRows()
+    {
+        var previous=_targetRows.Where(r=>r.Scope==_scope).ToDictionary(r=>(r.Category,r.Unit));
+        _targetRows=Categories.SelectMany(c=>CategoryUnits(c).Select(u=>
+        {
+            var saved=TargetQty(c,u);
+            var row=previous.GetValueOrDefault((c,u))??new TargetRow{Scope=_scope,Category=c,Unit=u,Target=saved>0?saved:null,SavedTarget=saved>0?saved:null};
+            row.Label=CategoryLabel(c); row.Stock=CategoryQty(c,u);
+            var days=_daily.Where(d=>InScope(d.Source)&&d.Category==c&&d.Unit==u).ToList();
+            row.Opening=days.Where(d=>d.Day==_from.Date).Sum(d=>d.Opening);
+            row.Received=days.Sum(d=>d.Received); row.Released=days.Sum(d=>d.Released);
+            return row;
+        })).ToList();
+    }
+    IEnumerable<PeriodOption> CategoryOptions => new[]{new PeriodOption("_ALL_","All")}.Concat(Categories.Select(c=>new PeriodOption(c,CategoryLabel(c))));
+    void ChangeCategory(object? value) { _category=value is null || value.ToString()=="_ALL_" ? null : value.ToString(); ApplySelection(); }
+    string EventLabel(string type) => type switch { "IN"=>L["RPT.Inventory.Received"],"RELEASE"=>L["RPT.Inventory.Issued"],"CANCEL_RECEIPT"=>L["WH.LogHistory.Lbl.CancelInbound"],_=>L["RPT.Inventory.Issued"] };
+    void BuildCharts()
+    {
+        string[] colors=["#60a5fa","#34d399","#fbbf24","#f472b6","#a78bfa","#22d3ee","#fb923c","#a3e635"];
+        var charts=new List<ReceiptChart>();
+        var colorKeys=_items.Select(i=>i.ItemCategory??"").Concat(Categories).Distinct().Order(StringComparer.Ordinal).ToList();
+        foreach(var unit in Categories.Where(c=>_category is null||c==_category).SelectMany(CategoryUnits).Distinct().Order())
+        {
+            var series=new List<ReceiptSeries>();
+            foreach(var cat in Categories.Where(c=>(_category is null||c==_category)&&CategoryUnits(c).Contains(unit)))
             {
-                var f = g.First();
-                var qty = g.Sum(r => r.Qty);
-                var s = new Sku
-                {
-                    Source = g.Key.Source, ItemNo = g.Key.ItemNo,
-                    ItemName = MasterDataRepository.LocalName(f.ItemName, f.ItemNameEn) is { Length: > 0 } nm ? nm : null,
-                    Cat = f.ItemCategory, CatLabel = CatLabel(f.ItemCategory), Uom = f.Uom,
-                    Locations = string.Join(", ", g.Select(r => r.Location).Where(l => !string.IsNullOrEmpty(l)).Distinct()),
-                    Qty = qty, Safety = f.SafetyStock, Max = f.MaxStock,
-                    UnitCost = g.Select(r => r.UnitCost).FirstOrDefault(c => c is { }),
-                    Turnover = g.Key.Source == "WH" && _issued.TryGetValue(g.Key.ItemNo, out var iss) && qty > 0 ? iss / qty : null,
-                };
-                s.State = qty <= 0 ? "out"
-                        : s.Safety is { } sf && qty < sf ? "low"
-                        : s.Max is { } mx && mx > 0 && qty > mx ? "over" : "normal";
-                return s;
-            })
-            .OrderBy(s => s.Source == "WH" ? 0 : 1).ThenBy(s => s.ItemNo).ToList();
+                var points=Enumerable.Range(0,(_to.Date-_from.Date).Days+1).Select(i=>_from.Date.AddDays(i))
+                    .Select(day=>new ReceiptPoint(day,DailyRows.Where(d=>d.Day==day&&d.Category==cat&&d.Unit==unit).Sum(d=>d.Closing))).ToList();
+                series.Add(new(cat,colors[colorKeys.IndexOf(cat)%colors.Length],points));
+            }
+            var opening=DailyRows.Where(d=>d.Unit==unit&&d.Day==_from.Date).Sum(d=>d.Opening);
+            var closing=DailyRows.Where(d=>d.Unit==unit&&d.Day==_to.Date).Sum(d=>d.Closing);
+            charts.Add(new(unit,series,Math.Max(1,(double)series.SelectMany(s=>s.Points).Select(p=>p.Qty).DefaultIfEmpty(0).Max()*1.1),opening,closing));
+        }
+        _charts=charts;
+    }
+    List<RptRepository.InventoryStatusLot> _stock=[];
+    List<RptRepository.InventoryEvent> _events=[];
+    List<RptRepository.InventoryEvent> Events=[];
+    List<ReceiptChart> _charts=[];
+    List<RptRepository.InventoryTarget> _targets=[];
+    List<MasterDataRepository.ItemRow> _items=[];
+    List<MasterDataRepository.CodeItemRow> _categoryCodes=[];
+    List<string> Categories=[];
+    string _scope="ALL", _period="Weekly", _error="", _actor="";
+    string? _category;
+    DateTime _from=DbClock.Today.AddDays(-6), _to=DbClock.Today;
+    bool _busy, _canEdit, _saving;
+    record PeriodOption(string Value,string Text);
+    IEnumerable<PeriodOption> Periods => new[]{"Weekly","Biweekly","Monthly","Custom"}.Select(x=>new PeriodOption(x,L["RPT.Inventory."+x]));
+    bool InScope(string source) => _scope == "ALL" || source == _scope;
+    string ItemSource(MasterDataRepository.ItemRow item) => InventorySearchRows.IsSemiFinished(item.ItemType) ? "FG" : "WH";
+    string InventoryLabel(string scope) => scope == "ALL" ? "All" : L["RPT.Inventory.Wh."+scope];
+    int InventoryLots(string scope) => _stock.Count(x=>scope == "ALL" || x.Source == scope);
+    string CategoryLabel(string code) => string.IsNullOrEmpty(code) ? L["RPT.Inventory.Cat.None"] : _categoryCodes.FirstOrDefault(x=>x.CodeValue == code) is {} row ? MasterDataRepository.LocalName(row) : code;
+    IEnumerable<string> CategoryUnits(string category) => _items.Where(x=>InScope(ItemSource(x)) && (x.ItemCategory ?? "") == category).Select(x=>string.IsNullOrWhiteSpace(x.DefaultUOM) ? "EA" : x.DefaultUOM)
+        .Concat(_stock.Where(x=>InScope(x.Source) && x.ItemCategory == category).Select(x=>x.Unit)).Concat(_events.Where(x=>InScope(x.Source) && x.Category == category).Select(x=>x.Unit)).Concat(_daily.Where(x=>InScope(x.Source)&&x.Category==category).Select(x=>x.Unit)).Distinct().Order();
+    decimal CategoryQty(string category,string unit) => _stock.Where(x=>InScope(x.Source) && x.ItemCategory == category && x.Unit == unit).Sum(x=>x.Qty);
+    decimal TargetQty(string category,string unit) => InventoryTargets.Quantity(_targets,category,unit);
 
-        ApplyFilter();
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit=PermSvc.CanEdit("rpt/inventory");
+        _actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
+        await Reload();
+    }
+    async Task Reload()
+    {
+        if (_busy) return;
+        if (_from.Date > _to.Date || _to.Date > DbClock.Today) { _error=L["RPT.Inventory.InvalidDates"]; return; }
+        _busy=true; _error="";
+        try
+        {
+            var result=await Task.Run(()=> (Stock:Rpt.ListInventoryStatus(_to),Events:Rpt.ListInventoryEvents(_from,_to),Targets:Rpt.ListInventoryTargets(),Items:MD.ListItems(),Codes:MD.ListCodeItems("ITEM_CATEGORY"),Daily:Rpt.ListInventoryDailyBalances(_from,_to)));
+            _stock=result.Stock; _events=result.Events; _targets=result.Targets;
+            _items=result.Items; _categoryCodes=result.Codes;
+            _daily=InventoryQuantityChanges.Build(result.Daily,_events,_from,_to);
+            _targetRows.Clear();
+            ApplySelection();
+        }
+        catch(Exception ex) { _error=ex.Message; }
+        finally { _busy=false; }
+    }
+    void ApplySelection()
+    {
+        Categories=_items.Where(x=>InScope(ItemSource(x))).Select(x=>x.ItemCategory ?? "").Concat(_stock.Where(x=>InScope(x.Source)).Select(x=>x.ItemCategory)).Concat(_events.Where(x=>InScope(x.Source)).Select(x=>x.Category)).Concat(_daily.Where(x=>InScope(x.Source)).Select(x=>x.Category)).Distinct().OrderBy(CategoryLabel).ToList();
+        if (_category is not null && !Categories.Contains(_category)) _category=null;
+        Events=_events.Where(x=>InScope(x.Source) && (_category is null || x.Category==_category)).ToList();
+        DailyRows=_daily.Where(x=>InScope(x.Source)&&(_category is null||x.Category==_category))
+            .GroupBy(x=>(x.Day,x.Category,x.Unit)).Select(g=>new DailyRow(g.Key.Day,g.Key.Category,CategoryLabel(g.Key.Category),g.Key.Unit,
+                g.Sum(d=>d.Opening),g.Sum(d=>d.Closing),g.Sum(d=>d.Received),g.Sum(d=>d.Released)))
+            .OrderBy(x=>x.Day).ThenBy(x=>x.Label).ThenBy(x=>x.Unit).ToList();
+        BuildCharts();
+        UpdateTargetRows();
+
+    }
+    void SelectInventory(string scope) { _scope=scope; ApplySelection(); }
+    void SelectCategory(string? category) { _category=category; ApplySelection(); }
+    async Task ChangePeriod(object? value)
+    {
+        _period=value?.ToString() ?? "Weekly";
+        if (_period == "Custom") return;
+        _from=_period switch { "Biweekly"=>_to.AddDays(-13),"Monthly"=>_to.AddMonths(-1).AddDays(1),_=>_to.AddDays(-6) };
+        await Reload();
+    }
+    async Task ChangeDate(DateTime? _) { _period="Custom"; await Reload(); }
+    async Task SaveTarget(TargetRow row)
+    {
+        if(_saving||!row.IsDirty) return;
+        _saving=true; _error="";
+        try
+        {
+            if(!await PermSvc.RecheckEditAsync(AuthPrvd,"rpt/inventory")) { _canEdit=false; _error=L["RPT.Inventory.Denied"]; return; }
+            if(row.Target is null or <=0 || row.Target>999999999999999m || decimal.Round(row.Target.Value,3)!=row.Target) { _error=L["RPT.Inventory.InvalidTarget"]; return; }
+            var before=new RptRepository.InventoryTarget("ALL",row.Category,row.Unit,row.SavedTarget??0);
+            var target=before with{Qty=row.Target.Value};
+            await Task.Run(()=>Rpt.SaveInventoryTarget(target,_actor));
+            Audit.Updated("RPT-005","RPT_InventoryTarget",$"{target.Scope}/{target.Category}/{target.Unit}",before,target);
+            _targets.RemoveAll(x=>x.Scope==target.Scope && x.Category==target.Category && x.Unit==target.Unit);
+            _targets.Add(target); row.SavedTarget=target.Qty;
+        }
+        catch(Exception ex) { _error=ex.Message; }
+        finally { _saving=false; }
+    }
+    void Print()
+    {
+        _printSheets=[ReportSheets()[0]]; _printReady=true; _printPending=true;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(!_printPending) return;
+        _printPending=false;
+        await JS.InvokeVoidAsync("amesPrintLabels",".inventory-report-print","A4 landscape",true);
+    }
+    XlsxWriter.DataSheet[] ReportSheets()
+    {
+        var quantityHeaders=new[]{L["Col.Category"].Value,L["Col.Unit"].Value,L["RPT.Inventory.Opening"].Value,L["RPT.Inventory.Col.OnHand"].Value,L["RPT.Inventory.Target"].Value,L["RPT.Inventory.StockRatio"].Value,"Received","Released",L["RPT.Inventory.Change"].Value};
+        // Export every category in the selected inventory, including categories hidden by the screen filter.
+        var quantities=_targetRows.Select(r=>(IReadOnlyList<object?>)new object?[]{r.Label,UomFmt.Sym(r.Unit),r.Opening,r.Stock,r.SavedTarget,r.SavedTarget>0?r.Stock/r.SavedTarget:null,r.Received,r.Released,r.Change}).ToArray();
+        var dailyHeaders=new[]{L["Col.Date"].Value,L["Col.Category"].Value,L["Col.Unit"].Value,L["RPT.Inventory.Opening"].Value,L["RPT.Inventory.Closing"].Value,"Received","Released",L["RPT.Inventory.Change"].Value};
+        var daily=DailyRows.OrderBy(r=>r.Label).ThenBy(r=>r.Unit).ThenBy(r=>r.Day).Select(r=>(IReadOnlyList<object?>)new object?[]{r.Day.ToString(DateFmt.Date),r.Label,UomFmt.Sym(r.Unit),r.Opening,r.Closing,r.Received,r.Released,r.Change}).ToArray();
+        var eventHeaders=new[]{L["Col.Date"].Value,L["Col.Type"].Value,L["Col.Location"].Value,L["Col.LotNo"].Value,L["Col.ItemNo"].Value,L["Col.ItemName"].Value,L["Col.Category"].Value,L["Col.Unit"].Value,"Received","Released",L["RPT.Inventory.Operator"].Value};
+        var events=Events.Select(r=>(IReadOnlyList<object?>)new object?[]{r.Time.ToString(DateFmt.DateTimeSec),EventLabel(r.Event),r.LocationNo,r.LotNo,r.PartNo,r.PartName,CategoryLabel(r.Category),UomFmt.Sym(r.Unit),r.ReceiptChange,r.Issued,r.Operator}).ToArray();
+        return [new(L["RPT.Inventory.StockQuantities"],quantityHeaders,quantities,ChangeColumns:new HashSet<int>{8},PercentColumns:new HashSet<int>{5}),
+            new(L["RPT.Inventory.DailyChanges"],dailyHeaders,daily,ChangeColumns:new HashSet<int>{7}),new(L["RPT.Inventory.Movements"],eventHeaders,events)];
     }
 
-    void ApplyFilter()
-    {
-        _rows = _all.Where(s =>
-            (string.IsNullOrEmpty(_fSearch) ||
-                s.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (s.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrEmpty(_fWh)  || s.Source == _fWh) &&
-            (string.IsNullOrEmpty(_fCat) || (_fCat == "-" ? string.IsNullOrEmpty(s.Cat) : s.Cat == _fCat))
-        ).ToList();
-
-        // 분포 지표: 원가가 있으면 금액, 없으면 수량
-        var byValue = _rows.Any(r => r.UnitCost is { });
-        _byCat = _rows.GroupBy(r => r.Cat ?? "")
-            .Select(g => new CatAgg(g.Key, CatLabel(g.Key.Length == 0 ? null : g.Key), byValue ? g.Sum(r => r.Value ?? 0m) : g.Sum(r => r.Qty)))
-            .OrderByDescending(c => c.Metric).ToList();
-        _byWh = _rows.GroupBy(r => r.Source)
-            .Select(g => new WhAgg(g.Key, g.Count(), g.Count(r => r.State is "low" or "out"), g.Sum(r => r.Qty), g.Sum(r => r.Value ?? 0m)))
-            .OrderBy(w => w.Code == "WH" ? 0 : 1).ToList();
-    }
-
-    void OnSearchChanged(string v) => _fSearch = v ?? "";
-    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
-
-    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
-    string WhLabel(string code) => code == "FG" ? L["RPT.Inventory.Wh.FG"].Value : L["RPT.Inventory.Wh.WH"].Value;
-    string CatLabel(string? code) =>
-        string.IsNullOrEmpty(code) ? L["RPT.Inventory.Cat.None"].Value
-        : _itemCategories.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
-    static string CatColor(int i) => i switch { 0 => "#0891b2", 1 => "#f59e0b", 2 => "#059669", 3 => "#8b5cf6", _ => "#94a3b8" };
-
-    string StateLabel(string s) => s switch
-    {
-        "low"  => L["RPT.Inventory.Status.Low"].Value,
-        "over" => L["RPT.Inventory.Status.Over"].Value,
-        "out"  => L["RPT.Inventory.Status.Out"].Value,
-        _      => L["RPT.Inventory.Status.Normal"].Value,
-    };
-    static string StateCls(string s) => s switch { "low" => "warn", "over" => "info", "out" => "bad", _ => "ok" };
-
-    async Task Print()
-    {
-        try { await JS.InvokeVoidAsync("print"); } catch { }
-    }
-
-    // 상세 표(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행
     async Task ExportXlsx()
     {
-        if (_rows.Count == 0) { ShowMsg(L["RPT.Inventory.Err.NoExport"], true); return; }
-        var headers = new[]
-        {
-            L["RPT.Inventory.Col.ItemCode"].Value, L["RPT.Inventory.Col.ItemName"].Value, L["Col.Category"].Value, L["RPT.Inventory.Col.Warehouse"].Value,
-            L["RPT.Inventory.Col.Location"].Value, L["RPT.Inventory.Col.OnHand"].Value, L["RPT.Inventory.Col.Safety"].Value,
-            L["RPT.Inventory.Col.Value"].Value, L["RPT.Inventory.Col.Turnover"].Value, L["Col.Status"].Value,
-        };
-        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
-        {
-            r.ItemNo, r.ItemName, r.CatLabel, WhLabel(r.Source), r.Locations, r.Qty, r.Safety, r.Value, r.Turnover is { } t ? Math.Round(t, 1) : null, StateLabel(r.State),
-        }).Append(new object?[]
-        {
-            string.Format(L["RPT.Inventory.TotalFmt"].Value, _rows.Count), null, null, null, null, _rows.Sum(x => x.Qty), null, HasCost ? TotalValue : null, null, null,
-        });
-        var bytes = AMES.Web.Services.XlsxWriter.Build(L["RPT.Inventory.Title"].Value, headers, data);
-        var name  = $"Inventory_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
-        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        ShowMsg(string.Format(L["RPT.Inventory.Ok.Exported"].Value, _rows.Count), false);
-    }
-
-    void ShowMsg(string msg, bool isErr)
-    {
-        _msg = msg; _isErr = isErr;
-        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+        var sheets=ReportSheets();
+        var bytes=XlsxWriter.BuildWorkbook(sheets);
+        await JS.InvokeVoidAsync("amesDownload",$"Inventory_{_from:yyyyMMdd}_{_to:yyyyMMdd}.xlsx",Convert.ToBase64String(bytes),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }

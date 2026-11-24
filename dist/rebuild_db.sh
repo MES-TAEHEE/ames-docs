@@ -200,6 +200,7 @@ FILES=(
   migrate_location_parts.sql        # Multiple assigned parts and per-part minimum at detail locations
   migrate_fg_lot_defect_permission.sql # Separate Warehouse inventory defect permission
   migrate_fg_defect_photo.sql # PDA FG defect photos and idempotent registration
+  migrate_rpt_inventory_target.sql # Category/unit stock targets for Inventory Status
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_wh_fg_history_screens.sql # Current WH/FG labels and order; unified history, preserve permission identities
   migrate_wh_picking_refresh_permission.sql # Expose picking recalculation Edit in the Permission Matrix; no new grants

@@ -153,7 +153,7 @@ public sealed class LocationStorageTests
         Assert.Contains("RenderStorageCards(UngridLocations)", source);
         Assert.Contains("Data=\"GridLocations\"", source);
         Assert.Contains("(IsOpenStorage || Same(x.Floor, _floor))", source);
-        Assert.Contains("GridLocations.FirstOrDefault", source);
+        Assert.Contains("FloorCards.FirstOrDefault", source);
         Assert.Contains("!CanEdit || !CanAddHierarchy", source);
         Assert.DoesNotContain("Storage Settings", source);
         Assert.DoesNotContain("SaveLocationMapStorage", source);

@@ -56,13 +56,12 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SCM.PortalUsers.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SCM.PortalUsers.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
-            <RadzenLabel Text="@L["SCM.PortalUsers.Col.Vendor"]" Component="DropDownVendor" />
+            <AmesSearchBox @bind-Value="_fSearch" Placeholder='@L["SCM.PortalUsers.Ph.Search"]' Search="ApplyFilter" />
+                <RadzenLabel Text="@L["SCM.PortalUsers.Col.Vendor"]" Component="DropDownVendor" />
             <RadzenDropDown Name="DropDownVendor" @bind-Value:get="_fVendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value:get="_fStatus" @bind-Value:set="SetStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
@@ -71,7 +70,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="ScmRepository.PortalUserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid AllowColumnResize="true" @ref="_pgGrid" Page="OnPgPage" TItem="ScmRepository.PortalUserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SCM.PortalUsers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
@@ -277,8 +276,6 @@
 
     static string StatusOf(ScmRepository.PortalUserRow r) => r.LockedFlag ? "LOCKED" : r.ActiveFlag ? "ACTIVE" : "INACTIVE";
 
-    void OnSearchChanged(string value) => _fSearch = value ?? "";
-    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") { ApplyFilter(); if(_pgGrid is not null)await _pgGrid.GoToPage(0); } }
 
     void RowRender(RowRenderEventArgs<ScmRepository.PortalUserRow> args)
     {

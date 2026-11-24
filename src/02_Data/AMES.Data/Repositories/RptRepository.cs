@@ -9,7 +9,7 @@ namespace AMES.Data.Repositories;
 /// Reports (RPT) module — aggregates over PR_/PP_/QC_/FG_/MNT_/WH_ tables.
 /// Read-only. One method per RPT-XX screen, all rolled-up.
 /// </summary>
-public sealed class RptRepository
+public sealed partial class RptRepository
 {
     private readonly AmesConnectionFactory _f;
     public RptRepository(AmesConnectionFactory f) => _f = f;

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Xml.Linq;
 
 namespace AMES.Web.Services;
 
@@ -12,6 +13,63 @@ public static class XlsxWriter
 {
     /// <summary>둘째 시트에 그림으로 넣을 차트 — 제목 + PNG 바이트(화면의 SVG 를 브라우저에서 그린 것).</summary>
     public sealed record ChartImage(string Title, byte[] Png);
+    public sealed record DataSheet(string Name,IReadOnlyList<string> Headers,IEnumerable<IReadOnlyList<object?>> Rows,int ColumnWidth=20,
+        IReadOnlySet<int>? ChangeColumns=null,IReadOnlySet<int>? PercentColumns=null);
+
+    public static byte[] BuildWorkbook(params DataSheet[] sheets)
+    {
+        if(sheets.Length==0) throw new ArgumentException("At least one sheet is required.",nameof(sheets));
+        sheets=sheets.Select(sheet=>sheet with{Rows=sheet.Rows.ToArray()}).ToArray();
+        var first=sheets[0];
+        using var ms=new MemoryStream();
+        ms.Write(Build(first.Name,first.Headers,first.Rows,first.ColumnWidth));
+        ms.Position=0;
+        using(var zip=new ZipArchive(ms,ZipArchiveMode.Update,leaveOpen:true))
+        {
+            XDocument Read(string path) { using var stream=zip.GetEntry(path)!.Open(); return XDocument.Load(stream); }
+            var workbook=Read("xl/workbook.xml");
+            var relations=Read("xl/_rels/workbook.xml.rels");
+            var types=Read("[Content_Types].xml");
+            var styles=Read("xl/styles.xml");
+            XNamespace s="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            XNamespace r="http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase){SafeSheetName(first.Name)};
+            styles.Root!.AddFirst(new XElement(s+"numFmts",new XAttribute("count",1),new XElement(s+"numFmt",
+                new XAttribute("numFmtId",164),new XAttribute("formatCode","+#,##0.###;-#,##0.###;0"))));
+            var fonts=styles.Root.Element(s+"fonts")!;
+            foreach(var color in new[]{"FF15803D","FFB91C1C"}) fonts.Add(new XElement(s+"font",new XElement(s+"sz",new XAttribute("val",11)),
+                new XElement(s+"name",new XAttribute("val","Calibri")),new XElement(s+"color",new XAttribute("rgb",color))));
+            fonts.SetAttributeValue("count",4);
+            var formats=styles.Root.Element(s+"cellXfs")!;
+            foreach(var format in new[]{(Num:10,Font:0),(Num:164,Font:2),(Num:164,Font:3)})
+                formats.Add(new XElement(s+"xf",new XAttribute("numFmtId",format.Num),new XAttribute("fontId",format.Font),
+                    new XAttribute("fillId",0),new XAttribute("borderId",0),new XAttribute("xfId",0),
+                    new XAttribute("applyNumberFormat",1),new XAttribute("applyFont",1)));
+            formats.SetAttributeValue("count",5);
+            zip.GetEntry("xl/worksheets/sheet1.xml")!.Delete();
+            Add(zip,"xl/worksheets/sheet1.xml",BuildSheet(first.Headers,first.Rows,first.ColumnWidth,first.ChangeColumns,first.PercentColumns,true));
+            for(var i=1;i<sheets.Length;i++)
+            {
+                var sheet=sheets[i];
+                var name=SafeSheetName(sheet.Name);
+                var suffix=2;
+                while(!names.Add(name)) name=SafeSheetName(sheet.Name)[..Math.Min(26,SafeSheetName(sheet.Name).Length)]+$" ({suffix++})";
+                var id=$"rId{i+2}";
+                workbook.Root!.Element(s+"sheets")!.Add(new XElement(s+"sheet",new XAttribute("name",name),new XAttribute("sheetId",i+1),new XAttribute(r+"id",id)));
+                relations.Root!.Add(new XElement(relations.Root.Name.Namespace+"Relationship",new XAttribute("Id",id),
+                    new XAttribute("Type",r.NamespaceName+"/worksheet"),new XAttribute("Target",$"worksheets/sheet{i+1}.xml")));
+                types.Root!.Add(new XElement(types.Root.Name.Namespace+"Override",new XAttribute("PartName",$"/xl/worksheets/sheet{i+1}.xml"),
+                    new XAttribute("ContentType","application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")));
+                Add(zip,$"xl/worksheets/sheet{i+1}.xml",BuildSheet(sheet.Headers,sheet.Rows,sheet.ColumnWidth,sheet.ChangeColumns,sheet.PercentColumns,true));
+            }
+            foreach(var entry in new[]{("xl/workbook.xml",workbook),("xl/_rels/workbook.xml.rels",relations),("[Content_Types].xml",types),("xl/styles.xml",styles)})
+            {
+                zip.GetEntry(entry.Item1)!.Delete();
+                Add(zip,entry.Item1,entry.Item2.ToString(SaveOptions.DisableFormatting));
+            }
+        }
+        return ms.ToArray();
+    }
 
     public static byte[] Build(string sheetName, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<object?>> rows, int colWidth = 16)
         => Build(sheetName, headers, rows, colWidth, null, null);
@@ -139,12 +197,27 @@ public static class XlsxWriter
         s.Write(bytes, 0, bytes.Length);
     }
 
-    private static string BuildSheet(IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<object?>> rows, int colWidth)
+    private static string BuildSheet(IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<object?>> rows, int colWidth,
+        IReadOnlySet<int>? changeColumns=null,IReadOnlySet<int>? percentColumns=null,bool autoWidth=false)
     {
         var sb = new StringBuilder();
         sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
         sb.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
-        if (headers.Count > 0)
+        if(autoWidth)
+        {
+            var data=rows.ToArray();
+            rows=data;
+            int Width(string value)=>value.Sum(c=>c>127?2:1);
+            sb.Append("<cols>");
+            for(var c=0;c<headers.Count;c++)
+            {
+                var column=c;
+                var width=Math.Clamp(Math.Max(Width(headers[c]),data.Select(row=>column<row.Count?Width(row[column]?.ToString()??""):0).DefaultIfEmpty(0).Max())+3,12,60);
+                sb.Append($"<col min=\"{c+1}\" max=\"{c+1}\" width=\"{width}\" customWidth=\"1\"/>");
+            }
+            sb.Append("</cols>");
+        }
+        else if (headers.Count > 0)
             sb.Append($"<cols><col min=\"1\" max=\"{headers.Count}\" width=\"{colWidth}\" customWidth=\"1\"/></cols>");
         sb.Append("<sheetData>");
 
@@ -163,7 +236,11 @@ public static class XlsxWriter
                 var v = row[c];
                 if (v is null) continue;
                 if (v is int or long or short or byte or decimal or double or float)
-                    sb.Append($"<c r=\"{Ref(c, r)}\"><v>{Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture)}</v></c>");
+                {
+                    var style=percentColumns?.Contains(c)==true?2:changeColumns?.Contains(c)==true
+                        ? Convert.ToDecimal(v)>0?3:Convert.ToDecimal(v)<0?4:0 : 0;
+                    sb.Append($"<c r=\"{Ref(c, r)}\"{(style>0?$" s=\"{style}\"":"")}><v>{Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture)}</v></c>");
+                }
                 else
                     sb.Append($"<c r=\"{Ref(c, r)}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">{Esc(v.ToString() ?? "")}</t></is></c>");
             }
