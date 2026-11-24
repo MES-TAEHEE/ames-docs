@@ -1,0 +1,121 @@
+@using System.Globalization
+@inject WarehouseRepository Warehouse
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Authentication
+@inject AuditLogger Audit
+@inject IJSRuntime JS
+@inject UomFormat UomFmt
+@inject NavigationManager Navigation
+@inject IWebHostEnvironment Environment
+@implements IAsyncDisposable
+
+<section class="ames-card factory-map" @ref="_root" aria-label="@L["FG.FactoryMap.Title"]">
+    <div class="master-list-toolbar factory-map-toolbar">
+        <div class="factory-map-heading"><strong>@L["FG.FactoryMap.Title"]</strong><span class="dim">@L["FG.FactoryMap.RegionCount", _regions.Count]</span></div>
+        <div class="factory-map-actions">
+            <RadzenButton Icon="remove" Click="@(() => Zoom(.8))" title="@L["FG.FactoryMap.ZoomOut"]" aria-label="@L["FG.FactoryMap.ZoomOut"]" Disabled="@(_loading || !_mapReady)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Icon="add" Click="@(() => Zoom(1.25))" title="@L["FG.FactoryMap.ZoomIn"]" aria-label="@L["FG.FactoryMap.ZoomIn"]" Disabled="@(_loading || !_mapReady)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Icon="fit_screen" Text="@L["FG.FactoryMap.Fit"]" Click="Fit" Disabled="@(_loading || !_mapReady)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Icon="fullscreen" Click="FullScreen" title="@L["FG.FactoryMap.FullScreen"]" aria-label="@L["FG.FactoryMap.FullScreen"]" Disabled="@(!_mapReady)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Icon="refresh" Click="Reload" Disabled="@_loading" Text="@L["Btn.Refresh"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Icon="@(_editing ? "done" : "edit_location_alt")" Text="@L[_editing ? "WH.LocMap.Btn.Done" : "FG.FactoryMap.Edit"]" Click="ToggleEdit" Disabled="@(_loading || !_mapReady)" ButtonStyle="@(_editing ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+            }
+        </div>
+    </div>
+    <p class="factory-map-hint" role="status">@L[_editing ? "FG.FactoryMap.DrawHint" : "FG.FactoryMap.ViewHint"]</p>
+    @if (_loading) { <LocationMapLoading /> }
+    @if (_error is not null) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert> }
+    <div class="factory-map-legend">
+        @foreach (var region in LegendRegions)
+        {
+            <RadzenButton Text="@RegionLabel(region)" class="ames-rz-btn factory-map-legend-button" Style="@($"--region-color:{FactoryMapView.Color(region)}")" Click="@(() => SelectRegion(region))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
+        }
+    </div>
+    <div class="factory-map-layout @(_selected is not null ? "has-inventory" : "")">
+    <div class="factory-map-viewport @(_editing ? "is-editing" : "")" @ref="_viewport" aria-busy="@(_loading || !_mapReady)">
+        <div class="factory-map-canvas" @ref="_canvas">
+            <img src="images/factory/eos-layout-10292026.png" alt="@L["FG.FactoryMap.ImageAlt"]" draggable="false" />
+            @foreach (var region in _regions.OrderByDescending(x => x.Zone.Width * x.Zone.Height))
+            {
+                <RadzenButton @key="region.Id" class="@($"factory-map-region {(SelectedGroup(region) ? "is-selected" : "")}")" Style="@RegionStyle(region)" Click="@(() => SelectRegion(region))" Disabled="@_loading" title="@RegionTitle(region)" aria-label="@RegionTitle(region)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small">
+                    <span class="factory-map-region-code">@RegionLabel(region)</span>
+                </RadzenButton>
+            }
+            <div class="factory-map-draft" hidden></div>
+        </div>
+    </div>
+    @if (_selected is not null)
+    {
+        <aside class="factory-map-inventory" aria-label="@L["FG.FactoryMap.Inventory"]">
+            <header class="factory-map-inventory-header">
+                <div><strong class="factory-map-code-tag" style="@($"--region-color:{FactoryMapView.Color(_selected)}")">@RegionLabel(_selected)</strong><strong>@L["FG.FactoryMap.Inventory"]</strong><span class="dim">@FilteredStock.Count() @L["Lbl.Items"]</span></div>
+                <RadzenButton Icon="close" Click="CloseDetail" aria-label="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </header>
+            <div class="master-list-toolbar factory-map-inventory-toolbar">
+                <AmesSearchBox @bind-Value="_stockSearch" Placeholder="@L["WH.Inventory.Ph.Search"]" Search="@(() => StateHasChanged())" />
+                @if (Environment.IsDevelopment() && new Uri(Navigation.BaseUri).IsLoopback)
+                {
+                    <RadzenCheckBox TValue="bool" Value="_exampleMode" Change="ChangeExample" Name="factory-map-example" />
+                    <RadzenLabel Text="@L["FG.FactoryMap.Examples"]" Component="factory-map-example" />
+                }
+                <RadzenButton Icon="refresh" Click="RefreshDetail" Disabled="_detailLoading" title="@L["Btn.Refresh"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </div>
+            @if (_exampleMode) { <div class="factory-map-example-note" role="status">@L["FG.FactoryMap.ExampleNote"]</div> }
+            @if (_detailLoading) { <LocationMapLoading /> }
+            else if (_detailError is not null) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_detailError</RadzenAlert> }
+            else
+            {
+                <div class="factory-map-stock-grid">
+                    <RadzenDataGrid TItem="LocationMapStock" Data="FilteredStock" AllowPaging="true" PageSize="25" AllowSorting="true" AllowColumnResize="true" Density="Density.Compact" class="ames-rz-grid" EmptyText="@L["WH.Inventory.Empty"]">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="LocationNo" Title="@L["Col.Location"]" Width="110px" MinWidth="80px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]" Width="150px" MinWidth="100px" />
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="PartNo" Title="@L["Col.ItemNo"]" Width="155px" MinWidth="100px" />
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="PartName" Title="@L["Col.ItemName"]" Width="180px" MinWidth="120px"><Template Context="row"><span title="@row.PartName">@row.PartName</span></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" Width="85px" MinWidth="70px" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.Qty(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Unit" Title="@L["Col.Unit"]" Width="65px" MinWidth="55px" TextAlign="TextAlign.Center"><Template Context="row">@UomFmt.Sym(row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="ReceivedAt" Title="@L["WH.Inventory.ReceivedAt"]" Width="125px" MinWidth="100px"><Template Context="row">@(row.ReceivedAt?.ToString(DateFmt.Date) ?? "—")</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="VendorCode" Title="@L["Col.VendorId"]" Width="100px" MinWidth="80px" />
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+            }
+        </aside>
+    }
+    </div>
+
+    @if (_editorOpen)
+    {
+        <div class="ames-modal-bg">
+            <div class="ames-modal factory-map-editor" role="dialog" aria-modal="true" aria-label="@L["FG.FactoryMap.Region"]">
+                <div class="ames-modal-h">@L["FG.FactoryMap.Region"]<RadzenButton Icon="close" Click="CloseEditor" Disabled="@_saving" aria-label="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+                <RadzenLabel Text="@L["FG.FactoryMap.Code"]" Component="factory-map-code" />
+                <RadzenStack Orientation="Orientation.Horizontal" Gap=".5rem" AlignItems="AlignItems.Center">
+                    <RadzenTextBox @bind-Value="_code" Name="factory-map-code" MaxLength="3" Disabled="_saving" InputSize="InputSize.Small" class="ames-rz-input factory-map-code-input" Placeholder="@L["FG.FactoryMap.Unassigned"]" />
+                    <RadzenButton Text="@L["FG.FactoryMap.Separate"]" Icon="link_off" Click="SeparateCode" Disabled="@(_saving || _code.Length==0)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
+                @if (DuplicateCodeCount > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@L["FG.FactoryMap.DuplicateCode", _code.ToUpperInvariant()]</RadzenAlert> }
+                <RadzenLabel Text="@L["FG.FactoryMap.LocationGroup"]" Component="factory-map-target" />
+                <RadzenDropDown TValue="string" @bind-Value="_targetKey" Data="_targets" TextProperty="Label" ValueProperty="Key" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" Name="factory-map-target" Disabled="@_saving" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" />
+                <RadzenLabel Text="@L["Col.Name"]" Component="factory-map-name" />
+                <RadzenTextBox @bind-Value="_name" Name="factory-map-name" MaxLength="80" Disabled="@_saving" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" />
+                @if (_targets.Count == 0) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["FG.FactoryMap.NoTargets"]</RadzenAlert> }
+                @if (_editorError is not null) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_editorError</RadzenAlert> }
+                @if (_confirmDelete) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["FG.FactoryMap.DeleteQuestion"]</RadzenAlert> }
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap=".5rem" class="ames-modal-footer" Wrap="FlexWrap.Wrap">
+                    @if (_original is not null)
+                    {
+                        <RadzenButton Text="@L["FG.FactoryMap.Redraw"]" Icon="crop_free" Click="Redraw" Disabled="@_saving" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        <RadzenButton Text="@L[_confirmDelete ? "Btn.Confirm" : "Btn.Delete"]" Icon="delete" Click="Delete" Disabled="@_saving" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    }
+                    <RadzenButton Text="@L["Btn.Save"]" Icon="save" Click="Save" Disabled="@(_saving || _targets.Count == 0 || DuplicateCodeCount > 0)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["Btn.Cancel"]" Click="CloseEditor" Disabled="@_saving" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
+            </div>
+        </div>
+    }
+</section>

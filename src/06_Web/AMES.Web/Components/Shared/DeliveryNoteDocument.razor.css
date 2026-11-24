@@ -1,4 +1,5 @@
 .delivery-note-document { box-sizing:border-box; width:190mm; max-width:100%; margin:20px auto; padding:8mm; color:#111; background:#fff; font:10pt/1.4 Arial,sans-serif; }
+.delivery-note-print-copy { display:none; }
 .delivery-document-header { display:flex; justify-content:space-between; align-items:center; gap:8mm; border-bottom:2px solid #111; padding-bottom:5mm; }
 .delivery-document-brand { font-size:9pt; letter-spacing:.12em; } h1 { font-size:23pt; margin:2mm 0; }
 .delivery-document-barcode { width:70mm; flex-shrink:0; text-align:center; }
@@ -10,9 +11,14 @@ small,dt { font-size:8pt; color:#555; text-transform:uppercase; } .delivery-docu
 table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:9pt; } th,td { padding:3mm 1.5mm; vertical-align:top; overflow-wrap:anywhere; border-bottom:1px solid #bbb; text-align:left; }
 th { background:#e8e8e8; border-top:1.5px solid #111; border-bottom:1px solid #555; } .quantity { text-align:right; font-variant-numeric:tabular-nums; }
 .part-number { font-weight:bold; } .delivery-document-total { text-align:right; font-weight:bold; } h2 { font-size:12pt; margin-top:6mm; }
-footer { border-top:1px solid #111; margin-top:8mm; padding-top:2mm; font-size:8pt; }
+footer { border-top:1px solid #111; margin-top:8mm; padding-top:2mm; font-size:8pt; break-inside:avoid; }
+.delivery-document-signatures { margin-top:6mm; table-layout:fixed; }
+.delivery-document-signatures th,.delivery-document-signatures td { width:33.333%; border:1px solid #111; background:#fff; text-align:center; vertical-align:middle; }
+.delivery-document-signatures th { padding:2mm 1mm; font-size:8.5pt; }
+.delivery-document-signatures td { height:28mm; padding:0; }
 @media print {
     @page delivery-note-document { size:A4 portrait; margin:10mm; }
     .delivery-note-document { page:delivery-note-document; width:190mm; max-width:none; margin:0; padding:0; }
+    .delivery-note-print-copy { display:block; break-before:page; }
     thead { display:table-header-group; } tr { break-inside:avoid; }
 }
