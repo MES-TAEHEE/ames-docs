@@ -50,5 +50,7 @@ labels/
 tmp_ames_api.log
 tmp_ames_web.log
 
+CLAUDE_bk1.md
+
 # React Flow 번들 도구(tools/flow-bundle) — 설치물은 올리지 않고 만든 wwwroot/js/wo-flow 만 올린다
 tools/flow-bundle/node_modules/
