@@ -254,8 +254,8 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        @* 시작시간은 자동 결정(밴드 클릭/편집) — 수정 불가. 지속 변경 시 이후 WO가 자동 이동 *@
-                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        @* 시작시간 — 밴드 클릭 시 제안값(오늘이면 지금 이후), 직접 고칠 수 있다(11-24 사용자 요청). 가동 구간 밖·겹침은 저장 때 거부 *@
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PlaceStartDt" TimeOnly="true" MinutesStep="5" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -880,7 +880,8 @@
     }
 
     // ── WO 배치 / 수정 (메모리 스테이징) ──────────────────────────────────
-    //  시작시간은 고정(비활성). 편집 시 지속(분)을 바꾸면 그 변화량(델타)만큼
+    //  편집 시 시작시간을 바꾸면 그 WO 만 옮긴다(다른 WO 는 그대로 — 겹치면 거부).
+    //  시작시간은 그대로 두고 지속(분)만 바꾸면 그 변화량(델타)만큼
     //  이후 등록된 WO들의 시작·종료를 이동 → 줄이면 앞당기고, 늘리면 뒤로 민다(연속 유지).
     void SaveSlot()
     {
@@ -901,8 +902,9 @@
         {
             var old   = cand[idx];
             int delta = endMin - old.EndMin;                 // 지속 변화량 (음수 = 감소)
-            cand[idx] = old with { EndMin = endMin, Qty = _placeQty };
-            if (delta != 0)
+            bool moved = startMin != old.StartMin;           // 시작시간을 고쳤으면 그 WO 만 이동
+            cand[idx] = old with { StartMin = startMin, EndMin = endMin, Qty = _placeQty };
+            if (!moved && delta != 0)
                 for (int i = 0; i < cand.Count; i++)
                     if (i != idx && cand[i].StartMin >= old.EndMin)   // 편집 슬롯 이후에 시작하는 WO들
                         cand[i] = cand[i] with { StartMin = cand[i].StartMin + delta, EndMin = cand[i].EndMin + delta };
@@ -988,6 +990,13 @@
                          .Concat(_mcBlocks.Where(m => m.StartMin < band.EndMin && m.EndMin > band.StartMin).Select(m => m.EndMin))   // MC 는 밴드를 쪼개지 않으므로 그 뒤부터 제안
                          .ToList();
         int start = ends.Count > 0 ? Math.Max(band.StartMin, ends.Max()) : band.StartMin;
+        // 오늘이면 지나간 시각 대신 지금 이후(5분 단위 올림)를 제안 — 시작시간은 모달에서 고칠 수 있다
+        if (_date.Date == ServerNow.Date)
+        {
+            int nowMin = (int)ServerNow.TimeOfDay.TotalMinutes;
+            nowMin = (nowMin + 4) / 5 * 5;
+            if (nowMin > start && nowMin < band.EndMin) start = nowMin;
+        }
         // 남은 시간이 없으면(가득 참) 모달을 열지 않고 안내
         if (start >= band.EndMin) { ShowMsg(L["PP.LineSchedule.Msg.BandFull"].Value); return; }
         int remain = band.EndMin - start;
