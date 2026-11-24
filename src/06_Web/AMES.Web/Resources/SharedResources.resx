@@ -9067,7 +9067,7 @@
     <value>WO번호/품목</value>
   </data>
   <data name="FG.Returns.Ph.Search" xml:space="preserve">
-    <value>반품번호/RMA/고객사/품목</value>
+    <value>고객사 / LOT / 파트 / DCR</value>
   </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
     <value>DCR / LOT / part / customer / worker…</value>
@@ -14226,4 +14226,5 @@ OEE(설비종합효율) = 가용률 × 성능 × 양품률</value>
   <data name="WH.Inventory.ReceivedAt" xml:space="preserve"><value>Received At</value></data>
   <data name="FG.Inventory.Title" xml:space="preserve"><value>FG Inventory Search</value></data>
   <data name="FG.ShipmentManagement.Title" xml:space="preserve"><value>Shipment Orders / Plan</value></data>
+  <data name="FG.Returns.Col.ShipmentDcrNo" xml:space="preserve"><value>출하 DCR 번호</value></data>
 </root>

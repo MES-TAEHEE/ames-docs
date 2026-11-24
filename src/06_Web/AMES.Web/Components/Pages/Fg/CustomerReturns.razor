@@ -28,35 +28,32 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Returns.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox Immediate="true" @bind-Value="_search" Placeholder="@L["FG.Returns.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' />
-            <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <AmesSearchBox @bind-Value="_search" Placeholder='@L["FG.Returns.Ph.Search"]' Search="Reload" />
+                <RadzenDropDown @bind-Value="_status" @bind-Value:after="Reload" Data="@StatusOptions" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" @bind-Value:after="Reload" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+
             <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow"
+    <RadzenDataGrid AllowColumnResize="true" @ref="_grid" TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow"
                     Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions"
-                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true"
-                    RowSelect="OpenDetail" SelectionMode="DataGridSelectionMode.Single"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true" Density="Density.Compact"
+                    RowClick="@(e=>OpenDetail(e.Data))" RowRender="@(e=>e.Attributes["class"]="ames-row-link")"
                     EmptyText="@L["FG.Returns.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)"
-                    Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed fg-return-grid">
+                    Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed fg-return-grid compact-record-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title="@L["FG.Returns.Col.Received"].Value" Width="160px" MinWidth="160px"><Template Context="r">@(r.ReceivedAt?.ToString(DateFmt.DateTime) ?? "-")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnId" Title="@L["FG.Returns.Col.ReturnNo"].Value" Width="160px" MinWidth="160px"><Template Context="r"><span class="code">@r.ReturnId</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="290px" MinWidth="290px"><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentId" Title="@L["Shipment.Id"].Value" Width="110px" MinWidth="110px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="OutboundBarcode" Title="@L["FG.Returns.Col.ShipLotNo"].Value" Width="190px" MinWidth="190px"><Template Context="r">@(r.OutboundBarcode ?? "-")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="140px" MinWidth="140px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartName" Title="@L["Col.ItemName"].Value" MinWidth="180px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="LotNo" Title="@L["Col.LotNo"].Value" Width="200px" MinWidth="200px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Qty, null)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnReason" Title="@L["Col.Reason"].Value" Width="160px" MinWidth="160px"><Template Context="r">@(r.ReturnReason ?? "-")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Status" Title="@L["Col.Status"].Value" Width="210px" MinWidth="210px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @StatusClass(r.Status)">@StatusLabel(r.Status)</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedBy" Title="@L["FG.Returns.Col.ReceivedBy"].Value" Width="135px" MinWidth="135px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Title="@L["Col.Detail"].Value" Width="90px" MinWidth="90px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r"><RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenDetail(r))" title="@L["FG.Returns.ViewDetails"].Value" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Title='@L["Col.RowNo"]' Width="4%" TextAlign="TextAlign.Center" Sortable="false"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerId" Title='@L["Col.Customer"]' Width="10%"><Template Context="r"><span class="code" title="@r.CustomerName">@r.CustomerId</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="LotNo" Title='@L["Col.LotNo"]' Width="12%"><Template Context="r"><span title="@r.LotNo">@(r.LotNo??"—")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartNo" Title='@L["Col.PartNo"]' Width="12%"><Template Context="r"><span class="code" title="@r.PartNo">@r.PartNo</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartName" Title='@L["Col.PartName"]' Width="18%"><Template Context="r"><span title="@r.PartName">@r.PartName</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentDcrNo" Title='@L["FG.Returns.Col.ShipmentDcrNo"]' Width="14%"><Template Context="r"><span class="code" title="@r.ShipmentDcrNo">@(r.ShipmentDcrNo??"—")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Qty" Title='@L["Col.Qty"]' Width="5%" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnReason" Title='@L["Col.Reason"]' Width="9%"><Template Context="r"><span title="@r.ReturnReason">@(r.ReturnReason??"—")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title='@L["FG.Returns.Col.Received"]' Width="10%"><Template Context="r">@(r.ReceivedAt?.ToString(DateFmt.DateTime)??"—")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedBy" Title='@L["FG.Returns.Col.ReceivedBy"]' Width="6%" />
         </Columns>
     </RadzenDataGrid>
 </div>
@@ -70,7 +67,7 @@
                 <div><span>@L["Col.Status"]</span><strong><span class="pill @StatusClass(_detail.Status)">@StatusLabel(_detail.Status)</span></strong></div>
                 <div><span>@L["Col.Customer"]</span><strong>@(_detail.CustomerId ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Col.Received"]</span><strong>@(_detail.ReceivedAt?.ToString(DateFmt.DateTime) ?? "-")</strong></div>
-                <div><span>@L["FG.Returns.Lbl.ShipmentBarcode"]</span><strong>@_detail.ShipmentId / @_detail.OutboundBarcode</strong></div>
+                <div><span>@L["FG.Returns.Col.ShipmentDcrNo"]</span><strong>@(_detail.ShipmentDcrNo??"—")</strong></div>
                 <div><span>@L["Col.ItemNo"]</span><strong>@_detail.PartNo</strong></div>
                 <div><span>@L["Col.ItemName"]</span><strong>@_detail.PartName</strong></div>
                 <div><span>@L["Col.LotNo"]</span><strong>@_detail.LotNo</strong></div>
@@ -108,7 +105,8 @@
 @code {
     List<AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow> _rows = new();
     readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
-    int _pageRows = 25;
+    RadzenDataGrid<FinishedGoodsRepository.ReturnRow>? _grid;
+    int _pageRows = 25,_reloadRequest;
     AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow? _detail;
     string _search = "", _message = "";
     string? _status;
@@ -126,12 +124,14 @@
     async Task Reload()
     {
         if (_from.HasValue && _to.HasValue && _from.Value.Date > _to.Value.Date) { _message = L["Err.DateRange"]; return; }
-        try { _rows = await Task.Run(()=>Fg.ListReturns(_search, _status, _from, _to)); _message = ""; }
-        catch (Exception ex) { _rows = new(); _message = ex.Message; }
+        var request=++_reloadRequest;
+        var (search,status,from,to)=(_search,_status,_from,_to);
+        try { var rows=await Task.Run(()=>Fg.ListReturns(search,status,from,to));if(request==_reloadRequest){_rows=rows;_message="";} }
+        catch (Exception ex) { if(request==_reloadRequest){_rows=new();_message=ex.Message;} }
     }
     int CountStatus(string status) => _rows.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
-    void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow row)
-    { if (_inspecting) return; _detail = row; _inspectionNote = ""; _inspectionError = ""; }
+    void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow? row)
+    { if (_inspecting || row is null) return; _detail = row; _inspectionNote = ""; _inspectionError = ""; }
     void CloseDetail() { if (!_inspecting) _detail = null; }
     async Task Inspect(bool accepted)
     {
