@@ -257,8 +257,9 @@ public class SapOutTests
         void Clean()
         {
             Exec(f!, "DELETE dbo.SAP_IfOutbox WHERE JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO' OR MesKey = 'ITEST-COL-WO'");
+            Exec(f!, "DELETE dbo.MD_Bom WHERE BOMID IN ('ITEST-COL-B1', 'ITEST-COL-B2')");
             Exec(f!, "DELETE r FROM dbo.PR_ProductionResult r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.WoNumber = 'ITEST-COL-WO'");
-            Exec(f!, "DELETE t FROM dbo.WH_InventoryTransaction t JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID WHERE t.SourceType = 'BACKFLUSH' AND w.WoNumber = 'ITEST-COL-WO'");
+            Exec(f!, "DELETE t FROM dbo.WH_InventoryTransaction t JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID WHERE t.SourceType IN ('BACKFLUSH', 'IMG_CORE') AND w.WoNumber = 'ITEST-COL-WO'");
             Exec(f!, "DELETE l FROM dbo.tbl_Lot l JOIN dbo.PP_WorkOrder w ON w.WoID = l.WoID WHERE w.WoNumber = 'ITEST-COL-WO'");
             Exec(f!, "DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.WoNumber = 'ITEST-COL-WO'");
             Exec(f!, "DELETE dbo.PP_WorkOrder WHERE WoNumber = 'ITEST-COL-WO'");
@@ -281,9 +282,17 @@ public class SapOutTests
                 VALUES ('OUT', 'BACKFLUSH', @L, 'ITEST-COMP', 'X', -2, DATEADD(MINUTE, -10, SYSDATETIME()), 'ITEST', SYSDATETIME());
                 INSERT dbo.WH_InventoryTransaction (TransactionType, SourceType, SourceID, PartNo, LotNo, QtyChange, TransactionTime, CreatedBy, CreatedTS)
                 VALUES ('OUT', 'BACKFLUSH', @L, 'ITEST-COMP', 'X', -1, DATEADD(MINUTE, -10, SYSDATETIME()), 'ITEST', SYSDATETIME());
+                INSERT dbo.WH_InventoryTransaction (TransactionType, SourceType, SourceID, PartNo, LotNo, QtyChange, TransactionTime, CreatedBy, CreatedTS)
+                VALUES ('OUT', 'IMG_CORE', @L, 'ITEST-CORE', 'ITEST-CORE-LOT', -1, DATEADD(MINUTE, -10, SYSDATETIME()), 'ITEST', SYSDATETIME());
                 INSERT dbo.PR_ProductionResult (WoID, LotID, ProcessCode, GoodQty, ProdDate, ShiftCode, LineID, CreatedBy, CreatedTS)
                 VALUES (@W, @L, 'IMG', 3, '2026-11-20', 'A', 'ITEST-LINE', 'ITEST', DATEADD(MINUTE, -10, SYSDATETIME()));
                 """, ("@L", lotId), ("@W", woId));
+            // 코어(ITEST-CORE)는 완제품의 직접 구성품이라 나간다. 직접 구성품이 아닌 코어(ITEST-CORE2, 서브조립 아래)는 보내지 않는다
+            Exec(f!, "INSERT dbo.MD_Bom (BOMID, ParentItemNo, CompItemNo, QtyPer, ActiveFlag, CreatedBy, CreatedTS) VALUES ('ITEST-COL-B1', 'ITEST-ITEM', 'ITEST-CORE', 1, 1, 'ITEST', SYSDATETIME())");
+            Exec(f!, """
+                INSERT dbo.WH_InventoryTransaction (TransactionType, SourceType, SourceID, PartNo, LotNo, QtyChange, TransactionTime, CreatedBy, CreatedTS)
+                VALUES ('OUT', 'IMG_CORE', @L, 'ITEST-CORE2', 'ITEST-CORE2-LOT', -1, DATEADD(MINUTE, -10, SYSDATETIME()), 'ITEST', SYSDATETIME());
+                """, ("@L", lotId));
             // 생성(C)이 아웃박스에 있어야 수집 대상
             using (var c = f!.OpenConnection())
                 SapIfOutboxRepository.Enqueue(c, null, "IF-T01", Wo, "C", SapOutPayload.ToJson(new Dictionary<string, object?>
@@ -292,15 +301,22 @@ public class SapOutTests
             var col = new SapOutCollector(f!, new SapIfLogRepository(f!));
             var r1 = col.Collect();
             Assert.Null(r1.Error);
-            Assert.Equal(1, r1.Issues);
+            Assert.Equal(2, r1.Issues);                                // BOM 자동 차감 행 + 스캔 코어 행(11-24)
             Assert.Equal(1, r1.Receipts);
             Assert.Equal(0, r1.Closes);
 
             // 투입은 같은 구성품을 합친다(2+1=3), 실적은 3
-            var issue = Scalar(f!, "SELECT PayloadJson FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T02' AND JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO'") as string;
+            var issue = Scalar(f!, "SELECT PayloadJson FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T02' AND MesKey LIKE 'I%' AND JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO'") as string;
             var pi = SapOutPayload.Parse(SapOutSpecs.Find("IF-T02")!, issue!);
             Assert.Single(pi.Lines);
             Assert.Equal(3m, Convert.ToDecimal(pi.Lines[0]["Qty"]));
+            // 스캔해서 쓴 코어는 BACKFLUSH 에 없으므로 별도 행(키 C…)으로 나간다 — 그 WO 의 B1 생산오더에서 코어도 투입돼야 B1 코어 재고가 맞는다
+            var coreRow = Scalar(f!, "SELECT PayloadJson FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T02' AND MesKey LIKE 'C%' AND JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO'") as string;
+            var pc = SapOutPayload.Parse(SapOutSpecs.Find("IF-T02")!, coreRow!);
+            Assert.Single(pc.Lines);
+            Assert.Equal("ITEST-CORE", (string)pc.Lines[0]["CompItemNo"]!);
+            Assert.Equal(1m, Convert.ToDecimal(pc.Lines[0]["Qty"]));
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T02' AND MesKey LIKE 'C%' AND JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO'")));   // ITEST-CORE2 는 행을 만들지 않는다
             var rcpt = Scalar(f!, "SELECT PayloadJson FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T03' AND JSON_VALUE(PayloadJson, '$.hdr.MES_WO_NO') = 'ITEST-COL-WO'") as string;
             var pr = SapOutPayload.Parse(SapOutSpecs.Find("IF-T03")!, rcpt!);
             Assert.Equal(3m, Convert.ToDecimal(pr.Hdr["CompleteQty"]));

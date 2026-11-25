@@ -82,6 +82,8 @@ public sealed class SapOutRunner(SapIfOutboxRepository outbox, SapOutSender send
         }
     }
 
+    private static string Cut(string? s) => s is null ? "" : s.Length <= 1000 ? s : s[..1000];
+
     /// <summary>웅진이 되쓴 IF_STATUS(Y/E)·B1 문서번호를 아웃박스 B1Status 로 옮긴다(N/P 는 아직 처리 중이라 그대로).</summary>
     private int RefreshResults(Guid runId, SapOutSpec spec, Stopwatch sw)
     {
@@ -89,10 +91,12 @@ public sealed class SapOutRunner(SapIfOutboxRepository outbox, SapOutSender send
         if (pending.Count == 0) return 0;
         int n = 0;
         using var eosConn = eosAccess.Open();
-        foreach (var (id, seq) in pending)
+        foreach (var (id, seq, curStatus, curMsg) in pending)
         {
             var r = sender.ReadResult(eosConn, spec, seq);
             if (r is null || r.Status is not ("Y" or "E")) continue;
+            // 이미 같은 오류(E + 같은 메시지)로 기록된 건은 다시 쓰지도 로그에 남기지도 않는다 — 1분마다 같은 실패가 쌓이지 않게
+            if (r.Status == "E" && curStatus == "E" && string.Equals(Cut(r.Msg), curMsg ?? "", StringComparison.Ordinal)) continue;
             outbox.UpdateB1(id, r.Status, r.DocEntry, r.DocNum, r.Msg);
             n++;
             log.Write(runId, spec.IfId, "OUT", null, seq, null, r.Status == "Y" ? "OK" : "FAIL",

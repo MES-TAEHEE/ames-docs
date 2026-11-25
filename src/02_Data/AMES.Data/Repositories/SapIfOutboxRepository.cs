@@ -154,18 +154,18 @@ public sealed class SapIfOutboxRepository(AmesConnectionFactory f)
     }
 
     /// <summary>EOS_IF 에 썼지만 웅진 결과가 확정(Y)되지 않은 행(EOS_IF IF_SEQ). 오류(E)도 포함 — 웅진이 B1 쪽을 고친 뒤 같은 행을 다시 처리해 Y 로 바꾸기 때문(11-23).</summary>
-    public List<(long OutboxID, long EosIfSeq)> PendingResults(string ifId)
+    public List<(long OutboxID, long EosIfSeq, string B1Status, string? B1Msg)> PendingResults(string ifId)
     {
         using var conn = f.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT OutboxID, EosIfSeq FROM dbo.SAP_IfOutbox
+            SELECT OutboxID, EosIfSeq, ISNULL(B1Status, 'N') AS B1Status, B1Msg FROM dbo.SAP_IfOutbox
              WHERE IfID = @If AND Status = 'Y' AND EosIfSeq IS NOT NULL AND ISNULL(B1Status, 'N') IN ('N', 'P', 'E')
              ORDER BY OutboxID
             """, conn) { CommandTimeout = 30 };
         ColumnParams.Add(cmd, "@If", "SAP_IfOutbox.IfID", ifId);
-        var list = new List<(long, long)>();
+        var list = new List<(long, long, string, string?)>();
         using var r = cmd.ExecuteReader();
-        while (r.Read()) list.Add((r.GetInt64(0), r.GetInt64(1)));
+        while (r.Read()) list.Add((r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3)));
         return list;
     }
 

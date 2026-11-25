@@ -117,21 +117,40 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
             log.Write(runId, ifId, "OUT", key, null, action, "OK", "아웃박스 적재 — " + what);
     }
 
-    // ── IF-T02 자재 투입: 그 WO 의 LOT 에서 BOM 자동 차감(BACKFLUSH)된 구성품을 묶어서 ───────────────
+    // ── IF-T02 자재 투입: 그 WO 의 LOT 에서 BOM 자동 차감(BACKFLUSH)된 구성품 + 스캔해서 쓴 사출 코어(IMG_CORE)를 묶어서 ─────
+    // 코어는 따로 센다(키 C…, 기준점도 따로): IMG 에서 코어를 스캔하면 ConsumeCore 가 IMG_CORE 거래로 코어 재고를 빼고 BOM 자동 차감은 그 코어를 건너뛰어
+    // (이중 차감 방지) BACKFLUSH 에는 코어가 없다 — 그대로면 B1 완제품 생산오더의 코어 구성품이 투입 안 돼 B1 코어 재고가 실제보다 많이 남는다(11-24).
+    // 기준점이 따로라 IMG_CORE 가 이미 쌓여 있던 WO 도 처음 수집 때 전부 한 번에 나간다.
     private int CollectIssues(SqlConnection conn, Guid runId, Wo wo, string whs)
+        => CollectIssueKind(conn, runId, wo, whs, "I", "BACKFLUSH", "투입 구성품")
+         + CollectIssueKind(conn, runId, wo, whs, "C", CoreUseSourceType, "스캔 코어 투입");
+
+    /// <summary>코어가 그 WO 완제품 BOM 의 직접 구성품이다(별칭 t = 재고 거래, l = LOT). F2321 처럼 코어가 직접 자식이면 B1 생산오더에 코어 구성품이 있다.
+    /// M0211·M0221 처럼 직접 자식이 서브조립(M2311·M2321)이면 코어는 그 아래라 서브조립이 BACKFLUSH 로 이미 투입돼 코어를 또 보내면 이중이다.</summary>
+    private const string DirectComponentOfWoItem = """
+        EXISTS (SELECT 1 FROM dbo.PP_WorkOrder wi JOIN dbo.MD_Bom b ON b.ParentItemNo = wi.ItemNo
+                WHERE wi.WoID = l.WoID AND b.CompItemNo = t.PartNo AND ISNULL(b.ActiveFlag, 1) = 1)
+        """;
+
+    /// <summary>IMG 가 스캔한 사출 코어를 쓸 때 남기는 재고 거래 종류(PalletStockRepository.CoreUseSourceType 과 같다).</summary>
+    internal const string CoreUseSourceType = "IMG_CORE";
+
+    private int CollectIssueKind(SqlConnection conn, Guid runId, Wo wo, string whs, string keyPrefix, string sourceType, string what)
     {
-        long wm = Watermark(conn, "IF-T02", $"I{wo.WoId}");
+        long wm = Watermark(conn, "IF-T02", $"{keyPrefix}{wo.WoId}");
         var parts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
         long max = wm; DateTime postDate = DateTime.MinValue;
         using (var cmd = new SqlCommand($"""
             SELECT t.TransactionID, t.PartNo, -t.QtyChange AS Qty, t.TransactionTime
             FROM   dbo.WH_InventoryTransaction t
             JOIN   dbo.tbl_Lot l ON l.LotID = t.SourceID
-            WHERE  t.SourceType = 'BACKFLUSH' AND t.QtyChange < 0 AND l.WoID = @Wo
+            WHERE  t.SourceType = @Src AND t.QtyChange < 0 AND l.WoID = @Wo
               AND  t.TransactionID > @Wm AND t.TransactionTime < DATEADD(MINUTE, -{SettleMinutes}, SYSDATETIME())
+              AND  (@Src <> 'IMG_CORE' OR {DirectComponentOfWoItem})
             ORDER  BY t.TransactionID;
             """, conn) { CommandTimeout = 30 })
         {
+            cmd.Parameters.Add("@Src", SqlDbType.VarChar, 30).Value = sourceType;
             cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = wo.WoId;
             cmd.Parameters.Add("@Wm", SqlDbType.BigInt).Value = wm;
             using var r = cmd.ExecuteReader();
@@ -149,9 +168,9 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
             .Select(p => (IDictionary<string, object?>)new Dictionary<string, object?>
             { ["CompItemNo"] = p.Key, ["Qty"] = p.Value, ["WhsCode"] = whs, ["ExtraFlag"] = 0 }).ToList();
         if (lines.Count == 0) return 0;
-        var key = $"I{wo.WoId}-{max}";
+        var key = $"{keyPrefix}{wo.WoId}-{max}";
         var hdr = new Dictionary<string, object?> { ["MES_ISSUE_NO"] = key, ["MES_WO_NO"] = wo.Number, ["PostDate"] = postDate.Date };
-        Enqueue(conn, runId, "IF-T02", key, "C", SapOutPayload.ToJson(hdr, lines), $"{wo.Number} 투입 구성품 {lines.Count}종");
+        Enqueue(conn, runId, "IF-T02", key, "C", SapOutPayload.ToJson(hdr, lines), $"{wo.Number} {what} {lines.Count}종");
         return 1;
     }
 
@@ -280,6 +299,9 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
                 SELECT 1 FROM dbo.WH_InventoryTransaction t JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID
                 WHERE t.SourceType = 'BACKFLUSH' AND t.QtyChange < 0 AND l.WoID = @Wo AND t.TransactionID > @Wi)
               OR EXISTS (
+                SELECT 1 FROM dbo.WH_InventoryTransaction t JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID
+                WHERE t.SourceType = 'IMG_CORE' AND t.QtyChange < 0 AND l.WoID = @Wo AND t.TransactionID > @Wc AND {DirectComponentOfWoItem})
+              OR EXISTS (
                 SELECT 1 FROM dbo.PR_ProductionResult r
                 WHERE r.WoID = @Wo AND r.GoodQty > 0 AND r.ResultID > @Wr
                   AND r.ProcessCode = (SELECT TOP 1 ProcessCode FROM dbo.PP_WorkOrderRouting WHERE WoID = @Wo ORDER BY StepSeq DESC))
@@ -287,6 +309,7 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
             """, conn) { CommandTimeout = 30 };
         cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = wo.WoId;
         cmd.Parameters.Add("@Wi", SqlDbType.BigInt).Value = Watermark(conn, "IF-T02", $"I{wo.WoId}");
+        cmd.Parameters.Add("@Wc", SqlDbType.BigInt).Value = Watermark(conn, "IF-T02", $"C{wo.WoId}");
         cmd.Parameters.Add("@Wr", SqlDbType.BigInt).Value = Watermark(conn, "IF-T03", $"R{wo.WoId}");
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
