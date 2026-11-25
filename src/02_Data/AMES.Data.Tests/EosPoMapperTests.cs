@@ -85,6 +85,38 @@ public class EosPoMapperTests
         Assert.Single(EosPoMapper.Chunks(new(2026, 11, 9), new(2026, 11, 9), 7));
     }
 
+    [Fact]
+    public void Several_vendor_codes_separated_by_commas_are_all_kept()
+    {
+        var rows = EosPoMapper.ParseRows("""
+            {"OUT_CURSOR":[{"PO_NO":"4100182945","PO_SEQ":10.0,"VENDOR_CODE":"309224","PART_NO":"A","PO_QTY":1.0,"DELIVERY_DATE":"2026-11-09","PO_DATE":"2026-11-02"},
+                           {"PO_NO":"4100187089","PO_SEQ":20.0,"VENDOR_CODE":"312598","PART_NO":"B","PO_QTY":2.0,"DELIVERY_DATE":"2026-12-21","PO_DATE":"2026-11-25"},
+                           {"PO_NO":"8700005212","PO_SEQ":10.0,"VENDOR_CODE":"100000","PART_NO":"C","PO_QTY":3.0,"DELIVERY_DATE":"2026-12-21","PO_DATE":"2026-11-25"}]}
+            """);
+        var kept = EosPoMapper.ToSrmRows(rows, " 309224 , 312598 ,").Select(r => r.PONO).ToList();
+        Assert.Equal(["4100182945-10", "4100187089-20"], kept);
+        Assert.Equal(["4100187089-20"], EosPoMapper.ToSrmRows(rows, "312598").Select(r => r.PONO));
+    }
+
+    [Fact]
+    public void Upload_vendor_check_accepts_any_of_the_configured_codes()
+    {
+        var configured = AMES.Data.Services.Srm.SrmVendorCheck.ConfiguredVendors(["TYPE=EOS;VENDCD=309224,312598;WINDOW=-7,60", "VENDCD=312598"]);
+        Assert.Equal(["309224", "312598"], configured);
+        Assert.Equal(AMES.Data.Services.Srm.SrmVendorCheck.Verdict.Match, AMES.Data.Services.Srm.SrmVendorCheck.Judge("312598", configured));
+    }
+
+    [Fact]
+    public void Srm_source_with_several_vendor_codes_is_a_config_error()
+    {
+        var r = PoSyncConfig.Resolve([
+            Row(PoSyncConfig.GroupSource, "SEMS", "CUS-SAV", "CORCD=7700;BIZCD=7710;VENDCD=310471,312598;PURC_ORG=1A7700"),
+            Row(PoSyncConfig.GroupUrl,    "SEMS", desc: "http://srm/x"),
+        ]);
+        Assert.Empty(r.Sources);
+        Assert.Contains("VENDCD", Assert.Single(r.Errors).Message);
+    }
+
     [Theory]
     [InlineData("HTTP 500 : {\"Message\":\"ORA-20001: Invalid date range. Maximum 31 days.\"}", EosPoMapper.RemoteError.RangeTooLong)]
     [InlineData("HTTP 500 : {\"Message\":\"ORA-20002: More than 1000 rows. Use a shorter date range.\"}", EosPoMapper.RemoteError.TooManyRows)]

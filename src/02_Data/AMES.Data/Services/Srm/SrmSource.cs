@@ -32,10 +32,15 @@ public static class SrmVendorCheck
         return null;
     }
 
-    /// <summary>고객에 설정된 활성 SRM 소스들의 VENDCD 목록(중복 제거). 빈 목록이면 대조 불가.</summary>
+    /// <summary>VENDCD 값 하나를 협력사 코드 목록으로 — 「309224,312598」 처럼 쉼표로 여러 개(11-25, 같은 고객이 차종마다 다른 코드로 발주). 공백·빈 조각·중복은 뺀다.</summary>
+    public static IReadOnlyList<string> Split(string? vendCd) =>
+        string.IsNullOrWhiteSpace(vendCd) ? []
+        : vendCd.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>고객에 설정된 활성 SRM 소스들의 VENDCD 목록(쉼표로 나눈 뒤 중복 제거). 빈 목록이면 대조 불가.</summary>
     public static IReadOnlyList<string> ConfiguredVendors(IEnumerable<string?> descriptions) =>
-        descriptions.Select(VendCdOf).Where(v => v is not null)
-                    .Select(v => v!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        descriptions.SelectMany(d => Split(VendCdOf(d))).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     /// <summary>샘플 파일에 넣을 업체 코드: 고객 설정의 첫 VENDCD, 없으면 자리표시자(대조 대상 아님).</summary>
     public static string PickVendor(IReadOnlyList<string> configured, string placeholder) =>

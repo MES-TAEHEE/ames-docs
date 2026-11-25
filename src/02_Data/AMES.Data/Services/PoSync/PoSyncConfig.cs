@@ -86,7 +86,11 @@ public static class PoSyncConfig
         });
         if (!TryParseWindow(w.Globals.GetValueOrDefault("WINDOW"), out int gFrom, out int gTo)) (gFrom, gTo) = (DefaultWindowFrom, DefaultWindowTo);
         int gAhead = ParseAhead(w.Globals.GetValueOrDefault("MAX_AHEAD")) ?? DefaultMaxAheadDays;
-        var sources = w.Sources.Select(s =>
+        // SRM 은 VENDCD 를 원격 쿼리 매개변수로 그대로 보내므로 하나만 — 쉼표 목록은 EOS(응답을 우리가 거른다)만 받는다
+        var multiSrm = w.Sources
+            .Where(s => TypeOf(s.Params) == TypeSrm && AMES.Data.Services.Srm.SrmVendorCheck.Split(s.Params["VENDCD"]).Count > 1)
+            .ToList();
+        var sources = w.Sources.Except(multiSrm).Select(s =>
         {
             if (!TryParseWindow(s.Params.GetValueOrDefault("WINDOW"), out int from, out int to)) (from, to) = (gFrom, gTo);
             var type = TypeOf(s.Params);
@@ -97,7 +101,9 @@ public static class PoSyncConfig
                 type, type == TypeEos ? sql : null)
             { MaxAheadDays = ParseAhead(s.Params.GetValueOrDefault("MAX_AHEAD")) ?? gAhead };
         }).ToList();
-        var errors = w.Errors.Select(e => new PoSyncConfigError(e.Key, e.Name, e.Message)).ToList();
+        var errors = w.Errors.Select(e => new PoSyncConfigError(e.Key, e.Name, e.Message))
+            .Concat(multiSrm.Select(s => new PoSyncConfigError(s.Key, s.Name, "TYPE=SRM 은 VENDCD 를 하나만 넣을 수 있습니다(여러 개는 TYPE=EOS 만).")))
+            .ToList();
         return new PoSyncConfigResult(sources, errors, w.GlobalIntervalMin, w.TickSec, w.StartupDelaySec, w.TimeoutSec);
     }
 

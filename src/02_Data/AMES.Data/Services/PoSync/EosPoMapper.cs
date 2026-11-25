@@ -95,12 +95,15 @@ public static class EosPoMapper
         }
     }
 
-    /// <summary>우리 협력사 코드 행만 SRM 행 모양으로. PONO = 발주번호-항번(SrmPoMapper 가 SoNumber·SoLineNo 로 나눈다).</summary>
-    public static IReadOnlyList<SrmPoRow> ToSrmRows(IEnumerable<EosPoRow> rows, string vendorCode)
+    /// <summary>
+    /// 우리 협력사 코드 행만 SRM 행 모양으로. vendorCodes 는 설정 VENDCD 값 그대로 — 쉼표로 여러 개(「309224,312598」).
+    /// PONO = 발주번호-항번(SrmPoMapper 가 SoNumber·SoLineNo 로 나눈다).
+    /// </summary>
+    public static IReadOnlyList<SrmPoRow> ToSrmRows(IEnumerable<EosPoRow> rows, string vendorCodes)
     {
-        var vend = vendorCode.Trim();
+        var vend = new HashSet<string>(AMES.Data.Services.Srm.SrmVendorCheck.Split(vendorCodes), StringComparer.OrdinalIgnoreCase);
         return rows
-            .Where(r => string.Equals(r.VENDOR_CODE?.Trim(), vend, StringComparison.OrdinalIgnoreCase))
+            .Where(r => r.VENDOR_CODE is { } v && vend.Contains(v.Trim()))
             .Select(r => new SrmPoRow(
                 PONO: r.PO_SEQ is { } seq ? $"{r.PO_NO?.Trim()}-{SeqText(seq)}" : r.PO_NO?.Trim(),
                 PO_DATE: r.PO_DATE,
