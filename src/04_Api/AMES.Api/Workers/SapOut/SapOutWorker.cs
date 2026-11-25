@@ -56,7 +56,7 @@ public sealed class SapOutWorker(AmesConnectionFactory f, EosIfConnectionFactory
         if (t.Spec.IfId == SapOutSpecs.All[0].IfId)
         {
             var c = await Task.Run(() => _collector.Collect(ct), ct);
-            if (c.Total > 0) Log.LogInformation("SAP out collect: 투입 {I} 실적 {R} 불량 {D} 종료 {C} 취소 {X}", c.Issues, c.Receipts, c.Rejects, c.Closes, c.Cancels);
+            if (c.Total > 0) Log.LogInformation("SAP out collect: 투입 {I} 실적 {R} 불량 {D} 종료 {C} 취소 {X} 출하 {S}", c.Issues, c.Receipts, c.Rejects, c.Closes, c.Cancels, c.Deliveries);
             if (c.Error is not null) Log.LogWarning("SAP out collect failed: {Err}", c.Error);
         }
         var result = await Task.Run(() => _runner.Run(t, ct), ct);

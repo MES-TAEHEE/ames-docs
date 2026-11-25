@@ -330,4 +330,76 @@ public class SapOutTests
         }
         finally { Clean(); }
     }
+    [SkippableFact]
+    public void Collector_turns_a_shipped_DCR_into_one_T07_delivery_row_and_holds_unmapped_customers()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, Skipped);
+        var f = TryFactory(); Skip.If(f is null, Skipped);
+        var before = Convert.ToInt64(Scalar(f!, "SELECT ISNULL(MAX(OutboxID), 0) FROM dbo.SAP_IfOutbox"));
+        void Clean()
+        {
+            // 이 테스트 동안 생긴 출하 행만 지운다(로컬에 오늘 출하된 다른 DCR 이 있어도 함께 적재됐다가 지워진다)
+            Exec(f!, "DELETE dbo.SAP_IfOutbox WHERE IfID = 'IF-T07' AND OutboxID > @B", ("@B", before));
+            Exec(f!, "DELETE dbo.SAP_IfLog WHERE IfID = 'IF-T07' AND KeyValue LIKE 'ITEST-DCR-%'");
+            Exec(f!, "DELETE l FROM dbo.FG_DeliveryLoad l JOIN dbo.FG_Delivery d ON d.DeliveryID = l.DeliveryID WHERE d.DeliveryNo LIKE 'ITEST-DCR-%'");
+            Exec(f!, "DELETE dbo.FG_Delivery WHERE DeliveryNo LIKE 'ITEST-DCR-%'");
+            Exec(f!, "DELETE dbo.SYS_Config WHERE CreatedBy = 'ITEST' AND (ConfigKey = 'SAP_IF_DELIVERY_FROM' OR ConfigKey LIKE 'SAP_IF_CARDCODE_ITEST%')");
+        }
+        Clean();
+        try
+        {
+            int NewDelivery(string no, string cust) => Convert.ToInt32(Scalar(f!, """
+                INSERT dbo.FG_Delivery (DeliveryNo, CustomerID, ShipDate, TrailerNo, Status, ShippedBy, ShippedAt, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.DeliveryID
+                VALUES (@N, @C, CAST(SYSDATETIME() AS date), N'TRL-01', 'Shipped', 'ITEST', DATEADD(MINUTE, -10, SYSDATETIME()), 'ITEST', SYSDATETIME());
+                """, ("@N", no), ("@C", cust)));
+            var d1 = NewDelivery("ITEST-DCR-1", "ITEST-CUS");
+            var d2 = NewDelivery("ITEST-DCR-2", "ITEST-NOMAP");
+            foreach (var (d, root, lot, part, qty, shipped) in new[]
+            {
+                (d1, "ITEST-PLT-1", "ITEST-DL-1", "ITEST-FG-A", 12m, true),
+                (d1, "ITEST-PLT-1", "ITEST-DL-2", "ITEST-FG-A", 8m, true),
+                (d1, "ITEST-PLT-2", "ITEST-DL-3", "ITEST-FG-A", 5m, true),
+                (d1, "ITEST-PLT-3", "ITEST-DL-4", "ITEST-FG-B", 3m, true),
+                (d1, "ITEST-PLT-4", "ITEST-DL-5", "ITEST-FG-C", 9m, false),   // 실리지 않은(출하 안 된) 단위는 빠진다
+                (d2, "ITEST-PLT-5", "ITEST-DL-6", "ITEST-FG-A", 1m, true),
+            })
+                Exec(f!, """
+                    INSERT dbo.FG_DeliveryLoad (DeliveryID, RootLotNo, LotNo, PartNo, Qty, LoadedBy, LoadedAt, ShipmentID)
+                    VALUES (@D, @R, @L, @P, @Q, 'ITEST', SYSDATETIME(), CASE WHEN @S = 1 THEN -1 END);
+                    """, ("@D", d), ("@R", root), ("@L", lot), ("@P", part), ("@Q", qty), ("@S", shipped ? 1 : 0));
+
+            var col = new SapOutCollector(f!, new SapIfLogRepository(f!));
+            int T07(string no) => Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T07' AND MesKey = @N", ("@N", no)));
+
+            col.Collect();
+            Assert.Equal(0, T07("ITEST-DCR-1"));                       // 시작일 설정이 없으면 출하는 수집하지 않는다
+
+            Exec(f!, "INSERT dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, IsActive, CreatedBy, CreatedTS) VALUES ('SAP_IF_DELIVERY_FROM', 'TEXT', 'SAP_IF', CONVERT(char(10), SYSDATETIME(), 23), 1, 'ITEST', SYSDATETIME())");
+            Exec(f!, "INSERT dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, IsActive, CreatedBy, CreatedTS) VALUES ('SAP_IF_CARDCODE_ITEST-CUS', 'TEXT', 'SAP_IF', 'C-ITEST', 1, 'ITEST', SYSDATETIME())");
+
+            var r1 = col.Collect();
+            Assert.True(r1.Deliveries >= 1);
+            Assert.Equal(1, T07("ITEST-DCR-1"));
+            Assert.Equal(0, T07("ITEST-DCR-2"));                       // B1 거래처를 모르는 고객은 보류
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.SAP_IfLog WHERE IfID = 'IF-T07' AND KeyValue = 'ITEST-DCR-2' AND Result = 'SKIP'")));
+
+            var json = Scalar(f!, "SELECT PayloadJson FROM dbo.SAP_IfOutbox WHERE IfID = 'IF-T07' AND MesKey = 'ITEST-DCR-1'") as string;
+            var p = SapOutPayload.Parse(SapOutSpecs.Find("IF-T07")!, json!);
+            Assert.Equal("ITEST-DCR-1", p.Hdr["MES_SHIP_NO"]);
+            Assert.Equal("C-ITEST", p.Hdr["CustomerID"]);
+            Assert.Equal("TRL-01", p.Hdr["Carrier"]);
+            Assert.Equal(2, p.Lines.Count);
+            Assert.Equal("ITEST-FG-A", p.Lines[0]["ItemNo"]);
+            Assert.Equal(25m, Convert.ToDecimal(p.Lines[0]["Qty"]));     // 12 + 8 + 5
+            Assert.Equal(2m, Convert.ToDecimal(p.Lines[0]["PalletCount"]));
+            Assert.Equal(SapOutHooks.DefaultWhsCode, p.Lines[0]["WhsCode"]);
+            Assert.Equal(3m, Convert.ToDecimal(p.Lines[1]["Qty"]));
+
+            col.Collect();
+            Assert.Equal(1, T07("ITEST-DCR-1"));                       // 다시 훑어도 중복되지 않는다
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.SAP_IfLog WHERE IfID = 'IF-T07' AND KeyValue = 'ITEST-DCR-2' AND Result = 'SKIP'")));   // 보류 안내도 한 번만
+        }
+        finally { Clean(); }
+    }
 }

@@ -180,7 +180,7 @@
 
 ## 5. 공통 — 다음 개발 항목
 - **[공통][중] 스키마 추출 도구 전이 패키지 취약점**(10-26 사용자 지시 — 안영훈 개별 항목에서 이동): `tools/schema_from_db`의 SMO 의존성이 `System.Security.Cryptography.Pkcs 9.0.4`를 가져옵니다. 10-26 NuGet 감사에서 High·Moderate 경고를 재확인했습니다. 공통 도구의 의존성 업데이트와 스키마 추출 호환 검증이 필요하며, 이번에는 패키지/DB를 변경하거나 추출 도구를 실행하지 않았습니다.
-- **[공통·다음 개발] SAP 송신 — 남은 연결: 입고·이동·출하·조정(IF-T05·T06·T07·T09)**(11-20 사용자 지시, 11-23 생산 쪽 완료 — WH·FG 는 안영훈 영역과 협의):
+- **[공통·다음 개발] SAP 송신 — 남은 연결: 입고·이동·조정(IF-T05·T06·T09)**(11-20 사용자 지시, 11-23 생산 쪽 완료, 11-25 출하 T07 완료 — WH 는 안영훈 영역과 협의):
   - **11-23 연결 완료(생산 4종)**: ① WO 발행 → IF-T01 `C` — `WorkOrderRepository.ReleaseCore` 끝의 `SapOutHooks.WoReleased`(세이브포인트, 실패해도 발행 계속). ② 자재 투입 IF-T02 · 생산실적 IF-T03(양품·불량) · 종료 `L` · 취소 `X` — **확정 트랜잭션에 끼어들지 않고** SAPOUT Worker 가 매 주기 `SapOutCollector` 로 이미 확정된 기록을 읽어 아웃박스에 적재한다(생산 우선 — 아웃박스·SAP 장애가 현장 확정을 막을 수 없게). 대상은 T01 `C` 가 아웃박스에 있는 WO 뿐(연결 이전 WO 는 B1 에 오더가 없어 제외).
     | 이벤트 | 읽는 곳 | 묶는 방식 · 키 |
     |---|---|---|
@@ -189,11 +189,12 @@
     | 불량 T03 | `PR_DefectDetail` 중 마지막 공정 | `SAP_IF_WO_REJECT_WHSCODE` 가 설정돼 있을 때만 · `D{WoID}-{마지막 DefectID}` |
     | 종료 T01 `L` | `PP_WorkOrder.Status` = Completed·Closed | 그 WO 의 투입·실적이 모두 아웃박스에 들어간 뒤(송신은 B1 반영 뒤) |
     | 취소 T01 `X` | Status = Cancelled | 투입·실적이 한 건도 나가지 않았을 때만(나갔으면 B1 에서 직접 처리 — SAP_IfLog SKIP) |
+    | 출하 T07(11-25) | `FG_Delivery` Status=Shipped(PDA 출하 확정·트럭 출발) · 실린 `FG_DeliveryLoad`(ShipmentID 있음) | DCR 1건 = B1 납품 1건, 품번별 수량 합계·팔레트 수 · 키 = DCR 번호. WO 게이트 없음 |
     - 순서·게이트: T01 C → T02 → T03 → L. T01 의 `L`·`X` 는 `C` 가 B1 에서 성공한 뒤에만, `L` 은 투입·실적도 모두 B1 성공 뒤에만 나간다.
-    - 설정(`SYS_Config`): `SAP_IF_WO_WHSCODE`(양품·T01 창고, 기본 `W1MN`) · `SAP_IF_WO_ISSUE_WHSCODE`(투입 출고 창고, 기본 = 위 값) · `SAP_IF_WO_REJECT_WHSCODE`(불량 창고 — 없으면 불량은 보내지 않음).
-  - **알려진 한계(정해야 함)**: ① 음수 실적(불량 역분개 `ReversalResultID`)·`BACKFLUSH_NET`·폐기 차감은 보내지 않는다 — B1 투입·입고는 음수 불허라 후속 「생산 반납」 IF 가 필요(정의서 2.4) ② 사출 코어(SUB) 는 AMES 에선 같은 WO 의 단계지만 B1 엔 코어 오더가 없어 BACKFLUSH 구성품으로 나가면 B1 재고 부족(E) 가능 — SAP 와 코어 처리 방식 합의 ③ 마지막 공정만 완제품 실적으로 본다(중간 공정은 보내지 않음) ④ B1 불량 창고 코드 미확정 ⑤ 실적일은 생산일(`ProdDate`)이라 B1 마감 기간이면 E.
-  - **남은 것(안영훈 WH·FG 영역, 후순위)**: 입고 T05(PO↔GRPO 연결 `B1DocEntry` 사용)·재고이동 T06·출하 T07·재고조정 T09 — 송신 코드(명세·SQL)는 있고 **이벤트 연결만 없다**.
-  - **시험 순서**: PP-002 수주 업로드 → 확정 → WO 발행(→ T01 C 아웃박스) → POP 에서 LOT 확정(→ 투입·실적) → WO 완료(→ L). DryRun 에서 아웃박스 행·메모 확인 → SAP 팀과 시점 합의 후 `SW_SAPOUT.DRYRUN=0`.
+    - 설정(`SYS_Config`): `SAP_IF_WO_WHSCODE`(양품·T01 창고, 기본 `W1MN`) · `SAP_IF_WO_ISSUE_WHSCODE`(투입 출고 창고, 기본 = 위 값) · `SAP_IF_WO_REJECT_WHSCODE`(불량 창고 — 없으면 불량은 보내지 않음) · 출하 `SAP_IF_DELIVERY_FROM`(yyyy-MM-dd, 이 날 이후 출하만 — **없으면 T07 꺼짐**) · `SAP_IF_DELIVERY_WHSCODE`(출하 창고, 기본 = T01 창고) · `SAP_IF_CARDCODE_{AMES 고객ID}`(B1 거래처 코드 — 없으면 SAP 고객(SAPFlag=1)은 고객ID 그대로, 아니면 보류·SAP_IfLog SKIP 1회).
+  - **알려진 한계(정해야 함)**: ① 음수 실적(불량 역분개 `ReversalResultID`)·`BACKFLUSH_NET`·폐기 차감은 보내지 않는다 — B1 투입·입고는 음수 불허라 후속 「생산 반납」 IF 가 필요(정의서 2.4) ② 사출 코어(SUB) 는 AMES 에선 같은 WO 의 단계지만 B1 엔 코어 오더가 없어 BACKFLUSH 구성품으로 나가면 B1 재고 부족(E) 가능 — SAP 와 코어 처리 방식 합의 ③ 마지막 공정만 완제품 실적으로 본다(중간 공정은 보내지 않음) ④ B1 불량 창고 코드 미확정 ⑤ 실적일은 생산일(`ProdDate`)이라 B1 마감 기간이면 E ⑥ **종료(L) 뒤 WO 재오픈**(11-25 SAP 확인 — 실적 끝나면 close 해도 됨): 불량 역분개로 WO 가 다시 열려도 B1 오더는 닫힌 채이고 L 이 이미 있어 그 WO 는 더 수집하지 않는다 — 재오픈 뒤 생긴 투입·실적이 B1 로 안 나간다. B1 오더 재오픈(U) 또는 사람 처리 중 SAP 와 정해야 함 ⑦ 출하 T07: 출하 취소·반품(고객 반품)은 보내지 않음(B1 반품 문서 IF 없음), 고객 품번(`CustItemNo`)·납품처(`ShipToCode`)·고객 PO 는 비워 보냄, B1 판매오더 기준이 아닌 단독 납품.
+  - **남은 것(안영훈 WH 영역, 후순위)**: 입고 T05(PO↔GRPO 연결 `B1DocEntry` 사용)·재고이동 T06·재고조정 T09 — 송신 코드(명세·SQL)는 있고 **이벤트 연결만 없다**.
+  - **시험 순서**: PP-002 수주 업로드 → 확정 → WO 발행(→ T01 C 아웃박스) → POP 에서 LOT 확정(→ 투입·실적) → WO 완료(→ L). 운영은 11-24 부터 `SW_SAPOUT.DRYRUN=0`(실제 송신) — WO-20261123-001~010 의 T01·T02·T03 B1 반영 완료(11-25). 출하는 PDA 출하 확정 → T07(SAP 출고 테스트 11-25~).
   - 다 끝나면 이 항목을 지운다.
 - **[공통·추후] SAP 연동 로그 및 Interface Monitor 확장**(10-26 사용자 최종 지시 — 안영훈 개인 항목에서 이동)
   - **나중에 진행**하며 개인 담당을 다시 임의 지정하지 않습니다. SAP 오류 기록을 WH/FG History에 나눠 넣지 않고 기존 **SYS-006 Interface Monitor(`/sys/interfaces`)**에서 확인하는 방향은 유지합니다. 아래 SAP 마스터 수신 자체의 방식·매핑·권한 정책이 확정되거나 구현됐다는 뜻은 아닙니다.

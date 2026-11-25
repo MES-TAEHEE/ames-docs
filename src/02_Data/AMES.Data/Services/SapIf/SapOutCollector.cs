@@ -5,9 +5,9 @@ using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Services.SapIf;
 
-public sealed record SapCollectResult(int Issues, int Receipts, int Rejects, int Closes, int Cancels, string? Error)
+public sealed record SapCollectResult(int Issues, int Receipts, int Rejects, int Closes, int Cancels, string? Error, int Deliveries = 0)
 {
-    public int Total => Issues + Receipts + Rejects + Closes + Cancels;
+    public int Total => Issues + Receipts + Rejects + Closes + Cancels + Deliveries;
 }
 
 /// <summary>
@@ -17,6 +17,7 @@ public sealed record SapCollectResult(int Issues, int Receipts, int Rejects, int
 /// 대상은 IF-T01 생성(C)이 아웃박스에 있는 WO 뿐이다 — 연결 이전에 발행된 WO 는 B1 에 오더가 없어 보내지 않는다.
 /// 같은 키는 한 번만 들어가므로(아웃박스 UNIQUE) 다시 훑어도 중복되지 않는다. 마지막으로 보낸 지점은 아웃박스 키 끝의 번호(마지막 ID)로 안다.
 /// 키 형식(≤30자): 투입 I{WoID}-{마지막 거래ID} · 실적 R{WoID}-{yyMMdd}{교대}-{마지막 ResultID} · 불량 D{WoID}-{마지막 DefectID}.
+/// 출하(IF-T07, 11-25)는 WO 와 무관하게 출하 확정된 DCR 한 건을 B1 납품 한 건으로(키 = DCR 번호) — SAP_IF_DELIVERY_FROM 을 넣어야 켜진다.
 /// </summary>
 public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository log)
 {
@@ -29,7 +30,7 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
 
     public SapCollectResult Collect(CancellationToken ct = default)
     {
-        int iss = 0, rec = 0, rej = 0, cls = 0, can = 0;
+        int iss = 0, rec = 0, rej = 0, cls = 0, can = 0, dlv = 0;
         var errors = new List<string>();
         var runId = Guid.NewGuid();
         try
@@ -56,12 +57,147 @@ public sealed class SapOutCollector(AmesConnectionFactory f, SapIfLogRepository 
                     log.Write(runId, "IF-T01", "OUT", wo.Number, null, null, "FAIL", "아웃박스 적재 실패: " + SapIfRules.ErrorMessage(ex));
                 }
             }
+
+            dlv = CollectDeliveries(conn, runId, whs, errors, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             errors.Add(SapIfRules.ErrorMessage(ex));
         }
-        return new SapCollectResult(iss, rec, rej, cls, can, errors.Count == 0 ? null : SapIfRules.Truncate(string.Join(" | ", errors), 1000));
+        return new SapCollectResult(iss, rec, rej, cls, can, errors.Count == 0 ? null : SapIfRules.Truncate(string.Join(" | ", errors), 1000), dlv);
+    }
+
+    // ── IF-T07 출하: 출하 확정(트럭 출발)된 DCR 한 건 = B1 납품(ODLN) 한 건 ─────────────────────────────
+    /// <summary>T07 수집 시작일(yyyy-MM-dd). 없으면 출하는 수집하지 않는다 — 연결 이전의 과거 출하가 B1 로 한꺼번에 나가지 않게 명시적으로 켠다.</summary>
+    public const string DeliveryFromKey = "SAP_IF_DELIVERY_FROM";
+    /// <summary>출하 창고 코드(IF-T07 WhsCode). 없으면 IF-T01 창고(SAP_IF_WO_WHSCODE, 기본 W1MN) — 생산 실적이 들어간 창고.</summary>
+    public const string DeliveryWhsKey = "SAP_IF_DELIVERY_WHSCODE";
+    /// <summary>AMES 고객 → B1 거래처 코드. 키 = 이 접두어 + AMES CustomerID. 없으면 SAP 에서 받은 고객(SAPFlag=1)은 CustomerID 그대로.</summary>
+    public const string CardCodeKeyPrefix = "SAP_IF_CARDCODE_";
+
+    private sealed record Dlv(int Id, string No, string CustomerId, DateTime ShippedAt, string? Trailer, string? CardCode);
+
+    private int CollectDeliveries(SqlConnection conn, Guid runId, string woWhs, List<string> errors, CancellationToken ct)
+    {
+        var fromText = ReadConfig(conn, DeliveryFromKey);
+        if (fromText is null) return 0;
+        if (!DateTime.TryParseExact(fromText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var from))
+        {
+            errors.Add($"{DeliveryFromKey} 형식 오류(yyyy-MM-dd): {fromText}");
+            return 0;
+        }
+        var whs = ReadConfig(conn, DeliveryWhsKey) ?? woWhs;
+
+        var list = new List<Dlv>();
+        using (var cmd = new SqlCommand($"""
+            SELECT TOP (200) d.DeliveryID, d.DeliveryNo, d.CustomerID, d.ShippedAt, d.TrailerNo,
+                   COALESCE((SELECT TOP 1 NULLIF(LTRIM(RTRIM(c.ConfigValue)), '') FROM dbo.SYS_Config c
+                             WHERE c.ConfigKey = @Pre + d.CustomerID AND ISNULL(c.IsActive, 1) = 1 ORDER BY c.ConfigID),
+                            (SELECT TOP 1 m.CustomerID FROM dbo.MD_Customer m WHERE m.CustomerID = d.CustomerID AND m.SAPFlag = 1)) AS CardCode
+            FROM   dbo.FG_Delivery d
+            WHERE  d.Status = 'Shipped' AND d.ShippedAt >= @From
+              AND  d.ShippedAt < DATEADD(MINUTE, -{SettleMinutes}, SYSDATETIME())
+              AND  NOT EXISTS (SELECT 1 FROM dbo.SAP_IfOutbox o WHERE o.IfID = 'IF-T07' AND o.MesKey = d.DeliveryNo)
+            ORDER  BY d.ShippedAt, d.DeliveryID;
+            """, conn) { CommandTimeout = 30 })
+        {
+            cmd.Parameters.Add("@From", SqlDbType.DateTime2).Value = from;
+            cmd.Parameters.Add("@Pre", SqlDbType.VarChar, 60).Value = CardCodeKeyPrefix;
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                list.Add(new Dlv((int)r["DeliveryID"], (string)r["DeliveryNo"], (string)r["CustomerID"], (DateTime)r["ShippedAt"],
+                                 r["TrailerNo"] as string, r["CardCode"] as string));
+        }
+
+        int n = 0;
+        foreach (var d in list)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                if (d.CardCode is null)
+                {
+                    // B1 거래처를 모르면 보내지 않는다(B1 이 거부) — 설정을 넣으면 다음 주기에 나간다. 같은 안내는 한 번만 남긴다.
+                    if (!LogExists(conn, "IF-T07", d.No, "SKIP"))
+                        log.Write(runId, "IF-T07", "OUT", d.No, null, "C", "SKIP",
+                            $"출하 보류 — 고객 {d.CustomerId} 의 B1 거래처 코드가 없다(SYS_Config {CardCodeKeyPrefix}{d.CustomerId} 또는 SAP 고객)");
+                    continue;
+                }
+                n += EnqueueDelivery(conn, runId, d, whs);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                errors.Add($"{d.No}: {SapIfRules.ErrorMessage(ex)}");
+                log.Write(runId, "IF-T07", "OUT", d.No, null, "C", "FAIL", "아웃박스 적재 실패: " + SapIfRules.ErrorMessage(ex));
+            }
+        }
+        return n;
+    }
+
+    private int EnqueueDelivery(SqlConnection conn, Guid runId, Dlv d, string whs)
+    {
+        // 실제로 실린(출하 처리된) 단위만 — 품번별 수량 합계와 팔레트(출하 단위) 수
+        var lines = new List<IDictionary<string, object?>>();
+        using (var cmd = new SqlCommand("""
+            SELECT l.PartNo, SUM(l.Qty) AS Qty, COUNT(DISTINCT l.RootLotNo) AS Units
+            FROM   dbo.FG_DeliveryLoad l
+            WHERE  l.DeliveryID = @Id AND l.ShipmentID IS NOT NULL AND l.Qty > 0
+            GROUP  BY l.PartNo
+            ORDER  BY l.PartNo;
+            """, conn) { CommandTimeout = 30 })
+        {
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = d.Id;
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                lines.Add(new Dictionary<string, object?>
+                {
+                    ["ItemNo"] = (string)r["PartNo"], ["Qty"] = Convert.ToDecimal(r["Qty"]), ["WhsCode"] = whs,
+                    ["PalletCount"] = Convert.ToInt32(r["Units"]),
+                });
+        }
+        if (lines.Count == 0) return 0;
+
+        // 비고: 출하 오더·수주 번호(B1 납품 문서에서 MES 출하를 찾아가게)
+        var refs = new List<string>();
+        using (var cmd = new SqlCommand("""
+            SELECT DISTINCT o.OrderNo, so.SoNumber
+            FROM   dbo.FG_ShippingOrder o
+            LEFT JOIN dbo.FG_ShippingOrderLine ol ON ol.OrderID = o.OrderID
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = ol.SoID
+            WHERE  o.DeliveryID = @Id;
+            """, conn) { CommandTimeout = 30 })
+        {
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = d.Id;
+            using var r = cmd.ExecuteReader();
+            var ords = new SortedSet<string>(StringComparer.Ordinal); var sos = new SortedSet<string>(StringComparer.Ordinal);
+            while (r.Read())
+            {
+                if (r["OrderNo"] is string o) ords.Add(o);
+                if (r["SoNumber"] is string s && s.Length > 0) sos.Add(s);
+            }
+            if (ords.Count > 0) refs.Add("ORD " + string.Join(",", ords));
+            if (sos.Count > 0) refs.Add("SO " + string.Join(",", sos));
+        }
+
+        var hdr = new Dictionary<string, object?>
+        {
+            ["MES_SHIP_NO"] = d.No, ["CustomerID"] = d.CardCode, ["PostDate"] = d.ShippedAt.Date,
+            ["Remarks"] = SapIfRules.Truncate($"MES {d.No}" + (refs.Count > 0 ? " · " + string.Join(" · ", refs) : ""), 254),
+        };
+        if (!string.IsNullOrWhiteSpace(d.Trailer)) hdr["Carrier"] = SapIfRules.Truncate(d.Trailer.Trim(), 50);
+        Enqueue(conn, runId, "IF-T07", d.No, "C", SapOutPayload.ToJson(hdr, lines),
+            $"{d.No} 출하 {d.CardCode} {lines.Count}종 {lines.Sum(l => (decimal)l["Qty"]!):0.###}");
+        return 1;
+    }
+
+    private static bool LogExists(SqlConnection conn, string ifId, string key, string result)
+    {
+        using var cmd = new SqlCommand("SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.SAP_IfLog WHERE IfID = @If AND KeyValue = @Key AND Result = @Res) THEN 1 ELSE 0 END;", conn);
+        ColumnParams.Add(cmd, "@If", "SAP_IfLog.IfID", ifId);
+        ColumnParams.Add(cmd, "@Key", "SAP_IfLog.KeyValue", key);
+        ColumnParams.Add(cmd, "@Res", "SAP_IfLog.Result", result);
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 
     // ── 대상 WO: 생성(C)이 아웃박스에 있고 아직 종료(L)·취소(X)가 나가지 않은 것 ─────────────────

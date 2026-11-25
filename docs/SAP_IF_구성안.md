@@ -512,6 +512,7 @@ SAP 는 IF 테이블만 보므로 알림도 **EOS_IF 안에서** 한다.
 | 현장 이벤트 → 아웃박스: **WO 발행(T01 C)** | **구현(11-23)** — `WorkOrderRepository.ReleaseCore` 끝의 `SapOutHooks.WoReleased`(세이브포인트로 감싸 실패해도 발행은 계속). 창고 `SYS_Config.SAP_IF_WO_WHSCODE`(기본 `W1MN`) |
 | **자재 투입(T02)·생산실적(T03 양품·불량)·종료(L)·취소(X)** | **구현(11-23)** — 확정 트랜잭션에 끼어들지 않고 SAPOUT Worker 가 매 주기 `SapOutCollector` 로 이미 확정된 기록(BACKFLUSH 거래·마지막 공정 실적/불량·WO 상태)을 읽어 아웃박스에 적재(WO × 생산일 × 교대로 묶음). 설정 `SAP_IF_WO_ISSUE_WHSCODE`·`SAP_IF_WO_REJECT_WHSCODE`(불량은 설정돼 있을 때만). 한계는 `Claude_확인사항.md` 5절 |
 | ↳ **스캔 코어 투입(T02, 11-24)** | IMG 가 사출 코어를 스캔하면 `IMG_CORE` 거래로 코어 재고를 빼고 BOM 자동 차감은 그 코어를 건너뛴다(이중 차감 방지) — 그래서 T02 에 코어가 안 실렸다. 수집기가 `IMG_CORE` 를 **별도 T02 행(키 `C{WoID}-{거래ID}`, 기준점 따로)** 으로 수집한다. **그 WO 완제품 BOM 의 직접 구성품인 코어만**(F2321 → D0103-NV010) — M0211·M0221 은 직접 자식이 서브조립(M2311·M2321)이라 코어를 보내면 서브조립 투입과 이중이라 제외. 기준점이 따로라 이미 쌓인 데이터도 처음 수집 때 나간다(종료(L) 행이 이미 있는 WO 는 수집 대상이 아니라 미전송 L 을 지우고 한 번 더 돌린다). 테스트 `SapOutTests`. |
-| 입고(T05)·이동(T06)·출하(T07)·조정(T09) | **이벤트 연결 미구현** — 송신 코드는 있음. WH·FG(안영훈 영역) 후순위 |
+| 출하(T07, 11-25) | 출하 확정된 DCR(`FG_Delivery` Shipped) → SAPOUT Worker 수집기가 DCR 1건 = 납품 1건(키 DCR 번호, 품번별 수량·팔레트 수)으로 적재. `SAP_IF_DELIVERY_FROM` 이 있어야 켜지고, B1 거래처는 `SAP_IF_CARDCODE_{고객ID}` 또는 SAP 고객(SAPFlag=1) 고객ID |
+| 입고(T05)·이동(T06)·조정(T09) | **이벤트 연결 미구현** — 송신 코드는 있음. WH(안영훈 영역) 후순위 |
 | 시험 | PP-002 에 시험 수주(`docs/SAP_IF_PO업로드테스트/PO_정상_10건_라우팅있음_소량.xlsx`) 업로드·확정 → WO 발행(T01 C 적재) → POP 확정(투입·실적 적재) → DryRun 으로 아웃박스 확인 → SAP 팀과 합의 후 `SW_SAPOUT.DRYRUN=0` (아웃박스 직접 적재 로더는 11-23 삭제) |
 
