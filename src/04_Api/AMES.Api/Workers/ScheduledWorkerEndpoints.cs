@@ -15,7 +15,7 @@ public static class ScheduledWorkerEndpoints
 
     public static async Task<IResult> RunAsync<TTarget, TResult>(
         HttpContext ctx, ScheduledWorker<TTarget, TResult> worker, string? key, CancellationToken requestCancellation,
-        Func<string?>? serviceKey = null)
+        Func<string?>? serviceKey = null, Func<TTarget, TTarget>? adjust = null)
     {
         var session = ctx.GetSession();
         if (session is null && !HasServiceKey(ctx, serviceKey)) return Results.Unauthorized();
@@ -24,7 +24,7 @@ public static class ScheduledWorkerEndpoints
         {
             // Once accepted, a browser/PDA disconnect must not cancel an import already in progress.
             var lifetime = ctx.RequestServices is { } services ? services.GetService<IHostApplicationLifetime>() : null;
-            var results=await worker.RunNowAsync(key, lifetime?.ApplicationStopping ?? CancellationToken.None);
+            var results=await worker.RunNowAsync(key, lifetime?.ApplicationStopping ?? CancellationToken.None, adjust);
             try
             {
                 var factory=ctx.RequestServices?.GetService<AMES.Data.Connection.AmesConnectionFactory>();

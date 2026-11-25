@@ -19,6 +19,13 @@ public sealed record PoSyncSource(
     string  Type = PoSyncConfig.TypeSrm,   // SRM = SRM INQUERY(GET) · EOS = Savannah EOS 조회 API(POST, 납기일 창)
     string? Sql  = null)                   // EOS 전용 — 조회 이름(SIS.EOS_GET_PO)
 {
+    /// <summary>자동 실행 때 납기일 창 끝(WindowTo) 뒤로 더 이어 받을 수 있는 최대 일수(오늘 기준) — EOS 만, 원격이 연속으로 비면 그 전에 멈춘다.</summary>
+    public int MaxAheadDays { get; init; } = PoSyncConfig.DefaultMaxAheadDays;
+
+    /// <summary>PP-002 에서 사용자가 정한 기간 — 둘 다 있으면 설정 창·자동 확장 대신 이 기간만 받는다.</summary>
+    public DateOnly? FixedFrom { get; init; }
+    public DateOnly? FixedTo   { get; init; }
+
     public bool IsEos => string.Equals(Type, PoSyncConfig.TypeEos, StringComparison.OrdinalIgnoreCase);
 
     public string InterfaceCode => PoSyncConfig.InterfaceCodeFor(Key);

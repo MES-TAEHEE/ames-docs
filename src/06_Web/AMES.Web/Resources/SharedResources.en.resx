@@ -14431,4 +14431,25 @@ Late = not shipped and past the requested date
   <data name="FG.FactoryMap.Unassigned" xml:space="preserve"><value>Unassigned</value></data>
   <data name="FG.FactoryMap.Separate" xml:space="preserve"><value>Clear letter</value></data>
   <data name="FG.FactoryMap.DuplicateCode" xml:space="preserve"><value>Region {0} is already in use. Choose another letter.</value></data>
+  <data name="PP.SupplyPlanImport.Api.Period" xml:space="preserve">
+    <value>Period (EOS delivery date · SRM order date)</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Period.Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Period.Hint" xml:space="preserve">
+    <value>Leave empty for automatic — fetches the configured window and continues while the remote has data (up to today + {0} days). Requests are split into 7-day chunks, so the 31-day limit does not apply.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.PeriodBoth" xml:space="preserve">
+    <value>Enter both start and end dates, or leave both empty.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.PeriodRange" xml:space="preserve">
+    <value>Invalid period — start ≤ end, up to {0} days.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.RangeTooLong" xml:space="preserve">
+    <value>The remote API accepts at most 31 days per request.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.TooManyRows" xml:space="preserve">
+    <value>The remote result exceeded 1,000 rows even for a single day — please check with the customer.</value>
+  </data>
 </root>

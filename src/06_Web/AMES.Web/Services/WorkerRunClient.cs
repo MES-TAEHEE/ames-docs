@@ -20,7 +20,7 @@ public static class WorkerRunClient
 {
     public static async Task<WorkerRunOutcome<TResult>> RunAsync<TResult>(
         IHttpClientFactory http, IConfiguration cfg, AmesConnectionFactory factory,
-        string path, string sourceKey, TimeSpan timeout, CancellationToken ct)
+        string path, string sourceKey, TimeSpan timeout, CancellationToken ct, string? extraQuery = null)
     {
         var apiBase = cfg["Services:ApiBaseUrl"];
         if (string.IsNullOrWhiteSpace(apiBase)) return new(WorkerRunFailure.NoApiUrl);
@@ -33,7 +33,7 @@ public static class WorkerRunClient
         using var client = http.CreateClient();
         client.Timeout = timeout;
         using var req = new HttpRequestMessage(HttpMethod.Post,
-            $"{apiBase.TrimEnd('/')}{path}?source={Uri.EscapeDataString(sourceKey)}");
+            $"{apiBase.TrimEnd('/')}{path}?source={Uri.EscapeDataString(sourceKey)}{(string.IsNullOrEmpty(extraQuery) ? "" : "&" + extraQuery)}");
         req.Headers.Add(PoSyncConfig.ServiceKeyHeader, key);
 
         try
@@ -44,6 +44,7 @@ public static class WorkerRunClient
                 case HttpStatusCode.Unauthorized: return new(WorkerRunFailure.Unauthorized);
                 case HttpStatusCode.NotFound:     return new(WorkerRunFailure.NotFound, Detail: await ErrorOf(res, ct));
                 case HttpStatusCode.Conflict:     return new(WorkerRunFailure.Busy,     Detail: await ErrorOf(res, ct));
+                case HttpStatusCode.BadRequest:   return new(WorkerRunFailure.Unexpected, Detail: await ErrorOf(res, ct) ?? "HTTP 400");
             }
             if (!res.IsSuccessStatusCode)
                 return new(WorkerRunFailure.Unexpected, Detail: $"HTTP {(int)res.StatusCode}");

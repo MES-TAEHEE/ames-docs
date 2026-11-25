@@ -156,4 +156,77 @@ public class HttpPoSourceTests
         Assert.Equal("4100181100-20", Assert.Single(rows).PONO);
         Assert.Equal(HttpMethod.Post, handler.Last!.Method);
     }
+
+    // 요청 본문의 납기일 창을 보고 응답을 고르는 원격 흉내 — 호출한 창을 차례로 남긴다
+    sealed class EosRemote(Func<DateOnly, DateOnly, (HttpStatusCode, string)> reply) : HttpMessageHandler
+    {
+        public readonly List<(DateOnly From, DateOnly To)> Calls = new();
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            var p = doc.RootElement.GetProperty("Parameters");
+            var f = DateOnly.Parse(p.GetProperty("IN_DATE_FROM").GetProperty("Value").GetString()!);
+            var t = DateOnly.Parse(p.GetProperty("IN_DATE_TO").GetProperty("Value").GetString()!);
+            Calls.Add((f, t));
+            var (status, body) = reply(f, t);
+            return new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        }
+    }
+
+    static string OneRow(DateOnly d, string vendor = "310471")
+        => $$"""{"value":[{"PO_NO":"41{{d:MMdd}}","PO_SEQ":10,"VENDOR_CODE":"{{vendor}}","PART_NO":"P","PO_QTY":1,"DELIVERY_DATE":"{{d:yyyy-MM-dd}}","PO_DATE":"2026-11-01"}]}""";
+
+    [Fact]
+    public async Task Eos_extending_fetch_runs_past_the_window_until_two_empty_chunks()
+    {
+        // 원격 데이터(다른 협력사 포함)는 12-31 까지 — 창 끝(11-15) 뒤로도 이어 받다가 빈 구간 2개에서 멈춘다
+        var last = new DateOnly(2026, 12, 31);
+        var remote = new EosRemote((f, t) => (HttpStatusCode.OK, f <= last ? OneRow(f, "999999") : """{"value":[]}"""));
+        var source = new HttpPoSource(new StubFactory(remote), new ConfigurationBuilder().Build());
+
+        var (rows, to) = await source.FetchExtendingAsync(Eos(), new(2026, 11, 2), new(2026, 11, 15), new(2027, 6, 1), CancellationToken.None);
+
+        Assert.Empty(rows);                                   // 다른 협력사 행만 있었다
+        Assert.True(to > last);                                // 데이터 끝을 지나
+        Assert.True(to < new DateOnly(2027, 1, 31));           // 상한(06-01)까지 가지 않고 멈췄다
+        Assert.Equal(2, remote.Calls.Count(c => c.From > last));
+    }
+
+    [Fact]
+    public async Task Eos_extending_fetch_reads_the_whole_window_even_if_it_is_empty()
+    {
+        var remote = new EosRemote((f, t) => (HttpStatusCode.OK, """{"value":[]}"""));
+        var source = new HttpPoSource(new StubFactory(remote), new ConfigurationBuilder().Build());
+
+        var (_, to) = await source.FetchExtendingAsync(Eos(), new(2026, 11, 2), new(2026, 11, 29), new(2027, 6, 1), CancellationToken.None);
+
+        Assert.Equal(new DateOnly(2026, 11, 29), to);          // 창 [11-02, 11-29] 4구간은 비어도 끝까지, 그 뒤로는 안 간다
+        Assert.Equal(4, remote.Calls.Count);
+    }
+
+    [Fact]
+    public async Task Eos_chunk_over_1000_rows_is_split_in_half_and_retried()
+    {
+        const string tooMany = """{"Error":"InvalidOperationException","Message":"RefCursor 쿼리 실행 중 오류: ORA-20002: More than 1000 rows. Use a shorter date range."}""";
+        var remote = new EosRemote((f, t) => t.DayNumber - f.DayNumber + 1 > 2 ? (HttpStatusCode.InternalServerError, tooMany) : (HttpStatusCode.OK, OneRow(f)));
+        var source = new HttpPoSource(new StubFactory(remote), new ConfigurationBuilder().Build());
+
+        var rows = await source.FetchAsync(Eos(), new(2026, 11, 2), new(2026, 11, 8), CancellationToken.None);
+
+        // 7일 → 3일+4일 → 2일 이하로 쪼개 받은 구간마다 1행
+        var ok = remote.Calls.Where(c => c.To.DayNumber - c.From.DayNumber + 1 <= 2).ToList();
+        Assert.Equal(ok.Count, rows.Count);
+        Assert.Equal(7, ok.Sum(c => c.To.DayNumber - c.From.DayNumber + 1));   // 모든 날이 한 번씩
+    }
+
+    [Fact]
+    public async Task Eos_single_day_over_1000_rows_surfaces_the_remote_error()
+    {
+        const string tooMany = """{"Message":"ORA-20002: More than 1000 rows. Use a shorter date range."}""";
+        var source = new HttpPoSource(new StubFactory(new EosRemote((_, _) => (HttpStatusCode.InternalServerError, tooMany))), new ConfigurationBuilder().Build());
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => source.FetchAsync(Eos(), new(2026, 11, 2), new(2026, 11, 3), CancellationToken.None));
+        Assert.Equal(EosPoMapper.RemoteError.TooManyRows, EosPoMapper.ClassifyError(ex.Message));
+    }
 }

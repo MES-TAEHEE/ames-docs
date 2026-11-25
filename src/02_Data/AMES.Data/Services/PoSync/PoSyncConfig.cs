@@ -14,6 +14,10 @@ public static class PoSyncConfig
     public const int DefaultIntervalMin = 30;
     public const int DefaultWindowFrom  = -60;
     public const int DefaultWindowTo    = 0;
+    /// <summary>EOS 자동 확장 상한(오늘 + 일수) — 전역 SW_POSYNC.MAX_AHEAD 또는 소스 설명란 MAX_AHEAD= 로 바꾼다.</summary>
+    public const int DefaultMaxAheadDays = 180;
+    /// <summary>PP-002 에서 한 번에 정할 수 있는 최대 기간(일, 양 끝 포함) — 7일씩 나눠 부르므로 원격 31일 제한과는 무관한 안전 상한.</summary>
+    public const int MaxManualRangeDays  = 366;
     /// <summary>모니터 행 접두어. Worker 의 Code 와 소스 행 InterfaceCode 가 모두 이 값을 쓴다 — 어긋나면 모니터 행이 갈라진다.</summary>
     public const string MonitorCode     = "POSYNC";
     public const int MaxKeyLen          = 13;
@@ -81,6 +85,7 @@ public static class PoSyncConfig
             _       => ["TYPE(SRM|EOS)"],
         });
         if (!TryParseWindow(w.Globals.GetValueOrDefault("WINDOW"), out int gFrom, out int gTo)) (gFrom, gTo) = (DefaultWindowFrom, DefaultWindowTo);
+        int gAhead = ParseAhead(w.Globals.GetValueOrDefault("MAX_AHEAD")) ?? DefaultMaxAheadDays;
         var sources = w.Sources.Select(s =>
         {
             if (!TryParseWindow(s.Params.GetValueOrDefault("WINDOW"), out int from, out int to)) (from, to) = (gFrom, gTo);
@@ -89,7 +94,8 @@ public static class PoSyncConfig
             return new PoSyncSource(s.Key, s.Name, s.CustomerId, s.Url, s.AuthScheme, s.AuthValue,
                 s.Params.GetValueOrDefault("CORCD") ?? "", s.Params.GetValueOrDefault("BIZCD") ?? "", s.Params["VENDCD"],
                 s.Params.GetValueOrDefault("PURC_ORG") ?? "", w.GlobalIntervalMin, from, to, w.TimeoutSec,
-                type, type == TypeEos ? sql : null);
+                type, type == TypeEos ? sql : null)
+            { MaxAheadDays = ParseAhead(s.Params.GetValueOrDefault("MAX_AHEAD")) ?? gAhead };
         }).ToList();
         var errors = w.Errors.Select(e => new PoSyncConfigError(e.Key, e.Name, e.Message)).ToList();
         return new PoSyncConfigResult(sources, errors, w.GlobalIntervalMin, w.TickSec, w.StartupDelaySec, w.TimeoutSec);
@@ -136,6 +142,9 @@ public static class PoSyncConfig
 
     /// <summary>"키=값;키=값". 빈 조각·'=' 없는 조각은 무시. 키 대소문자 무시.</summary>
     public static Dictionary<string, string> ParseParams(string? s) => WorkerSourceConfig.ParseParams(s);
+
+    /// <summary>0 이상 정수만 받는다(0 = 확장 안 함). 그 밖은 null(기본값).</summary>
+    static int? ParseAhead(string? s) => int.TryParse(s?.Trim(), out var n) && n >= 0 ? n : null;
 
     /// <summary>"-N,M" → (from, to). from &lt;= to 여야 한다.</summary>
     public static bool TryParseWindow(string? s, out int from, out int to)

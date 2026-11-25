@@ -85,6 +85,31 @@ public class EosPoMapperTests
         Assert.Single(EosPoMapper.Chunks(new(2026, 11, 9), new(2026, 11, 9), 7));
     }
 
+    [Theory]
+    [InlineData("HTTP 500 : {\"Message\":\"ORA-20001: Invalid date range. Maximum 31 days.\"}", EosPoMapper.RemoteError.RangeTooLong)]
+    [InlineData("HTTP 500 : {\"Message\":\"ORA-20002: More than 1000 rows. Use a shorter date range.\"}", EosPoMapper.RemoteError.TooManyRows)]
+    [InlineData("HTTP 502 Bad Gateway", EosPoMapper.RemoteError.None)]
+    [InlineData(null, EosPoMapper.RemoteError.None)]
+    public void Remote_limit_errors_are_recognised(string? message, EosPoMapper.RemoteError expected)
+        => Assert.Equal(expected, EosPoMapper.ClassifyError(message));
+
+    [Fact]
+    public void Max_ahead_comes_from_the_source_then_global_then_default()
+    {
+        var r = PoSyncConfig.Resolve([
+            Row(PoSyncConfig.GroupGlobal, "MAX_AHEAD", attr1: "120"),
+            Row(PoSyncConfig.GroupSource, "SAV", "CUS-SAV", "TYPE=EOS;VENDCD=310471;MAX_AHEAD=90"),
+            Row(PoSyncConfig.GroupUrl,    "SAV", desc: "https://x/eos"),
+            Row(PoSyncConfig.GroupSource, "GEO", "CUS-GEO", "TYPE=EOS;VENDCD=309224"),
+            Row(PoSyncConfig.GroupUrl,    "GEO", desc: "http://y/api"),
+        ]);
+        Assert.Equal(90,  r.Sources.Single(s => s.Key == "SAV").MaxAheadDays);
+        Assert.Equal(120, r.Sources.Single(s => s.Key == "GEO").MaxAheadDays);
+        Assert.Equal(PoSyncConfig.DefaultMaxAheadDays,
+            PoSyncConfig.Resolve([Row(PoSyncConfig.GroupSource, "GEO", "CUS-GEO", "TYPE=EOS;VENDCD=309224"),
+                                  Row(PoSyncConfig.GroupUrl, "GEO", desc: "http://y/api")]).Sources.Single().MaxAheadDays);
+    }
+
     static PoSyncConfig.CodeRow Row(string group, string value, string? attr1 = null, string? desc = null)
         => new(group, value, null, attr1, desc, true);
 

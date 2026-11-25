@@ -14431,4 +14431,25 @@ Tardío = no enviado y con fecha vencida
   <data name="FG.FactoryMap.Unassigned" xml:space="preserve"><value>Sin asignar</value></data>
   <data name="FG.FactoryMap.Separate" xml:space="preserve"><value>Quitar letra</value></data>
   <data name="FG.FactoryMap.DuplicateCode" xml:space="preserve"><value>La zona {0} ya existe. Elija otra letra.</value></data>
+  <data name="PP.SupplyPlanImport.Api.Period" xml:space="preserve">
+    <value>Período (EOS fecha de entrega · SRM fecha de pedido)</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Period.Auto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Period.Hint" xml:space="preserve">
+    <value>Déjelo vacío para modo automático: obtiene el período configurado y continúa mientras el remoto tenga datos (hasta hoy + {0} días). Se consulta en bloques de 7 días, por lo que no aplica el límite de 31 días.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.PeriodBoth" xml:space="preserve">
+    <value>Ingrese fecha de inicio y fin, o deje ambas vacías.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.PeriodRange" xml:space="preserve">
+    <value>Período inválido: inicio ≤ fin, hasta {0} días.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.RangeTooLong" xml:space="preserve">
+    <value>La API remota acepta como máximo 31 días por consulta.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.TooManyRows" xml:space="preserve">
+    <value>El resultado remoto superó 1,000 filas incluso para un solo día; consulte con el cliente.</value>
+  </data>
 </root>

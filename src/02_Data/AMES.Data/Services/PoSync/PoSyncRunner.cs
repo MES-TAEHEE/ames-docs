@@ -22,11 +22,18 @@ public sealed class PoSyncRunner(AmesConnectionFactory f, IPoSource source)
     public async Task<PoSyncRunResult> RunAsync(PoSyncSource s, CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DbClock.ReadNow(f));
-        var from  = today.AddDays(s.WindowFrom);
-        var to    = today.AddDays(s.WindowTo);
+        // PP-002 에서 기간을 정했으면 그 기간만, 아니면 설정 창 — EOS 는 창 끝 뒤로 원격에 데이터가 있는 데까지(최대 MaxAheadDays) 이어 받는다
+        var fixedRange = s.FixedFrom is not null && s.FixedTo is not null;
+        var from  = fixedRange ? s.FixedFrom!.Value : today.AddDays(s.WindowFrom);
+        var to    = fixedRange ? s.FixedTo!.Value   : today.AddDays(s.WindowTo);
         try
         {
-            var rows   = await source.FetchAsync(s, from, to, ct);
+            IReadOnlyList<SrmPoRow> rows;
+            var maxTo = today.AddDays(s.MaxAheadDays);
+            if (!fixedRange && s.IsEos && maxTo > to)
+                (rows, to) = await source.FetchExtendingAsync(s, from, to, maxTo, ct);
+            else
+                rows = await source.FetchAsync(s, from, to, ct);
             var mapped = SrmPoMapper.Map(rows);
             var (ins, upd) = mapped.Rows.Count == 0
                 ? (0, 0)

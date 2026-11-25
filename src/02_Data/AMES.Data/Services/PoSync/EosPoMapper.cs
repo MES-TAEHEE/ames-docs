@@ -16,7 +16,7 @@ public sealed record EosPoRow(
 /// <summary>
 /// EOS 조회 API 요청 본문·응답 해석(소스 TYPE=EOS). 응답은 Savannah <c>{"value":[…],"count":n}</c>, Georgia <c>{"OUT_CURSOR":[…]}</c> 이고 모든 협력사의 발주가 섞여 오므로
 /// 우리 협력사 코드(VENDCD)의 행만 남겨 SRM 행 모양(<see cref="SrmPoRow"/>)으로 바꾼다 — 그 뒤 매핑·업서트는 SRM 과 같다.
-/// 날짜 창은 납기일(DELIVERY_DATE) 기준이다(SRM 은 발주일). 원격은 한 번에 31일까지만 받아 <see cref="ChunkDays"/> 일씩 나눠 부른다. 납품수량이 없어 DELI_QTY 는 null(기존 납품수량 유지).
+/// 날짜 창은 납기일(DELIVERY_DATE) 기준이다(SRM 은 발주일). 원격은 한 번에 31일·1,000행까지만 받아 <see cref="ChunkDays"/> 일씩 나눠 부르고, 1,000행을 넘은 구간은 반으로 나눠 다시 부른다. 납품수량이 없어 DELI_QTY 는 null(기존 납품수량 유지).
 /// </summary>
 public static class EosPoMapper
 {
@@ -28,6 +28,18 @@ public static class EosPoMapper
 
     /// <summary>한 번에 부르는 납기일 일수 — 원격 상한 31일, 큰 결과는 원격 DB 오류(502)라 넉넉히 작게 둔다.</summary>
     public const int ChunkDays = 7;
+
+    /// <summary>자동 확장 때 원격 결과(모든 협력사)가 이만큼 연속으로 비면 더 앞으로 가지 않는다 — 공휴일 주 하나로 멈추지 않게 2.</summary>
+    public const int EmptyChunksToStop = 2;
+
+    public enum RemoteError { None, RangeTooLong, TooManyRows }
+
+    /// <summary>원격 오류 문구 판정 — ORA-20001 = 31일 초과, ORA-20002 = 1,000행 초과(SIS.EOS_GET_PO, 11-25 실측).</summary>
+    public static RemoteError ClassifyError(string? message)
+        => message is null ? RemoteError.None
+         : message.Contains("ORA-20002", StringComparison.Ordinal) ? RemoteError.TooManyRows
+         : message.Contains("ORA-20001", StringComparison.Ordinal) ? RemoteError.RangeTooLong
+         : RemoteError.None;
 
     /// <summary>[from, to] 를 양 끝 포함 n 일씩 자른다(from &gt; to 면 비어 있음).</summary>
     public static IEnumerable<(DateOnly From, DateOnly To)> Chunks(DateOnly from, DateOnly to, int days)

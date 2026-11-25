@@ -139,8 +139,9 @@ public abstract class ScheduledWorker<TTarget, TResult> : BackgroundService
     /// 전체 실행은 바쁘거나 쿨다운 중인 대상을 결과에 busy/cooldown 으로 담고 나머지는 계속 돈다 —
     /// 한 대상이 틱과 겹쳤다고 이미 끝난 대상들의 결과까지 버리지 않는다.
     /// 단건 실행은 미등록 키에 KeyNotFoundException, 진행 중·쿨다운에 InvalidOperationException 을 던진다.
+    /// adjust = 이번 수동 실행에만 대상 설정을 바꾼다(예: PP-002 가 정한 기간) — 키는 바꾸지 않아야 잠금·쿨다운이 같은 대상을 본다.
     /// </summary>
-    public async Task<IReadOnlyList<TResult>> RunNowAsync(string? key, CancellationToken ct)
+    public async Task<IReadOnlyList<TResult>> RunNowAsync(string? key, CancellationToken ct, Func<TTarget, TTarget>? adjust = null)
     {
         var plan    = LoadPlanRecordingFailure();
         var results = new List<TResult>();
@@ -154,12 +155,12 @@ public abstract class ScheduledWorker<TTarget, TResult> : BackgroundService
             if (target is null)
                 throw new KeyNotFoundException($"{Code} 대상 '{key}' 가 없거나 비활성입니다.");
 
-            results.Add(await RunOneAsync(target, ct, manual: true, throwIfBusy: true));
+            results.Add(await RunOneAsync(adjust is null ? target : adjust(target), ct, manual: true, throwIfBusy: true));
             return results;
         }
 
         foreach (var e in plan.Errors) results.Add(RecordConfigError(e));
-        foreach (var t in plan.Targets) results.Add(await RunOneAsync(t, ct, manual: true, throwIfBusy: false));
+        foreach (var t in plan.Targets) results.Add(await RunOneAsync(adjust is null ? t : adjust(t), ct, manual: true, throwIfBusy: false));
         return results;
     }
 
