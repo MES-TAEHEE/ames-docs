@@ -50,7 +50,7 @@
                             AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenCheckBox Name="SpiHideUnreg" TValue="bool" @bind-Value="_fHideUnreg" @bind-Value:after="ApplyFilters" />
             <RadzenLabel Text="@L["PP.SupplyPlanImport.Fld.HideUnregistered"]" Component="SpiHideUnreg" style="cursor:pointer;white-space:nowrap;" />
-            <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
+            <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}/{L["Col.CarType"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
                            Placeholder="@L["PP.SupplyPlanImport.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
@@ -132,6 +132,10 @@ else
                                   TextAlign="TextAlign.Right" Width="100px" />
             <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
                                   Width="130px" />
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="CarType" Title="@L["Col.CarType"].Value"
+                                  Width="100px">
+                <Template Context="r">@if (string.IsNullOrEmpty(r.CarType)) { <span class="dim">—</span> } else { @r.CarType }</Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code" data-item="@(r.ItemExists ? r.ItemNo : null)">@r.ItemNo</span>
@@ -334,7 +338,7 @@ else
         }
     }
 
-    // SO 번호 / 품번·품명 부분일치 + 상태 클라이언트 필터.
+    // SO 번호 / 품번·품명 / 차종 부분일치 + 상태 클라이언트 필터.
     void ApplyFilters()
     {
         IEnumerable<PpRepository.SoRow> q = _rows;
@@ -343,7 +347,8 @@ else
             q = q.Where(r =>
                 (r.SoNumber?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 r.ItemNo.Contains(_fText, StringComparison.OrdinalIgnoreCase) ||
-                (r.ItemName?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false));
+                (r.ItemName?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.CarType?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false));
 
         if (!string.IsNullOrEmpty(_fStatus))
             q = q.Where(r => r.Status == _fStatus);
@@ -496,14 +501,14 @@ else
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(string.Join(",", new[] {
-            L["Col.SoNo"].Value, L["Col.Line"].Value, L["Col.Customer"].Value,
+            L["Col.SoNo"].Value, L["Col.Line"].Value, L["Col.Customer"].Value, L["Col.CarType"].Value,
             L["Col.PartNo"].Value, L["Col.PartName"].Value, L["Col.Order"].Value, L["Col.Ship"].Value,
             L["Col.Requested"].Value, L["Col.Promised"].Value, L["Col.Status"].Value }.Select(Csv)));
 
         foreach (var r in _rows)
         {
             sb.AppendLine(string.Join(",", new[] {
-                r.SoNumber ?? "", r.SoLineNo?.ToString() ?? "", r.CustomerId ?? "",
+                r.SoNumber ?? "", r.SoLineNo?.ToString() ?? "", r.CustomerId ?? "", r.CarType ?? "",
                 r.ItemNo, r.ItemName ?? "", r.OrderQty.ToString("0.###"), r.ShippedQty.ToString("0.###"),
                 r.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "",
                 r.PromisedDate?.ToString("yyyy-MM-dd") ?? "", r.Status ?? "" }.Select(Csv)));

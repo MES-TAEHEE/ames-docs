@@ -56,6 +56,8 @@ public sealed partial class PpRepository
         public string? WoLinkLabel { get; set; }
         /// <summary>화면이 채우는 열 필터용 표시 문구 — 작업 열.</summary>
         public string? ActionLabel { get; set; }
+        /// <summary>품목 마스터 차종(MD_Item.CarType) — PP-002 표시·검색용. 미등록 품번이면 null.</summary>
+        public string? CarType { get; init; }
     }
 
     public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
@@ -389,7 +391,7 @@ public sealed partial class PpRepository
     {
         const string sql = """
             SELECT TOP 100 s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
-                   s.ItemNo, i.ItemName,
+                   s.ItemNo, i.ItemName, i.CarType,
                    ISNULL(s.OrderQty,0)   AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
                    s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
@@ -413,7 +415,7 @@ public sealed partial class PpRepository
     {
         var sql = $$"""
             SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
-                   s.ItemNo, i.ItemName,
+                   s.ItemNo, i.ItemName, i.CarType,
                    ISNULL(s.OrderQty,0)   AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
                    s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
@@ -446,7 +448,7 @@ public sealed partial class PpRepository
     {
         const string sql = """
             SELECT s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
-                   s.ItemNo, i.ItemName,
+                   s.ItemNo, i.ItemName, i.CarType,
                    ISNULL(s.OrderQty,0) AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
                    s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
@@ -2383,7 +2385,8 @@ public sealed partial class PpRepository
         r["OrderDate"] as DateTime?, r["RequestedDeliveryDate"] as DateTime?,
         r["PromisedDate"] as DateTime?, r["Status"] as string,
         r["WoNumber"] as string, r["WoStatus"] as string,
-        (int)r["ItemExists"] == 1, Convert.ToInt32(r["WoCount"]));
+        (int)r["ItemExists"] == 1, Convert.ToInt32(r["WoCount"]))
+    { CarType = r["CarType"] as string };
     private static WoLite MapWoLite(IDataReader r) => new(
         (int)r["WoID"], r["WoNumber"] as string,
         r["ItemNo"] as string ?? "", r["ItemName"] as string,

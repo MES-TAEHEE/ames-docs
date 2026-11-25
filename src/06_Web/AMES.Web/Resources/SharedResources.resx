@@ -9109,7 +9109,7 @@
     <value>SO번호/품번/품명</value>
   </data>
   <data name="PP.SupplyPlanImport.Ph.Search" xml:space="preserve">
-    <value>SO번호/품번/품명</value>
+    <value>SO번호/품번/품명/차종</value>
   </data>
   <data name="WH.Picking.Ph.Part" xml:space="preserve">
     <value>품번/품명</value>

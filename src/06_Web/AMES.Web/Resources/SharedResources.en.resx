@@ -9109,7 +9109,7 @@
     <value>SO No/Part No/Name</value>
   </data>
   <data name="PP.SupplyPlanImport.Ph.Search" xml:space="preserve">
-    <value>SO No/Part No/Name</value>
+    <value>SO No/Part No/Name/Car Type</value>
   </data>
   <data name="WH.Picking.Ph.Part" xml:space="preserve">
     <value>Part No/Name</value>
